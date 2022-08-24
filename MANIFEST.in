@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include renewal_module *.css
+recursive-include renewal_module *.csv
+recursive-include renewal_module *.html
+recursive-include renewal_module *.ico
+recursive-include renewal_module *.js
+recursive-include renewal_module *.json
+recursive-include renewal_module *.md
+recursive-include renewal_module *.png
+recursive-include renewal_module *.py
+recursive-include renewal_module *.svg
+recursive-include renewal_module *.txt
+recursive-exclude renewal_module *.pyc
