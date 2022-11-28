@@ -1,0 +1,83 @@
+{
+ "cards_label": "Elements",
+ "category": "Modules",
+ "charts": [],
+ "creation": "2022-08-24 17:30:55.630107",
+ "developer_mode_only": 0,
+ "disable_user_customization": 0,
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "extends_another_page": 0,
+ "hide_custom": 0,
+ "icon": "tool",
+ "idx": 0,
+ "is_default": 0,
+ "is_standard": 1,
+ "label": "Renewal",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Modules",
+   "link_type": "DocType",
+   "onboard": 0,
+   "only_for": "",
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Module Def",
+   "link_to": "Module Def",
+   "link_type": "DocType",
+   "onboard": 0,
+   "only_for": "",
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Workspace",
+   "link_to": "Workspace",
+   "link_type": "DocType",
+   "onboard": 0,
+   "only_for": "",
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Module Onboarding",
+   "link_to": "Module Onboarding",
+   "link_type": "DocType",
+   "onboard": 0,
+   "only_for": "",
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Block Module",
+   "link_to": "Block Module",
+   "link_type": "DocType",
+   "onboard": 0,
+   "only_for": "",
+   "type": "Link"
+  }
+ ],
+ "modified": "2022-08-25 11:24:02.406854",
+ "modified_by": "Administrator",
+ "module": "Renewal Module",
+ "name": "Renewal",
+ "owner": "Administrator",
+ "pin_to_bottom": 0,
+ "pin_to_top": 0,
+ "shortcuts": [
+  {
+   "doc_view": "",
+   "label": "Renewal List",
+   "link_to": "Renewal List",
+   "type": "DocType"
+  }
+ ]
+}
