@@ -37,13 +37,13 @@ app_license = "MIT"
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
 #Export Fixtures
-fixtures = ["{"dt": "Custom Field", "filters": [
+fixtures = [{"dt": "Custom Field", "filters": [
         [
             "dt", "in", [
                 “Item"
             ]
         ]
-    ]}","Client Script","Property Setter"
+    ]},"Client Script","Property Setter"
 ]
 
 # Home Pages
