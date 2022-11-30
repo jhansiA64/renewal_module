@@ -40,7 +40,7 @@ app_license = "MIT"
 fixtures = [{"dt": "Custom Field", "filters": [
         [
             "name", "in", [
-                "Item-availabality"
+                "Item-availability"
             ]
         ]
     ]},"Client Script","Property Setter"
