@@ -1,0 +1,210 @@
+{
+ "actions": [],
+ "allow_events_in_timeline": 1,
+ "allow_import": 1,
+ "autoname": "naming_series:",
+ "creation": "2022-09-25 23:21:02.556170",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_1",
+  "naming_series",
+  "section_break_3",
+  "subject",
+  "start_date",
+  "rescheduled_date",
+  "end_date",
+  "column_break_5",
+  "status",
+  "start_timing",
+  "rescheduled_time",
+  "end_timing",
+  "section_break_9",
+  "direction",
+  "column_break_11",
+  "popup_reminder_time",
+  "column_break_13",
+  "email_reminder_time",
+  "section_break_15",
+  "related_to",
+  "column_break_17",
+  "name1",
+  "section_break_19",
+  "description",
+  "sales_team_section",
+  "sales_team"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Series",
+   "no_copy": 1,
+   "options": "CL-.YY.-.####",
+   "reqd": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "subject",
+   "fieldtype": "Data",
+   "label": "Subject"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date"
+  },
+  {
+   "depends_on": "eval:doc.status==\"Rescheduled\"",
+   "fieldname": "rescheduled_date",
+   "fieldtype": "Date",
+   "label": "Rescheduled Date"
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date"
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Held\nScheduled\nCancelled"
+  },
+  {
+   "fieldname": "start_timing",
+   "fieldtype": "Time",
+   "label": "Start Timing"
+  },
+  {
+   "depends_on": "eval:doc.status==\"Rescheduled\"",
+   "fieldname": "rescheduled_time",
+   "fieldtype": "Time",
+   "label": "Rescheduled Time"
+  },
+  {
+   "fieldname": "end_timing",
+   "fieldtype": "Time",
+   "label": "End Timing"
+  },
+  {
+   "fieldname": "section_break_9",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "Outbound",
+   "fieldname": "direction",
+   "fieldtype": "Select",
+   "label": "Direction",
+   "options": "Inbound\nOutbound"
+  },
+  {
+   "fieldname": "column_break_11",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "popup_reminder_time",
+   "fieldtype": "Select",
+   "label": "Popup Reminder",
+   "options": "\n5 Minutes Prior\n10 Minutes Prior\n15 Minutes Prior\n30 Minutes Prior\n1 Hour Prior\n2 Hour Prior\n3 Hour Prior\n5 Hour Prior\n1 Day Prior",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_13",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "email_reminder_time",
+   "fieldtype": "Select",
+   "label": "Email Reminder Time",
+   "options": "\n5 Minutes Prior\n10 Minutes Prior\n15 Minutes Prior\n30 Minutes Prior\n1 Hour Prior\n2 Hour Prior\n3 Hour Prior\n5 Hour Prior\n1 Day Prior",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_15",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "related_to",
+   "fieldtype": "Select",
+   "label": "Related To",
+   "options": "\nCustomer\nContact"
+  },
+  {
+   "fieldname": "column_break_17",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "name1",
+   "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
+   "label": "Full Name",
+   "options": "related_to",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_19",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "sales_team_section",
+   "fieldtype": "Section Break",
+   "label": "Sales Team"
+  },
+  {
+   "fieldname": "sales_team",
+   "fieldtype": "Table",
+   "label": "Sales Team",
+   "options": "Sales Team"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2022-11-30 14:27:56.385624",
+ "modified_by": "Administrator",
+ "module": "Renewal Module",
+ "name": "Call List",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "name1,start_date,end_date",
+ "show_name_in_global_search": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "name1",
+ "track_changes": 1,
+ "track_seen": 1
+}
