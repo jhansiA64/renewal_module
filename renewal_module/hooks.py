@@ -39,8 +39,8 @@ app_license = "MIT"
 #Export Fixtures
 fixtures = [{"dt": "Custom Field", "filters": [
         [
-            "dt", "in", [
-                "Item"
+            "name", "in", [
+                "Item-availabality"
             ]
         ]
     ]},"Client Script","Property Setter"
