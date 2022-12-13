@@ -14,9 +14,10 @@
  "fields": [
   {
    "fieldname": "user_name",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "User Name"
+   "label": "User Name",
+   "options": "Contact"
   },
   {
    "fieldname": "mobile_no",
@@ -40,12 +41,13 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2022-12-01 16:18:58.748235",
+ "modified": "2022-12-13 13:13:01.573122",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Renewal Contacts",
  "owner": "Administrator",
  "permissions": [],
  "sort_field": "modified",
- "sort_order": "DESC"
+ "sort_order": "DESC",
+ "states": []
 }
