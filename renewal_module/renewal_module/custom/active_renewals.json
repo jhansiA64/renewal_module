@@ -1,0 +1,35 @@
+{
+ "custom_fields": [],
+ "custom_perms": [],
+ "doctype": "Active Renewals",
+ "links": [],
+ "property_setters": [
+  {
+   "_assign": null,
+   "_comments": null,
+   "_liked_by": null,
+   "_user_tags": null,
+   "creation": "2022-12-27 14:54:43.220166",
+   "default_value": null,
+   "doc_type": "Active Renewals",
+   "docstatus": 0,
+   "doctype_or_field": "DocType",
+   "field_name": null,
+   "idx": 0,
+   "is_system_generated": 0,
+   "modified": "2022-12-27 14:54:43.220166",
+   "modified_by": "Administrator",
+   "module": null,
+   "name": "Active Renewals-main-sort_field",
+   "owner": "Administrator",
+   "parent": null,
+   "parentfield": null,
+   "parenttype": null,
+   "property": "sort_field",
+   "property_type": "Data",
+   "row_name": null,
+   "value": "end_date"
+  }
+ ],
+ "sync_on_migrate": 1
+}

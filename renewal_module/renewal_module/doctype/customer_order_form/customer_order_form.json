@@ -123,8 +123,8 @@
    "fieldtype": "Data",
    "hidden": 1,
    "label": "Title",
-   "print_hide": 1,
-   "unique": 1
+   "no_copy": 1,
+   "print_hide": 1
   },
   {
    "fieldname": "naming_series",
@@ -149,6 +149,7 @@
    "read_only": 1
   },
   {
+   "default": "Draft",
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
@@ -205,7 +206,7 @@
   },
   {
    "fieldname": "contact_display",
-   "fieldtype": "Small Text",
+   "fieldtype": "Data",
    "label": "Contact"
   },
   {
@@ -658,10 +659,11 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2022-11-30 14:35:30.472993",
+ "modified": "2022-12-24 18:33:11.067966",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Customer Order Form",
+ "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
  "permissions": [
   {
@@ -679,6 +681,7 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
+ "states": [],
  "track_changes": 1,
  "track_seen": 1
 }
