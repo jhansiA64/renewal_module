@@ -1,6 +1,7 @@
 {
  "attach_print": 0,
  "channel": "Email",
+ "condition": "",
  "creation": "2022-12-20 23:44:02.882961",
  "days_in_advance": 0,
  "docstatus": 0,
@@ -11,7 +12,7 @@
  "idx": 0,
  "is_standard": 1,
  "message": "<h3>Customer Order Form submitted</h3>\n\n<p>Your COF Stage changed to</p>\n<h4>{{ doc.status }}</h4>\n<p>Account Name:{{doc.customer}}</p>\n<p>COF Name:{{ doc.name }}</p>\n<p>COF Link:<a href=\"{frappe.utils.get_url_to_form(doc.doctype,doc.name)}\">{{ doc.name }}</a></p>\n<p>Sales Person:{{ doc.sales_person }}</p>\n",
- "modified": "2022-12-26 17:42:16.457975",
+ "modified": "2023-01-03 11:34:24.867720",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Customer Order Form",

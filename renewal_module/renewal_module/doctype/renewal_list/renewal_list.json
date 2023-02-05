@@ -13,7 +13,6 @@
   "naming_series",
   "customer_name",
   "sales_user",
-  "sla",
   "product_name",
   "invoice_no",
   "total_quantity",
@@ -23,6 +22,7 @@
   "status",
   "sales_team",
   "domain_name",
+  "sla",
   "total_amount",
   "end_date",
   "item_details_section",
@@ -70,13 +70,11 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "label": "Product Name",
-   "read_only": 1
+   "label": "Product Name"
   },
   {
    "fieldname": "invoice_no",
    "fieldtype": "Data",
-   "hidden": 1,
    "label": "Invoice No"
   },
   {
@@ -127,8 +125,7 @@
    "default": "0",
    "fieldname": "total_amount",
    "fieldtype": "Float",
-   "label": "Total Amount",
-   "read_only": 1
+   "label": "Total Amount"
   },
   {
    "fieldname": "end_date",
@@ -198,10 +195,11 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2022-11-17 12:07:13.646600",
+ "modified": "2023-01-08 00:54:25.962642",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Renewal List",
+ "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
  "permissions": [
   {
@@ -221,5 +219,6 @@
  "show_name_in_global_search": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
+ "states": [],
  "track_changes": 1
 }

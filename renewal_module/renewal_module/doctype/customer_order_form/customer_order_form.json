@@ -19,6 +19,20 @@
   "company_name",
   "customers_purchase_order",
   "quotation_id",
+  "description",
+  "items_section",
+  "items",
+  "section_break_32",
+  "total_quantity",
+  "base_total",
+  "base_net_total",
+  "column_break_36",
+  "total",
+  "net_total",
+  "total_net_weight",
+  "total_taxes_and_charges",
+  "grand_total",
+  "address_contacts_tab",
   "address_details_section",
   "customer_address",
   "address",
@@ -33,6 +47,15 @@
   "company_address_display",
   "customer_group",
   "territory",
+  "contact_details_section",
+  "contact_list",
+  "sales_team",
+  "sales_team_section",
+  "section_break_73",
+  "sales_person",
+  "column_break_75",
+  "team_name",
+  "taxes_tab",
   "currency_and_price_list_section",
   "currency",
   "conversion_rate",
@@ -41,16 +64,6 @@
   "price_list_currency",
   "plc_conversion_rate",
   "ignore_pricing_rule",
-  "items_section",
-  "items",
-  "section_break_32",
-  "total_quantity",
-  "base_total",
-  "base_net_total",
-  "column_break_36",
-  "total",
-  "net_total",
-  "total_net_weight",
   "taxes_and_charges_section",
   "tax_category",
   "column_break_42",
@@ -63,7 +76,6 @@
   "section_break_49",
   "base_total_taxes_and_charges",
   "column_break_51",
-  "total_taxes_and_charges",
   "additional_discount_and_coupon_code_section",
   "coupon_code",
   "referral_sales_partner",
@@ -78,19 +90,10 @@
   "base_in_words",
   "base_rounded_total",
   "column_break_66",
-  "grand_total",
   "rounding_adjustment",
   "rounded_total",
   "in_words",
-  "contact_details_section",
-  "contact_list",
-  "sales_team_section",
-  "sales_team",
-  "section_break_73",
-  "sales_person",
-  "description",
-  "column_break_75",
-  "team_name",
+  "terms_tab",
   "payment_schedule_section",
   "payment_terms_template",
   "payment_schedule",
@@ -180,7 +183,9 @@
    "fieldname": "quotation_id",
    "fieldtype": "Link",
    "label": "Quotation ID",
-   "options": "Quotation"
+   "options": "Quotation",
+   "print_hide": 1,
+   "read_only": 1
   },
   {
    "fieldname": "address_details_section",
@@ -258,6 +263,7 @@
    "options": "Territory"
   },
   {
+   "collapsible": 1,
    "fieldname": "currency_and_price_list_section",
    "fieldtype": "Section Break",
    "label": "Currency and Price List"
@@ -512,8 +518,7 @@
    "fieldname": "grand_total",
    "fieldtype": "Currency",
    "label": "Grand Total",
-   "options": "currency",
-   "read_only": 1
+   "options": "currency"
   },
   {
    "fieldname": "rounding_adjustment",
@@ -526,8 +531,7 @@
    "fieldname": "rounded_total",
    "fieldtype": "Currency",
    "label": "Rounded Total",
-   "options": "currency",
-   "read_only": 1
+   "options": "currency"
   },
   {
    "fieldname": "in_words",
@@ -654,12 +658,27 @@
    "fieldname": "update_auto_repeat_reference",
    "fieldtype": "Data",
    "label": "Update Auto Repeat Reference"
+  },
+  {
+   "fieldname": "address_contacts_tab",
+   "fieldtype": "Tab Break",
+   "label": "Address Contacts"
+  },
+  {
+   "fieldname": "taxes_tab",
+   "fieldtype": "Tab Break",
+   "label": "Taxes"
+  },
+  {
+   "fieldname": "terms_tab",
+   "fieldtype": "Tab Break",
+   "label": "Terms"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2022-12-24 18:33:11.067966",
+ "modified": "2023-01-23 12:06:04.579468",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Customer Order Form",
