@@ -40,7 +40,7 @@ app_license = "MIT"
 fixtures = [{"dt": "Custom Field", "filters": [
         [
             "name", "in", [
-                "Item-availability","Sales Invoice-workflow_state"
+                "Item-availability","Sales Invoice-workflow_state", "Opportunity Item-orc"
 
             ]
         ]
