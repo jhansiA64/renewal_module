@@ -43,7 +43,9 @@ fixtures = [{"dt": "Custom Field", "filters": [
                 "Item-availability","Sales Invoice-workflow_state", "Opportunity Item-orc","Opportunity Item-column_break_aeclv",
 "Opportunity Item-rate_value",
 "Opportunity Item-commission_type",
-"Opportunity Item-commission_section"
+"Opportunity Item-commission_section",
+"Customer-email_details","Customer-mx_record","Customer-email_service_provider","Customer-column_break_4bkbp","Quotation Item-renewal_id","Customer Order Form Item-renewal_id","Sales Invoice Item-renewal_id","Renewal Item-status"
+
 
             ]
         ]

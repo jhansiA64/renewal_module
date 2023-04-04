@@ -359,7 +359,7 @@
    "name": "Sales Order Item-renewal_status",
    "no_copy": 0,
    "non_negative": 0,
-   "options": "New\nRenewal\nAdditional",
+   "options": "New\nRenewal\nAdditional\nMonthly Usage",
    "owner": "Administrator",
    "parent": null,
    "parentfield": null,

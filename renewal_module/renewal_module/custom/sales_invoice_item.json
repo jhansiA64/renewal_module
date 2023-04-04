@@ -422,7 +422,7 @@
    "name": "Sales Invoice Item-newadd",
    "no_copy": 0,
    "non_negative": 0,
-   "options": "New\nAdditional\nRenewal",
+   "options": "New\nAdditional\nRenewal\nMonthly Usage",
    "owner": "Administrator",
    "parent": null,
    "parentfield": null,
