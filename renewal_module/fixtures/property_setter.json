@@ -2369,22 +2369,6 @@
  },
  {
   "default_value": null,
-  "doc_type": "Issue",
-  "docstatus": 0,
-  "doctype": "Property Setter",
-  "doctype_or_field": "DocType",
-  "field_name": null,
-  "is_system_generated": 0,
-  "modified": "2023-03-16 11:54:46.682317",
-  "module": null,
-  "name": "Issue-main-links_order",
-  "property": "links_order",
-  "property_type": "Small Text",
-  "row_name": null,
-  "value": "[\"46df5a16fd\"]"
- },
- {
-  "default_value": null,
   "doc_type": "Purchase Invoice",
   "docstatus": 0,
   "doctype": "Property Setter",
@@ -4718,5 +4702,21 @@
   "property_type": "Small Text",
   "row_name": null,
   "value": "[\"c64da42d8f\"]"
+ },
+ {
+  "default_value": null,
+  "doc_type": "Issue",
+  "docstatus": 0,
+  "doctype": "Property Setter",
+  "doctype_or_field": "DocType",
+  "field_name": null,
+  "is_system_generated": 0,
+  "modified": "2023-04-05 10:52:16.264347",
+  "module": null,
+  "name": "Issue-main-links_order",
+  "property": "links_order",
+  "property_type": "Small Text",
+  "row_name": null,
+  "value": "[\"46df5a16fd\"]"
  }
 ]
