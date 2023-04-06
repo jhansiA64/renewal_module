@@ -49,7 +49,7 @@ fixtures = [{"dt": "Custom Field", "filters": [
 
             ]
         ]
-    ]},"Client Script","Property Setter"
+    ]},"Server Script","Client Script","Property Setter"
 ]
 
 # Home Pages
