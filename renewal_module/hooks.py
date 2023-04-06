@@ -37,18 +37,27 @@ app_license = "MIT"
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
 #Export Fixtures
-fixtures = [{"dt": "Custom Field", "filters": [
-        [
-            "name", "in", [
-                "Item-availability","Sales Invoice-workflow_state", "Opportunity Item-orc","Opportunity Item-column_break_aeclv",
+fixtures = [{"dt": "Custom Field", "filters": [["name", "in", [
+"Item-availability",
+"Customer-email_details",
+"Customer-mx_record",
+"Customer-email_service_provider",
+"Customer-column_break_4bkbp",
+"Customer Order Form Item-renewal_id",
+"Opportunity Item-orc",
+"Opportunity Item-column_break_aeclv",
 "Opportunity Item-rate_value",
 "Opportunity Item-commission_type",
 "Opportunity Item-commission_section",
-"Customer-email_details","Customer-mx_record","Customer-email_service_provider","Customer-column_break_4bkbp","Quotation Item-renewal_id","Customer Order Form Item-renewal_id","Sales Invoice Item-renewal_id","Renewal Item-status"
-
-
-            ]
-        ]
+"Quotation Item-renewal_id",
+"Quotation Item-start_date",
+"Quotation Item-end_date",
+"Quotation Item-renewal_status",
+"Quotation Item-tax_rate",
+"Renewal Item-status",
+"Sales Invoice Item-renewal_id",
+"Sales Invoice-workflow_state"
+        ]]
     ]},"Server Script","Client Script","Property Setter"
 ]
 
