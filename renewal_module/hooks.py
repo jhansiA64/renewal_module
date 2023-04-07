@@ -49,6 +49,7 @@ fixtures = [{"dt": "Custom Field", "filters": [["name", "in", [
 "Opportunity Item-rate_value",
 "Opportunity Item-commission_type",
 "Opportunity Item-commission_section",
+"Quotation-billing_address_gstin","Quotation-customer_gstin",
 "Quotation Item-renewal_id",
 "Quotation Item-start_date",
 "Quotation Item-end_date",
