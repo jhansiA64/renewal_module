@@ -1,0 +1,67 @@
+{
+ "charts": [],
+ "content": "[{\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Renewal Module</span>\",\"col\":12}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Renewal\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Call List\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Customer Order Form\",\"col\":3}},{\"type\":\"card\",\"data\":{\"card_name\":\"Renewal Doctype\",\"col\":4}}]",
+ "creation": "2022-12-03 15:13:07.250823",
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "crm",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Renewal Module",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Renewal Doctype",
+   "link_count": 1,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Renewal List",
+   "link_count": 0,
+   "link_to": "Renewal List",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2023-04-05 11:10:34.195710",
+ "modified_by": "Administrator",
+ "module": "Renewal Module",
+ "name": "Renewal Module",
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 5.0,
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Call List",
+   "link_to": "Call List",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Renewal",
+   "link_to": "Renewal List",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Customer Order Form",
+   "link_to": "Customer Order Form",
+   "type": "DocType"
+  }
+ ],
+ "title": "Renewal Module"
+}
