@@ -113,7 +113,7 @@ fixtures = [{"dt": "Custom Field", "filters": [["name", "in", [
 # ---------------
 # Override standard doctype classes
 #override_doctype_class = {
-#	"Quotation": "renewal_module.custom_doc.custom_quo.Custom_quotation"
+#	"Notification": "renewal_module.overrides.cust_nofitication.Cust_Notification"
 #}
 # override_doctype_class = {
 # 	"ToDo": "custom_app.overrides.CustomToDo"
