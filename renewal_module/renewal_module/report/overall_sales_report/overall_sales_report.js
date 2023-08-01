@@ -2,9 +2,9 @@
 // For license information, please see license.txt
 /* eslint-disable */
 
-frappe.query_reports["Sales Person Opportunity Status"] = {
+frappe.query_reports["Overall Sales Report"] = {
 	"filters": [
-        {
+		{
 			"fieldname":"company",
 			"label": __("Company"),
 			"fieldtype": "Link",
@@ -31,7 +31,8 @@ frappe.query_reports["Sales Person Opportunity Status"] = {
 			"label": __("Item Code"),
 			"fieldtype": "Link",
 			"options": "Item"
-		},{
+		},
+		{
 			"fieldname":"item_group",
 			"label": __("Item Group"),
 			"fieldtype": "MultiSelectList",
@@ -53,20 +54,31 @@ frappe.query_reports["Sales Person Opportunity Status"] = {
 			
 			
 		},
+	
 		{
-			"fieldname":"opportunity_id",
-			"label": __("Opportunity ID"),
+			"fieldname":"sales_order",
+			"label": __("Sales Order"),
 			"fieldtype": "Link",
-			"options": "Opportunity"
+			"options": "Sales Order"
 		},
 		
 		{
-			"fieldname":"party_name",
-			"label": __("Party"),
+			"fieldname":"customer",
+			"label": __("Customer"),
 			"fieldtype": "MultiSelectList",
 			"options": "Customer",
                         get_data: function(txt) {
 				return frappe.db.get_link_options('Customer', txt);
+			},	 
+
+		},
+		{
+			"fieldname":"supplier",
+			"label": __("Supplier"),
+			"fieldtype": "MultiSelectList",
+			"options": "Supplier",
+                        get_data: function(txt) {
+				return frappe.db.get_link_options('Supplier', txt);
 			},	 
 
 		},
@@ -78,45 +90,8 @@ frappe.query_reports["Sales Person Opportunity Status"] = {
                         get_data: function(txt) {
 				return frappe.db.get_link_options('Sales Person', txt);
 			},
-		},
-		{
-			"fieldname":"opportunity_type",
-			"label": __("Opportunity Type"),
-			"fieldtype": "MultiSelectList",
-			get_data: function() {
-				return [
-					{ "value": "New", "description": "Opportunity Type" },
-					{ "value": "Renewal", "description": "Opportunity Type" },
-					{ "value": "Additional", "description": "Opportunity Type" }
-					
-				]
-			}
-		},
-		{	"fieldname":"sales_stage",
-			"label": __("Sales Stage"),
-			"fieldtype": "MultiSelectList",
-			"options": "Sales Stage",
-			get_data: function(txt) {
-				return frappe.db.get_link_options('Sales Stage', txt);
-			},
-			
-		},
+		}
 
-	],
 
-	// "formatter": function (value, row, column, data, default_formatter) {
-	// 	value = default_formatter(value, row, column, data);
-
-	// 	// if (column.fieldname.includes('variance')) {
-
-	// 		if (data[column.fieldname] < 0) {
-	// 			value = "<span style='color:red'>" + value + "</span>";
-	// 		}
-	// 		else if (data[column.fieldname] > 0) {
-	// 			value = "<span style='color:green'>" + value + "</span>";
-	// 		}
-	// 	// }
-
-	// 	return value;
-	// }
+	]
 };

@@ -2,9 +2,9 @@
 // For license information, please see license.txt
 /* eslint-disable */
 
-frappe.query_reports["Sales Person Opportunity Status"] = {
+frappe.query_reports["Opportunity Expected Date"] = {
 	"filters": [
-        {
+		{
 			"fieldname":"company",
 			"label": __("Company"),
 			"fieldtype": "Link",
@@ -16,14 +16,14 @@ frappe.query_reports["Sales Person Opportunity Status"] = {
 			"fieldname":"from_date",
 			"label": __("From Date"),
 			"fieldtype": "Date",
-			"default": frappe.datetime.add_days(frappe.datetime.get_today(), -7),
+			"default": frappe.datetime.get_today(),
 			"reqd": 1
 		},
 		{
 			"fieldname":"to_date",
 			"label": __("To Date"),
 			"fieldtype": "Date",
-			"default": frappe.datetime.get_today(),
+			"default": frappe.datetime.add_days(frappe.datetime.get_today(), 7),
 			"reqd": 1
 		},
 		{
@@ -100,23 +100,7 @@ frappe.query_reports["Sales Person Opportunity Status"] = {
 				return frappe.db.get_link_options('Sales Stage', txt);
 			},
 			
-		},
+		}
 
-	],
-
-	// "formatter": function (value, row, column, data, default_formatter) {
-	// 	value = default_formatter(value, row, column, data);
-
-	// 	// if (column.fieldname.includes('variance')) {
-
-	// 		if (data[column.fieldname] < 0) {
-	// 			value = "<span style='color:red'>" + value + "</span>";
-	// 		}
-	// 		else if (data[column.fieldname] > 0) {
-	// 			value = "<span style='color:green'>" + value + "</span>";
-	// 		}
-	// 	// }
-
-	// 	return value;
-	// }
+	]
 };

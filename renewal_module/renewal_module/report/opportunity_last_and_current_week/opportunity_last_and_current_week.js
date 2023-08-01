@@ -2,9 +2,9 @@
 // For license information, please see license.txt
 /* eslint-disable */
 
-frappe.query_reports["Sales Person Opportunity Status"] = {
+frappe.query_reports["Opportunity Last And Current Week"] = {
 	"filters": [
-        {
+		{
 			"fieldname":"company",
 			"label": __("Company"),
 			"fieldtype": "Link",
@@ -100,23 +100,7 @@ frappe.query_reports["Sales Person Opportunity Status"] = {
 				return frappe.db.get_link_options('Sales Stage', txt);
 			},
 			
-		},
+		}
 
-	],
-
-	// "formatter": function (value, row, column, data, default_formatter) {
-	// 	value = default_formatter(value, row, column, data);
-
-	// 	// if (column.fieldname.includes('variance')) {
-
-	// 		if (data[column.fieldname] < 0) {
-	// 			value = "<span style='color:red'>" + value + "</span>";
-	// 		}
-	// 		else if (data[column.fieldname] > 0) {
-	// 			value = "<span style='color:green'>" + value + "</span>";
-	// 		}
-	// 	// }
-
-	// 	return value;
-	// }
+	]
 };

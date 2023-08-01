@@ -5,24 +5,37 @@
 
 import frappe
 from frappe import _
-
+# import datetime # from python std library
+from frappe.utils import ( datetime, add_days )
 
 
 def execute(filters=None):
-	columns, data = get_columns(), get_data(filters)
+	start_date1 = filters.get("to_date")
+	start_date2 = filters.get("from_date")
+	before_date = datetime.add_days(start_date2, days=-7)
+	end_date = datetime.add_days(start_date, days=7, as_string=True)
+	# end_date = datetime.add_days(start_date, 7)
+	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(start_date1)))
+	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(end_date)))
+
+
+	columns, data = get_columns(), get_data(filters, before_date, start_date2)
+	
+	current_week = get_data(filters, start_date1, end_date )
 
 	currency = filters.presentation_currency or frappe.get_cached_value(
 		"Company", filters.company, "default_currency"
 	)
 
-	# report_summary = get_report_summary(filters,columns, currency, data)
-	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(report_summary)))
+	report_summary = get_report_summary(filters,columns, currency, data)
+	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(current_week)))
 
+	
 	chart = get_chart_data(filters, columns, data)
 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(chart)))
 	
 	
-	return columns, data, None, chart
+	return columns, current_week , None, chart, report_summary
 
 
 def get_columns():
@@ -119,7 +132,7 @@ def get_columns():
 	return columns
 
 
-def get_data(filters):
+def get_data(filters, date1, date2):
 	return frappe.db.sql(
 		"""
 		SELECT
@@ -141,7 +154,7 @@ def get_data(filters):
 			{join}
 		WHERE
 			`tabOpportunity`.company = %(company)s
-			AND DATE(`tabOpportunity`.modified) BETWEEN %(from_date)s AND %(to_date)s
+			AND DATE(`tabOpportunity Item`.expected_date) BETWEEN %(date1)s AND %(date2)s
 			{conditions}
 		
 		ORDER BY
@@ -199,126 +212,82 @@ def get_join(filters):
 
 	return join
 
-# def get_report_summary(filters,columns, currency, data):
-# 	new,new_total, renewal, renewal_total = 0,0, 0, 0
-	
-# 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(new)))
-# 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(data)))
+def get_report_summary(filters,columns, currency, current_week):
+	new,new_total, renewal, renewal_total = 0,0, 0, 0
+	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(start_date)))
+	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(data)))
 
 
-# 	# from consolidated financial statement
-# 	# if filters.get("accumulated_in_group_company"):
-# 	# 	period_list = get_data(filters, period_list)
+	# from consolidated financial statement
+	# if filters.get("accumulated_in_group_company"):
+	# 	period_list = get_data(filters, period_list)
 
-# 	for period in data:
+	for period in current_week:
 		
-# 		if period.sales_stage == "Closed Won" and period.opportunity_type in ["New", "Additional"] :
-# 			new += 1
-# 		if period.sales_stage  and period.opportunity_type in ["New", "Additional"]:
-# 			new_total += 1	
-# 		if period.sales_stage == "Closed Won" and period.opportunity_type == "Renewal" :
-# 			renewal += 1
-# 		if period.sales_stage  and period.opportunity_type =="Renewal":
-# 			renewal_total += 1		
+		if period.sales_stage == "Closed Won" and period.opportunity_type in ["New", "Additional"] :
+			new += 1
+		if period.sales_stage  and period.opportunity_type in ["New", "Additional"]:
+			new_total += 1	
+		if period.sales_stage == "Closed Won" and period.opportunity_type == "Renewal" :
+			renewal += 1
+		if period.sales_stage  and period.opportunity_type =="Renewal":
+			renewal_total += 1		
 		
 
-# 	# if len(data) >= 1 :
-# 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(new_total)))
-# 	new_label = ("New")
-# 	new_total_label = _("Total")
-# 	renewal_label = _("Renewal")
-# 	# renewal_total_label = _("Closed Won")
-# 	# else:
-# 	# 	profit_label = _("Net Profit")
-# 	# 	income_label = _("Total Income")
-# 	# 	expense_label = _("Total Expense")
+	# if len(data) >= 1 :
+	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(new_total)))
+	new_label = ("New(Last Week)")
+	renewal_label = _("Renewal(Last Week)")
+	# renewal_total_label = _("Closed Won")
+	# else:
+	# 	profit_label = _("Net Profit")
+	# 	income_label = _("Total Income")
+	# 	expense_label = _("Total Expense")
 
-# 	return [
-# 		{"value": str(new)+ "/" + str(new_total),"indicator": "Green", "label": new_label, "datatype": "Data"},
+	return [
+		{"value": str(new)+ "/" + str(new_total),"indicator": "Green", "label": new_label, "datatype": "Data"},
 		
-# 		{"value":str(renewal)+ "/" + str(renewal_total),"indicator": "Blue", "label": renewal_label, "datatype": "Data"},
+		{"value":str(renewal)+ "/" + str(renewal_total),"indicator": "Blue", "label": renewal_label, "datatype": "Data"},
 		
-# 	]
+	]
+
+
 
 def get_chart_data(filters, columns, data):
-	prospecting , proposal_price_quote, negotiation_review , closed_lost, closed_won, dead = 0.0, 0.0, 0.0, 0.0, 0.0,0.0
-	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(data)))
 	
-	# labels = ["prospecting" , "proposal_price_quote", "negotiation_review" , "closed_lost", "closed_won", "dead"]	
-	labels = ["Sales Stage"]
+	
+	labels = ["New", "Total"]
+
+	status_list = {
+		"total": 0,
+		"new" : 0
+
+	}
 
 	for p in data:
 		# frappe.msgprint(p)
-		if p.sales_stage == "Prospecting":
-			prospecting += p.amount
-		if p.sales_stage == "Proposal/Price Quote":
-			proposal_price_quote += p.amount
-		if p.sales_stage == "Negotiation/Review":
-			negotiation_review += p.amount
-		if p.sales_stage == "Closed Lost":
-			closed_lost += p.amount
-		if p.sales_stage == "Closed Won":
-			closed_won += p.amount	
-		if p.sales_stage == "Dead":
-			dead += p.amount			
+		if p.sales_stage == "Closed Won" and p.opportunity_type in ["New", "Additional"] :
+			status_list["new"] += 1
+		if p.sales_stage and p.opportunity_type in ["New", "Additional"] :
+		    status_list["total"] += 1
+					
 		
 
-	datasets = [{"name":"Prospecting","values":[0.0]},
-	{"name":"Proposal/Price Quote", "values":[0.0]},{"name":"Negotiation/Review","values":[0.0]},
-	{"name":"Closed Lost","values":[0.0]},{"name":"Closed Won","values":[0.0]},{"name":"Dead", "values":[0.0]}
-	]
+		
+	datasets = []
 	
-	if prospecting:
-		datasets[0]["values"] = [prospecting]
-	if proposal_price_quote:
-		datasets[1]["values"] = [proposal_price_quote]
-	if negotiation_review:
-		datasets[2]["values"] = [negotiation_review]
-	if closed_lost:
-		datasets[3]["values"]= [closed_lost]
-	if closed_won:
-		datasets[4]["values"] = [closed_won]
-	if dead:
-		datasets[5]["values"] = [dead]
-
-	# datasets = []
-
-	# if prospecting:
-	# 	datasets.append({"name": _("Prospecting"), "values": [prospecting]})
-	# if proposal_price_quote:
-	# 	datasets.append({"name": _("Proposal/Price Quote"), "values": [proposal_price_quote] })
-	# if negotiation_review:
-	# 	datasets.append({"name": _("Negotiation/Review"), "values": [negotiation_review]})
-	# if closed_lost:
-	# 	datasets.append({"name": _("Closed Lost"), "values": [closed_lost]})
-	# if closed_won:
-	# 	datasets.append({"name": _("Closed Won"), "values": [closed_won]})
-	# if dead:
-	# 	datasets.append({"name": _("Dead"), "values": [dead]})		
-
-	
-	# if not filters.accumulated_values:
-	# 	chart["type"] = "bar"
-	
-	# else:
-	# 	chart["type"] = "bar"
-	# 'colors':["#FBC543","#0087AC", "#00A88F", "#9C2162", "#82C272", "#D03454"],
-
-	# chart["fieldtype"] = "Currency"
-	
+	datasets.append({"name":"Status", "values":[status_list.get("new"),status_list.get("total")]})
 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(datasets)))
 
 	return {
-        'title':"Chart Based On Sales Stage",
+        'title':"Renewal Status",
         'data':{
             'labels':labels,
             'datasets':datasets
         },
-        'type':'bar',
+        'type':'pie',
         'height':300,
 		'fieldtype':'Currency',
-		'colors':["#FBC543","#0087AC", "#00A88F", "#9C2162", "#82C272", "#D03454"],
+		'colors':["#AF4BCE", "#DB4CB2"],
     }
-
-
 
