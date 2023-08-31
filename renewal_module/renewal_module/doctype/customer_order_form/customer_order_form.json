@@ -314,6 +314,7 @@
    "fieldtype": "Section Break"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "items",
    "fieldtype": "Table",
    "label": "Items",
@@ -683,7 +684,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-02-20 15:02:12.346720",
+ "modified": "2023-08-19 11:41:55.953219",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Customer Order Form",

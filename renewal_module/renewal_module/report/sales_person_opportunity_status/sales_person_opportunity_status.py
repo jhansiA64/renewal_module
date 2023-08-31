@@ -9,7 +9,19 @@ from frappe import _
 
 def execute(filters=None):
 	columns, data = get_columns(), get_data(filters)
-	return columns, data
+
+	currency = filters.presentation_currency or frappe.get_cached_value(
+		"Company", filters.company, "default_currency"
+	)
+
+	#report_summary = get_report_summary(filters,columns, currency, data)
+	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(report_summary)))
+
+	chart = get_chart_data(filters, columns, data)
+	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(chart)))
+	
+	
+	return columns, data, None, chart
 
 
 def get_columns():
@@ -178,3 +190,162 @@ def get_join(filters):
 	# 	)
 
 	return join
+
+def get_chart_data(filters, columns, data):
+	prospecting , proposal_price_quote, negotiation_review , closed_lost, closed_won, dead = 0.0, 0.0, 0.0, 0.0, 0.0,0.0
+	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(data)))
+	
+	# labels = ["prospecting" , "proposal_price_quote", "negotiation_review" , "closed_lost", "closed_won", "dead"]	
+	labels = ["Sales Stage"]
+
+	for p in data:
+		# frappe.msgprint(p)
+		if p.sales_stage == "Prospecting":
+			prospecting += p.amount
+		if p.sales_stage == "Proposal/Price Quote":
+			proposal_price_quote += p.amount
+		if p.sales_stage == "Negotiation/Review":
+			negotiation_review += p.amount
+		if p.sales_stage == "Closed Lost":
+			closed_lost += p.amount
+		if p.sales_stage == "Closed Won":
+			closed_won += p.amount	
+		if p.sales_stage == "Dead":
+			dead += p.amount			
+		
+
+	datasets = [{"name":"Prospecting","values":[0.0]},
+	{"name":"Proposal/Price Quote", "values":[0.0]},{"name":"Negotiation/Review","values":[0.0]},
+	{"name":"Closed Lost","values":[0.0]},{"name":"Closed Won","values":[0.0]},{"name":"Dead", "values":[0.0]}
+	]
+	
+	if prospecting:
+		datasets[0]["values"] = [prospecting]
+	if proposal_price_quote:
+		datasets[1]["values"] = [proposal_price_quote]
+	if negotiation_review:
+		datasets[2]["values"] = [negotiation_review]
+	if closed_lost:
+		datasets[3]["values"]= [closed_lost]
+	if closed_won:
+		datasets[4]["values"] = [closed_won]
+	if dead:
+		datasets[5]["values"] = [dead]
+
+	# datasets = []
+
+	# if prospecting:
+	# 	datasets.append({"name": _("Prospecting"), "values": [prospecting]})
+	# if proposal_price_quote:
+	# 	datasets.append({"name": _("Proposal/Price Quote"), "values": [proposal_price_quote] })
+	# if negotiation_review:
+	# 	datasets.append({"name": _("Negotiation/Review"), "values": [negotiation_review]})
+	# if closed_lost:
+	# 	datasets.append({"name": _("Closed Lost"), "values": [closed_lost]})
+	# if closed_won:
+	# 	datasets.append({"name": _("Closed Won"), "values": [closed_won]})
+	# if dead:
+	# 	datasets.append({"name": _("Dead"), "values": [dead]})		
+
+	
+	# if not filters.accumulated_values:
+	# 	chart["type"] = "bar"
+	# else:
+	# 	chart["type"] = "bar"
+	# 'colors':["#FBC543","#0087AC", "#00A88F", "#9C2162", "#82C272", "#D03454"],
+
+	# chart["fieldtype"] = "Currency"
+	
+	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(datasets)))
+
+	return {
+        'title':"Script Chart Tutorial : Days since the user's database record was created",
+        'data':{
+            'labels':labels,
+            'datasets':datasets
+        },
+        'type':'bar',
+        'height':300,
+		'fieldtype':'Currency',
+		'colors':["#FBC543","#0087AC", "#00A88F", "#9C2162", "#82C272", "#D03454"],
+    }
+
+def get_chart_data(filters, columns, data):
+	prospecting , proposal_price_quote, negotiation_review , closed_lost, closed_won, dead = 0.0, 0.0, 0.0, 0.0, 0.0,0.0
+	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(data)))
+	
+	# labels = ["prospecting" , "proposal_price_quote", "negotiation_review" , "closed_lost", "closed_won", "dead"]	
+	labels = ["Sales Stage"]
+
+	for p in data:
+		# frappe.msgprint(p)
+		if p.sales_stage == "Prospecting":
+			prospecting += p.amount
+		if p.sales_stage == "Proposal/Price Quote":
+			proposal_price_quote += p.amount
+		if p.sales_stage == "Negotiation/Review":
+			negotiation_review += p.amount
+		if p.sales_stage == "Closed Lost":
+			closed_lost += p.amount
+		if p.sales_stage == "Closed Won":
+			closed_won += p.amount	
+		if p.sales_stage == "Dead":
+			dead += p.amount			
+		
+
+	datasets = [{"name":"Prospecting","values":[0.0]},
+	{"name":"Proposal/Price Quote", "values":[0.0]},{"name":"Negotiation/Review","values":[0.0]},
+	{"name":"Closed Lost","values":[0.0]},{"name":"Closed Won","values":[0.0]},{"name":"Dead", "values":[0.0]}
+	]
+	
+	if prospecting:
+		datasets[0]["values"] = [prospecting]
+	if proposal_price_quote:
+		datasets[1]["values"] = [proposal_price_quote]
+	if negotiation_review:
+		datasets[2]["values"] = [negotiation_review]
+	if closed_lost:
+		datasets[3]["values"]= [closed_lost]
+	if closed_won:
+		datasets[4]["values"] = [closed_won]
+	if dead:
+		datasets[5]["values"] = [dead]
+
+	# datasets = []
+
+	# if prospecting:
+	# 	datasets.append({"name": _("Prospecting"), "values": [prospecting]})
+	# if proposal_price_quote:
+	# 	datasets.append({"name": _("Proposal/Price Quote"), "values": [proposal_price_quote] })
+	# if negotiation_review:
+	# 	datasets.append({"name": _("Negotiation/Review"), "values": [negotiation_review]})
+	# if closed_lost:
+	# 	datasets.append({"name": _("Closed Lost"), "values": [closed_lost]})
+	# if closed_won:
+	# 	datasets.append({"name": _("Closed Won"), "values": [closed_won]})
+	# if dead:
+	# 	datasets.append({"name": _("Dead"), "values": [dead]})		
+
+	
+	# if not filters.accumulated_values:
+	# 	chart["type"] = "bar"
+	# else:
+	# 	chart["type"] = "bar"
+	# 'colors':["#FBC543","#0087AC", "#00A88F", "#9C2162", "#82C272", "#D03454"],
+
+	# chart["fieldtype"] = "Currency"
+	
+	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(datasets)))
+
+	return {
+        'title':"Script Chart Tutorial : Days since the user's database record was created",
+        'data':{
+            'labels':labels,
+            'datasets':datasets
+        },
+        'type':'bar',
+        'height':300,
+		'fieldtype':'Currency',
+		'colors':["#FBC543","#0087AC", "#00A88F", "#9C2162", "#82C272", "#D03454"],
+    }
+
