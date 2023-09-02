@@ -65,7 +65,7 @@ def get_columns():
 		{
 			"label": _("End Date"),
 			"fieldname": "end_date",
-			"fieldtype": "Data",
+			"fieldtype": "Date",
 			"width": 150,
 		},
 		{
@@ -82,6 +82,13 @@ def get_columns():
 		    "fieldtype": "Data",
 		    
 			"width":100
+		},
+		{
+			"label": _("Invoice No"),
+			"fieldname": "invoice_no",
+			"fieldtype": "Link",
+			"options": "Sales Invoice",
+			"width": 160,
 		},
 		
 				
@@ -107,7 +114,7 @@ def get_data(filters):
 			`tabRenewal Item`.item_code,
 			`tabRenewal List`.product_name,
 			`tabRenewal List`.total_quantity,
-			
+			`tabRenewal List`.invoice_no,
 			`tabRenewal List`.end_date,
 			`tabRenewal List`.sales_user
             

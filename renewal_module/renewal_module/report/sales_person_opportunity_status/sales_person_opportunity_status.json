@@ -10,7 +10,7 @@
  "idx": 0,
  "is_standard": "Yes",
  "letter_head": "quotation-footer",
- "modified": "2023-05-29 11:19:09.027599",
+ "modified": "2023-08-08 10:55:19.267325",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Sales Person Opportunity Status",
@@ -22,6 +22,12 @@
  "roles": [
   {
    "role": "System Manager"
+  },
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "Sales Manager"
   }
  ]
 }

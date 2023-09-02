@@ -69,5 +69,30 @@ frappe.query_reports["Renewal Report Status"] = {
 
 
 
-	]
+	],
+	// "formatter": function (value, row, column, data, default_formatter) {
+	// 	value = default_formatter(value, row, column, data);
+
+	// 	if (column.id == "status"){
+	// 		if (data['status'].includes("(Lost)")){{
+	// 			value = `<span style='color:green';>${data['status']} </span>`;
+	// 		}
+	// 		else{
+	// 			value = `<span style='color:#ff8c00';>${data['status']} </span>`;
+	// 		}
+	// 	}
+
+		// if (column.fieldname.includes('status')) {
+
+		// 	if (data[column.fieldname] = "Lost") {
+		// 		value = "<span style='color:red'>" + value + "</span>";
+		// 	}
+		// 	else {
+		// 		value = "<span style='color:green'>" + value + "</span>";
+		// 	}
+		// }
+		
+
+	// 	return value;
+	// }
 };

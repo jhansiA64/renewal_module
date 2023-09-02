@@ -10,7 +10,7 @@
  "idx": 0,
  "is_standard": "Yes",
  "letter_head": "quotation-footer",
- "modified": "2023-07-31 12:39:25.917402",
+ "modified": "2023-08-08 10:47:35.369927",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Overall Sales Report",
@@ -20,6 +20,9 @@
  "report_name": "Overall Sales Report",
  "report_type": "Script Report",
  "roles": [
+  {
+   "role": "Geetha - Sales Manager"
+  },
   {
    "role": "Maintenance User"
   },
@@ -31,6 +34,12 @@
   },
   {
    "role": "Accounts Manager"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Sales User"
   }
  ]
 }

@@ -31,7 +31,8 @@ frappe.query_reports["Sales Person Opportunity Status"] = {
 			"label": __("Item Code"),
 			"fieldtype": "Link",
 			"options": "Item"
-		},{
+		},
+		{
 			"fieldname":"item_group",
 			"label": __("Item Group"),
 			"fieldtype": "MultiSelectList",

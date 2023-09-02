@@ -90,6 +90,14 @@ frappe.query_reports["Overall Sales Report"] = {
                         get_data: function(txt) {
 				return frappe.db.get_link_options('Sales Person', txt);
 			},
+			
+		},
+		{
+			"fieldname":"user",
+			"label": __("User"),
+			"fieldtype": "Data",
+			"default": frappe.user_info().fullname,
+			"reqd": 0
 		}
 
 

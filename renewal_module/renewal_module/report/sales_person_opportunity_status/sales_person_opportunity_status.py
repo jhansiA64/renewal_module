@@ -141,7 +141,7 @@ def get_data(filters):
 			{join}
 		WHERE
 			`tabOpportunity`.company = %(company)s
-			AND DATE(`tabOpportunity`.modified) BETWEEN %(from_date)s AND %(to_date)s
+			AND DATE(`tabOpportunity`.creation) BETWEEN %(from_date)s AND %(to_date)s
 			{conditions}
 		
 		ORDER BY

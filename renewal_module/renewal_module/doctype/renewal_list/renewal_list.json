@@ -108,7 +108,7 @@
    "in_global_search": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "New Opp\nActive\nAwaiting Response\nCofed\nDuplicate\nRenewed\nUpgraded\nVoid\nLost\nCancelled\nCompetitor Sales\nAuto Created\nOut Of Business\nProduct Changed"
+   "options": "New Opp\nActive\nDraft\nAwaiting Response\nCofed\nDuplicate\nRenewed\nUpgraded\nVoid\nLost\nCancelled\nCompetitor Sales\nAuto Created\nOut Of Business\nProduct Changed"
   },
   {
    "fieldname": "sales_user",
@@ -195,7 +195,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-06-07 15:17:10.186839",
+ "modified": "2023-08-07 12:41:27.629360",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Renewal List",
