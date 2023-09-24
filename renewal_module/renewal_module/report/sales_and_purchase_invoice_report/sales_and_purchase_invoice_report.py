@@ -182,10 +182,36 @@ def get_data(filters):
 			tsii.start_date as s_date,
 			tsii.end_date as e_date,
 			(SELECT year_end_date from `tabFiscal Year` tfy WHERE auto_created = 1) as year_end_date,
-			(CASE when tpii.qty IS NULL  then 0 
-			else tpii.qty END )as purchase_qty ,
-			(CASE when tpii.rate IS NULL  then 0 
-			else tpii.net_rate END )as purchase_rate,
+			(CASE when tsii.item_group  IN ("Email Solutions" ,"Antispam") then
+				CASE 
+					When tsii.payment_cycle = "Monthly" THEN 
+						CASE 
+							When tpoi.payment_cycle = "Half Yearly" Then ROUND(tpoi.rate/6)
+							When tpoi.payment_cycle = "Quarterly" Then ROUND(tpoi.rate / 3 )
+							When tpoi.payment_cycle = "Yearly" Then ROUND(tpoi.rate /12,2)
+						Else tpoi.rate  END 
+					When tsii.payment_cycle = "Quarterly" THEN 
+						CASE 
+							When tpoi.payment_cycle = "Half Yearly" Then tpoi.rate/2 
+							When tpoi.payment_cycle = "Monthly" Then tpoi.rate * 3
+							When tpoi.payment_cycle = "Yearly" Then tpoi.rate /4
+						Else tpoi.rate End 
+					When tsii.payment_cycle = "Half Yearly" THEN
+						CASE 
+							When tpoi.payment_cycle = "Quarterly" Then tpoi.rate * 2 
+							When tpoi.payment_cycle = "Monthly" Then tpoi.rate * 6 
+							When tpoi.payment_cycle = "Yearly" Then tpoi.rate / 2
+						Else tpoi.rate End 
+					When tsii.payment_cycle = "Yearly" THEN 
+						CASE 
+							When  tpoi.payment_cycle = "Half Yearly" Then tpoi.rate * 2
+							When tpoi.payment_cycle = "Monthly" Then tpoi.rate * 12 
+							When tpoi.payment_cycle = "Quarterly" Then tpoi.rate * 4
+						Else tpoi.rate End      
+				ELSE tpoi.rate END
+			else 1 End) as purchase_rate,
+			(CASE when tpoi.qty IS NULL  then 0 
+			else tpoi.qty END )as purchase_qty ,
 			(CASE when tpii.amount IS NULL  then 0 
 			else tpii.net_amount END )as purchase_amount,
 			DATEDIFF((Select year_end_date from `tabFiscal Year` where auto_created = 1 ) , tsii.end_date) AS days,
@@ -197,7 +223,7 @@ def get_data(filters):
 			`tabSales Invoice Item` tsii
 			{join}
 		WHERE
-			tsi.company = %(company)s
+		    tsi.company = %(company)s
 			AND DATE(tsi.posting_date) BETWEEN %(from_date)s AND %(to_date)s
 			{conditions}
 		GROUP BY tsii.name	
@@ -250,6 +276,7 @@ def get_conditions(filters):
 
 def get_join(filters):
 	join = """left join `tabSales Invoice` tsi on tsii.parent = tsi.name 
+	        LEFT JOIN `tabSales Order` tso on tsi.sales_order  = tso.name
 			left join `tabSales Order Item` tsoi on tsii.sales_order = tsoi.parent and tsii.item_code = tsoi.item_code and tsoi.description = tsii.description and tsoi.qty= tsii.qty
             left join `tabPurchase Order Item` tpoi on tpoi.sales_order = tsoi.parent and tsoi.item_code = tpoi.item_code and tsoi.description = tpoi.description and tsoi.qty= tpoi.qty
 			left join `tabPurchase Order` tpo on tpoi.parent = tpo.name

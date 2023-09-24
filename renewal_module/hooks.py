@@ -119,6 +119,10 @@ fixtures = [{"dt": "Custom Field", "filters": [["name", "in", [
 # 	"ToDo": "custom_app.overrides.CustomToDo"
 # }
 
+override_doctype_class = {
+	"Employee": "renewal_module.overrides.EmployeeStatus"
+}
+
 # Document Events
 # ---------------
 # Hook on document methods and events

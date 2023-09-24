@@ -59,6 +59,7 @@
    "report_hide": 0,
    "reqd": 0,
    "search_index": 0,
+   "sort_options": 0,
    "translatable": 0,
    "unique": 0,
    "width": null
@@ -122,6 +123,7 @@
    "report_hide": 0,
    "reqd": 0,
    "search_index": 0,
+   "sort_options": 0,
    "translatable": 0,
    "unique": 0,
    "width": null
@@ -185,6 +187,7 @@
    "report_hide": 0,
    "reqd": 0,
    "search_index": 0,
+   "sort_options": 0,
    "translatable": 1,
    "unique": 0,
    "width": null
@@ -248,6 +251,7 @@
    "report_hide": 0,
    "reqd": 0,
    "search_index": 0,
+   "sort_options": 0,
    "translatable": 0,
    "unique": 0,
    "width": null
@@ -311,6 +315,7 @@
    "report_hide": 0,
    "reqd": 0,
    "search_index": 0,
+   "sort_options": 0,
    "translatable": 0,
    "unique": 0,
    "width": null
@@ -353,7 +358,7 @@
    "label": "HSN/SAC",
    "length": 0,
    "mandatory_depends_on": null,
-   "modified": "2023-04-07 00:49:21.642284",
+   "modified": "2023-07-05 14:34:20.784305",
    "modified_by": "Administrator",
    "module": "",
    "name": "Quotation Item-gst_hsn_code",
@@ -374,7 +379,8 @@
    "report_hide": 0,
    "reqd": 0,
    "search_index": 0,
-   "translatable": 1,
+   "sort_options": 0,
+   "translatable": 0,
    "unique": 0,
    "width": null
   },
@@ -416,7 +422,7 @@
    "label": "Is Nil Rated or Exempted",
    "length": 0,
    "mandatory_depends_on": null,
-   "modified": "2023-04-07 00:49:34.759012",
+   "modified": "2023-07-05 14:34:20.804897",
    "modified_by": "Administrator",
    "module": "",
    "name": "Quotation Item-is_nil_exempt",
@@ -437,6 +443,7 @@
    "report_hide": 0,
    "reqd": 0,
    "search_index": 0,
+   "sort_options": 0,
    "translatable": 0,
    "unique": 0,
    "width": null
@@ -479,7 +486,7 @@
    "label": "Is Non GST",
    "length": 0,
    "mandatory_depends_on": null,
-   "modified": "2023-04-07 00:49:53.301652",
+   "modified": "2023-07-05 14:34:20.820093",
    "modified_by": "Administrator",
    "module": "",
    "name": "Quotation Item-is_non_gst",
@@ -500,6 +507,7 @@
    "report_hide": 0,
    "reqd": 0,
    "search_index": 0,
+   "sort_options": 0,
    "translatable": 0,
    "unique": 0,
    "width": null
