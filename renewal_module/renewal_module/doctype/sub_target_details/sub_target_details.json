@@ -6,13 +6,17 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "brand",
-  "item_group",
-  "item",
+  "category_type",
+  "category",
   "fiscal_year",
-  "target_qty",
   "target_amount",
-  "distribution_id"
+  "distribution_id",
+  "item_group",
+  "brand",
+  "target_uom",
+  "target_type",
+  "topline_target",
+  "bottomline_target"
  ],
  "fields": [
   {
@@ -36,15 +40,6 @@
    "search_index": 1
   },
   {
-   "fieldname": "item",
-   "fieldtype": "Link",
-   "in_filter": 1,
-   "in_list_view": 1,
-   "label": "Item",
-   "options": "Item",
-   "search_index": 1
-  },
-  {
    "fieldname": "fiscal_year",
    "fieldtype": "Link",
    "in_filter": 1,
@@ -55,14 +50,6 @@
    "options": "Fiscal Year",
    "reqd": 1,
    "search_index": 1
-  },
-  {
-   "fieldname": "target_qty",
-   "fieldtype": "Float",
-   "in_list_view": 1,
-   "label": "Target Qty",
-   "oldfieldname": "target_qty",
-   "oldfieldtype": "Currency"
   },
   {
    "fieldname": "target_amount",
@@ -81,14 +68,55 @@
    "label": "Target Distribution",
    "options": "Monthly Distribution",
    "reqd": 1
+  },
+  {
+   "fieldname": "category_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Category Type",
+   "options": "\nItem Group\nBrand\nActivity"
+  },
+  {
+   "depends_on": "eval:doc.category_type != \" \" ",
+   "fieldname": "category",
+   "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
+   "label": "Category",
+   "options": "category_type"
+  },
+  {
+   "fieldname": "target_uom",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Target UOM",
+   "options": "Qty\nAmount"
+  },
+  {
+   "fieldname": "target_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Target Type",
+   "options": "Topline\nBottomline"
+  },
+  {
+   "fieldname": "topline_target",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Target Value (Topline)"
+  },
+  {
+   "fieldname": "bottomline_target",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Target Value (Bottomline)"
   }
  ],
  "istable": 1,
  "links": [],
- "modified": "2023-09-13 11:48:26.035693",
+ "modified": "2023-10-27 16:42:57.905037",
  "modified_by": "Administrator",
  "module": "Renewal Module",
- "name": "Custom Brand Target Details",
+ "name": "Sub Target Details",
  "owner": "Administrator",
  "permissions": [],
  "sort_field": "modified",

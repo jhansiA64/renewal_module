@@ -15,7 +15,7 @@ frappe.query_reports["Target Details"] = {
 			fieldname: "doctype",
 			label: __("Document Type"),
 			fieldtype: "Select",
-			options: "Sales Order\nOpportunity",
+			options: "Opportunity",
 			default: "Opportunity"
 		},
 		{

@@ -184,29 +184,29 @@ def get_data(filters):
 			(SELECT year_end_date from `tabFiscal Year` tfy WHERE auto_created = 1) as year_end_date,
 			(CASE when tsii.item_group  IN ("Email Solutions" ,"Antispam") then
 				CASE 
-					When tsii.payment_cycle = "Monthly" THEN 
+					When tsii.custom_payment_cycle = "Monthly" THEN 
 						CASE 
-							When tpoi.payment_cycle = "Half Yearly" Then ROUND(tpoi.rate/6)
-							When tpoi.payment_cycle = "Quarterly" Then ROUND(tpoi.rate / 3 )
-							When tpoi.payment_cycle = "Yearly" Then ROUND(tpoi.rate /12,2)
+							When tpoi.custom_payment_cycle = "Half Yearly" Then ROUND(tpoi.rate/6)
+							When tpoi.custom_payment_cycle = "Quarterly" Then ROUND(tpoi.rate / 3 )
+							When tpoi.custom_payment_cycle = "Yearly" Then ROUND(tpoi.rate /12,2)
 						Else tpoi.rate  END 
-					When tsii.payment_cycle = "Quarterly" THEN 
+					When tsii.custom_payment_cycle = "Quarterly" THEN 
 						CASE 
-							When tpoi.payment_cycle = "Half Yearly" Then tpoi.rate/2 
-							When tpoi.payment_cycle = "Monthly" Then tpoi.rate * 3
-							When tpoi.payment_cycle = "Yearly" Then tpoi.rate /4
+							When tpoi.custom_payment_cycle = "Half Yearly" Then tpoi.rate/2 
+							When tpoi.custom_payment_cycle = "Monthly" Then tpoi.rate * 3
+							When tpoi.custom_payment_cycle = "Yearly" Then tpoi.rate /4
 						Else tpoi.rate End 
-					When tsii.payment_cycle = "Half Yearly" THEN
+					When tsii.custom_payment_cycle = "Half Yearly" THEN
 						CASE 
-							When tpoi.payment_cycle = "Quarterly" Then tpoi.rate * 2 
-							When tpoi.payment_cycle = "Monthly" Then tpoi.rate * 6 
-							When tpoi.payment_cycle = "Yearly" Then tpoi.rate / 2
+							When tpoi.custom_payment_cycle = "Quarterly" Then tpoi.rate * 2 
+							When tpoi.custom_payment_cycle = "Monthly" Then tpoi.rate * 6 
+							When tpoi.custom_payment_cycle = "Yearly" Then tpoi.rate / 2
 						Else tpoi.rate End 
-					When tsii.payment_cycle = "Yearly" THEN 
+					When tsii.custom_payment_cycle = "Yearly" THEN 
 						CASE 
-							When  tpoi.payment_cycle = "Half Yearly" Then tpoi.rate * 2
-							When tpoi.payment_cycle = "Monthly" Then tpoi.rate * 12 
-							When tpoi.payment_cycle = "Quarterly" Then tpoi.rate * 4
+							When  tpoi.custom_payment_cycle = "Half Yearly" Then tpoi.rate * 2
+							When tpoi.custom_payment_cycle = "Monthly" Then tpoi.rate * 12 
+							When tpoi.custom_payment_cycle = "Quarterly" Then tpoi.rate * 4
 						Else tpoi.rate End      
 				ELSE tpoi.rate END
 			else 1 End) as purchase_rate,
@@ -276,7 +276,7 @@ def get_conditions(filters):
 
 def get_join(filters):
 	join = """left join `tabSales Invoice` tsi on tsii.parent = tsi.name 
-	        LEFT JOIN `tabSales Order` tso on tsi.sales_order  = tso.name
+	        LEFT JOIN `tabSales Order` tso on tsi.custom_sales_order  = tso.name
 			left join `tabSales Order Item` tsoi on tsii.sales_order = tsoi.parent and tsii.item_code = tsoi.item_code and tsoi.description = tsii.description and tsoi.qty= tsii.qty
             left join `tabPurchase Order Item` tpoi on tpoi.sales_order = tsoi.parent and tsoi.item_code = tpoi.item_code and tsoi.description = tpoi.description and tsoi.qty= tpoi.qty
 			left join `tabPurchase Order` tpo on tpoi.parent = tpo.name

@@ -2,7 +2,7 @@
 // For license information, please see license.txt
 /* eslint-disable */
 
-frappe.query_reports["Overall Sales Report"] = {
+frappe.query_reports["Sales Target - Testing"] = {
 	"filters": [
 		{
 			"fieldname":"company",
@@ -16,7 +16,7 @@ frappe.query_reports["Overall Sales Report"] = {
 			"fieldname":"from_date",
 			"label": __("From Date"),
 			"fieldtype": "Date",
-			"default": frappe.datetime.add_days(frappe.datetime.get_today(), -7),
+			"default": frappe.datetime.add_days(frappe.datetime.get_today(), -31),
 			"reqd": 1
 		},
 		{

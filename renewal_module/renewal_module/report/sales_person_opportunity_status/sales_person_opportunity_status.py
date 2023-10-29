@@ -15,14 +15,14 @@ def execute(filters=None):
 		"Company", filters.company, "default_currency"
 	)
 
-	# report_summary = get_report_summary(filters,columns, currency, data)
+	report_summary = get_report_summary(filters,columns, currency, data)
 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(report_summary)))
 
 	chart = get_chart_data(filters, columns, data)
 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(chart)))
 	
 	
-	return columns, data, None, chart
+	return columns, data, None, chart, report_summary
 
 
 def get_columns():
@@ -199,46 +199,46 @@ def get_join(filters):
 
 	return join
 
-# def get_report_summary(filters,columns, currency, data):
-# 	new,new_total, renewal, renewal_total = 0,0, 0, 0
+def get_report_summary(filters,columns, currency, data):
+	new,new_total, renewal, renewal_total = 0,0, 0, 0
 	
-# 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(new)))
-# 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(data)))
+	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(new)))
+	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(data)))
 
 
-# 	# from consolidated financial statement
-# 	# if filters.get("accumulated_in_group_company"):
-# 	# 	period_list = get_data(filters, period_list)
+	# from consolidated financial statement
+	# if filters.get("accumulated_in_group_company"):
+	# 	period_list = get_data(filters, period_list)
 
-# 	for period in data:
+	for period in data:
 		
-# 		if period.sales_stage == "Closed Won" and period.opportunity_type in ["New", "Additional"] :
-# 			new += 1
-# 		if period.sales_stage  and period.opportunity_type in ["New", "Additional"]:
-# 			new_total += 1	
-# 		if period.sales_stage == "Closed Won" and period.opportunity_type == "Renewal" :
-# 			renewal += 1
-# 		if period.sales_stage  and period.opportunity_type =="Renewal":
-# 			renewal_total += 1		
+		if period.sales_stage == "Closed Won" and period.opportunity_type in ["New", "Additional"] :
+			new += 1
+		if period.sales_stage  and period.opportunity_type in ["New", "Additional"]:
+			new_total += 1	
+		if period.sales_stage == "Closed Won" and period.opportunity_type == "Renewal" :
+			renewal += 1
+		if period.sales_stage  and period.opportunity_type =="Renewal":
+			renewal_total += 1		
 		
 
-# 	# if len(data) >= 1 :
-# 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(new_total)))
-# 	new_label = ("New")
-# 	new_total_label = _("Total")
-# 	renewal_label = _("Renewal")
-# 	# renewal_total_label = _("Closed Won")
-# 	# else:
-# 	# 	profit_label = _("Net Profit")
-# 	# 	income_label = _("Total Income")
-# 	# 	expense_label = _("Total Expense")
+	# if len(data) >= 1 :
+	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(new_total)))
+	new_label = ("New")
+	new_total_label = _("Total")
+	renewal_label = _("Renewal")
+	# renewal_total_label = _("Closed Won")
+	# else:
+	# 	profit_label = _("Net Profit")
+	# 	income_label = _("Total Income")
+	# 	expense_label = _("Total Expense")
 
-# 	return [
-# 		{"value": str(new)+ "/" + str(new_total),"indicator": "Green", "label": new_label, "datatype": "Data"},
+	return [
+		{"value": str(new)+ "/" + str(new_total),"indicator": "Green", "label": new_label, "datatype": "Data"},
 		
-# 		{"value":str(renewal)+ "/" + str(renewal_total),"indicator": "Blue", "label": renewal_label, "datatype": "Data"},
+		{"value":str(renewal)+ "/" + str(renewal_total),"indicator": "Blue", "label": renewal_label, "datatype": "Data"},
 		
-# 	]
+	]
 
 def get_chart_data(filters, columns, data):
 	prospecting , proposal_price_quote, negotiation_review , closed_lost, closed_won, dead = 0.0, 0.0, 0.0, 0.0, 0.0,0.0
@@ -308,6 +308,8 @@ def get_chart_data(filters, columns, data):
 	
 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(datasets)))
 
+	
+
 	return {
         'title':"Chart Based On Sales Stage",
         'data':{
@@ -319,6 +321,8 @@ def get_chart_data(filters, columns, data):
 		'fieldtype':'Currency',
 		'colors':["#FBC543","#0087AC", "#00A88F", "#9C2162", "#82C272", "#D03454"],
     }
+
+
 
 
 

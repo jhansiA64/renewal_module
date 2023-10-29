@@ -16,33 +16,31 @@ frappe.query_reports["Sales Person Target-details"] = {
 			fieldname: "doctype",
 			label: __("Document Type"),
 			fieldtype: "Select",
-			options: "Sales Order\nOpportunity",
+			options: "Sales Order",
 			default: "Opportunity"
 		},
 		{
-			fieldname: "period",
-			label: __("Period"),
-			fieldtype: "Select",
-			options: [
-				{ "value": "Monthly", "label": __("Monthly") },
-				{ "value": "Quarterly", "label": __("Quarterly") },
-				{ "value": "Half-Yearly", "label": __("Half-Yearly") },
-				{ "value": "Yearly", "label": __("Yearly") }
-			],
-			default: "Monthly"
+			fieldname: "from_date",
+			label: __("From Date"),
+			fieldtype: "Date",
+			default: frappe.datetime.add_days(frappe.datetime.get_today(), -31),
+			reqd: 1
 		},
 		{
-			fieldname: "target_on",
-			label: __("Target On"),
-			fieldtype: "Select",
-			options: "Quantity\nAmount",
-			default: "Quantity"
+			"fieldname":"to_date",
+			"label": __("To Date"),
+			"fieldtype": "Date",
+			"default": frappe.datetime.get_today(),
+			"reqd": 1
 		},
+		
+		
 		{
 			fieldname: "fiscal_year",
 			label: __("Fiscal Year"),
 			fieldtype: "Link",
 			options: "Fiscal Year",
+			"default":"2023-2024"
 					
 		},
 		

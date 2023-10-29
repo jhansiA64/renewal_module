@@ -5,7 +5,6 @@
 import frappe
 from frappe import _
 from datetime import datetime
-from dateutil import relativedelta
 
 
 
@@ -14,6 +13,9 @@ def execute(filters=None):
 	# if session_user == "Administrator":
 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(session_user)))
 	columns, data = get_columns(), get_data(filters)
+
+	target_columns = get_target_columns()
+	target_data = get_target_data(filters, target_columns, data)
 
 
 
@@ -160,6 +162,57 @@ def get_columns():
 	]
 	return columns
 
+def get_target_columns():
+	columns = [
+		{
+			"fieldname":"item_category",
+			"label":_("Item Category"),
+			"fieldtype":"Data",
+			"width":10
+		},
+		{
+			"label": _("Target Qty"),
+			"fieldname": "target_qty",
+			"fieldtype": "Data",
+			"width": 10,
+		},
+		{
+			"label": _("Achieved Qty"),
+			"fieldname": "achieved_qty",
+			"fieldtype": "Data",
+			"width": 10,
+		},
+		{
+			"fieldname":"target_amount",
+		    "label":_("Target Amount"),
+		    "fieldtype": "Currency",		    
+			"width":20
+		},
+		
+		
+		{
+			"fieldname":"achieved_amount",
+		    "label":_("Achieved Amount"),
+		    "fieldtype": "Currency",
+			"width":30
+		},
+		
+		
+		{
+			"fieldname":"shortfall",
+		    "label":_("Shortfall"),
+		    "fieldtype": "Currency",
+			"width":30
+		},
+		{
+			"fieldname":"bottom_line_target_per_month",
+			"label":_("Bottom Line Target Per Month"),
+			"fieldtype": "Currency",
+			"width":100
+		},
+		
+	]
+	return columns
 
 def get_data(filters):
 	return frappe.db.sql(
@@ -187,8 +240,7 @@ def get_data(filters):
 			when top.p_amount  IS NULL and torc.commission_amount IS not NULL  then tsoi.amount - torc.commission_amount
 			when top.p_amount  IS NULL and torc.commission_amount IS NULL  then 0
 			WHEN top.p_amount is not NULL and torc.commission_amount IS not NULL then (tsoi.amount - top.p_amount) - torc.commission_amount
-			WHEN top.p_amount is not NULL and torc.commission_amount IS NULL then tsoi.amount - top.p_amount
-			else 0  END )as profit ,
+			else tsoi.amount - top.p_amount  END )as profit ,
 			tst.sales_person,
 			tu.full_name as user,
 			(DATEDIFF(%(to_date)s , %(from_date)s) + 1) AS age,
@@ -274,18 +326,21 @@ def get_join(filters):
 
 	return join
 
+def get_target_data(filters,columns,data):
+	sales_user1 = filters.get("sales_person")
+	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(sales_user1)))
+	target_details = {}
+	if sales_user1:
+		target_details = frappe.db.sql("""Select * FROM `tabTarget Detail` ttd WHERE ttd.parent ='Geetha Pudi'""",as_dict=1)
+	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(target_details)))
+	# for each in data:
+	# 	each.
 
 def get_report_summary(filters,columns, currency, data):
-	sales_user1 = filters.get("sales_person")
-	d1 = filters.get("from_date")
-	d2 = filters.get("to_date")
-	start_date = datetime.strptime(d1, "%Y-%m-%d")
-	end_date = datetime.strptime(d2, "%Y-%m-%d")	
-	delta = relativedelta.relativedelta(end_date, start_date)
-	months = delta.months + 1
-	# frappe.msgprint("<pre>{}</pre>".format(months))
+	# if len(filters.get("sales_person")) == 0:
+	# 	frappe.msgprint("<pre>{}</pre>".format(filters.get("sales_person")))
 
-	sales_amount, purchase_amount = 0.0, 0
+	sales_amount, purchase_amount = 0, 0
 	fiscal_year = frappe.db.sql(f"""SELECT year_start_date , year_end_date  FROM `tabFiscal Year` tfy WHERE auto_created = 1""", as_dict=1)
 	
 	orc = 0
@@ -295,38 +350,38 @@ def get_report_summary(filters,columns, currency, data):
 	target_amount = 0
 	variance = 0
 
-	if sales_user1:
-		for period in data:
+	for period in data:
 		
-			sales_amount = sales_amount + float(period.profit)
-			purchase_amount += period.purchase_amount
+		sales_amount += period.profit
+		purchase_amount += period.purchase_amount
+		
+		# if period.or_amount > 0:
+		# 	orc += period.orc_amount
 			
-			if datetime.strptime(filters.get("from_date"), '%Y-%m-%d') >= datetime.strptime(str(fiscal_year[0].year_start_date),'%Y-%m-%d') and datetime.strptime(filters.get("to_date"), '%Y-%m-%d')<= datetime.strptime(str(fiscal_year[0].year_end_date),'%Y-%m-%d'):
-				if period.target_amount not in target_list:
-					target_list.append(period.target_amount)
-				if "Salman Naved Mohammed" in period:
-					if period.target_amount not in target_dict.values():
-						target_dict["Salman Naved Mohammed"] = period.target_amount	
-				if period.age not in days:
-					days.append(period.age)	
+		if datetime.strptime(filters.get("from_date"), '%Y-%m-%d') >= datetime.strptime(str(fiscal_year[0].year_start_date),'%Y-%m-%d') and datetime.strptime(filters.get("to_date"), '%Y-%m-%d')<= datetime.strptime(str(fiscal_year[0].year_end_date),'%Y-%m-%d'):
+			if period.target_amount not in target_list:
+				target_list.append(period.target_amount)
+			if "Salman Naved Mohammed" in period:
+				if period.target_amount not in target_dict.values():
+					target_dict["Salman Naved Mohammed"] = period.target_amount	
+			if period.age not in days:
+				days.append(period.age)	
 
-		if target_list:
-			
-			
-			if datetime.strptime(filters.get("from_date"), '%Y-%m-%d') == datetime.strptime(str(fiscal_year[0].year_start_date),'%Y-%m-%d') and datetime.strptime(filters.get("to_date"), '%Y-%m-%d')== datetime.strptime(str(fiscal_year[0].year_end_date),'%Y-%m-%d'):
-				for a in target_list:
-					target_amount += a
-				# target_amount =  float(target_list[0])
-								
-				# variance= target_amount - sales_amount	
-			else:
-				diff_days = fiscal_year[0].year_end_date - fiscal_year[0].year_start_date
-				# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(diff_days.days)))
-				for a in target_list:
-					target_amount += a
-				target_amount = float(target_amount) * float(months)	/ 12
-				# variance = target_amount - sales_amount
-			variance= sales_amount - target_amount
+	if target_list:
+		# a= 0.0
+		# for i in target_list:
+		# 	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(i)))
+		# 	if a < float(i):
+		# 		a = i
+		if datetime.strptime(filters.get("from_date"), '%Y-%m-%d') == datetime.strptime(str(fiscal_year[0].year_start_date),'%Y-%m-%d') and datetime.strptime(filters.get("to_date"), '%Y-%m-%d')== datetime.strptime(str(fiscal_year[0].year_end_date),'%Y-%m-%d'):
+		    target_amount =  float(target_list[0])
+			# variance= target_amount - sales_amount	
+		else:
+			diff_days = fiscal_year[0].year_end_date - fiscal_year[0].year_start_date
+			# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(diff_days.days)))
+			target_amount = float(target_list[0]) * float(days[0])	/(diff_days.days + 1)
+			# variance = target_amount - sales_amount
+		variance= sales_amount - target_amount
 		
 
 	# target_amount = target_list[0]	
@@ -357,7 +412,7 @@ def get_report_summary(filters,columns, currency, data):
 def get_chart_data(filters, columns, data):
 	sales_amount, purchase_amount = 0.0, 0.0
 	fiscal_year = frappe.db.sql(f"""SELECT year_start_date , year_end_date  FROM `tabFiscal Year` tfy WHERE auto_created = 1""", as_dict=1)
-	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(data)))
+	
 	
 	# labels = ["prospecting" , "proposal_price_quote", "negotiation_review" , "closed_lost", "closed_won", "dead"]	
 	labels = ["Sales Data"]
@@ -367,7 +422,7 @@ def get_chart_data(filters, columns, data):
 	variance = 0.0
 
 	for period in data:
-		# frappe.msgprint(p)
+		
 		sales_amount += period.sales_amount
 		purchase_amount += period.purchase_amount	
 

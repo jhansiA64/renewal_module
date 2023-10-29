@@ -15,7 +15,7 @@ frappe.query_reports["Sales Person Target"] = {
 			fieldname: "doctype",
 			label: __("Document Type"),
 			fieldtype: "Select",
-			options: "Sales Order\nOpportunity",
+			options: "Opportunity",
 			default: "Opportunity"
 		},
 		{
@@ -42,25 +42,9 @@ frappe.query_reports["Sales Person Target"] = {
 			label: __("Fiscal Year"),
 			fieldtype: "Link",
 			options: "Fiscal Year",
-			default: "2023-2024"					
+			default: "2023-2024"
+					
 		},
-		
-		
-	],
-	// "formatter": function (value, row, column, data, default_formatter) {
-	// 	value = default_formatter(value, row, column, data);
 
-	// 	if (column.fieldname.includes('variance')) {
-
-	// 		if (data[column.fieldname] < 0) {
-	// 			value = "<span style='color:red'>" + value + "</span>";
-	// 		}
-	// 		else if (data[column.fieldname] > 0) {
-	// 			value = "<span style='color:green'>" + value + "</span>";
-	// 		}
-	// 	}
-
-	// 	return value;
-	// }
-	
+	]
 };
