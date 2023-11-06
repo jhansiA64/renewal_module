@@ -17,7 +17,7 @@ frappe.query_reports["Weekly Testing"] = {
 			label: __("Document Type"),
 			fieldtype: "Select",
 			options: "Sales Order",
-			default: "Opportunity"
+			default: "Sales Order"
 		},
 		{
 			fieldname: "from_date",

@@ -17,21 +17,32 @@ frappe.query_reports["Sales Person Target-details"] = {
 			label: __("Document Type"),
 			fieldtype: "Select",
 			options: "Sales Order",
-			default: "Opportunity"
+			default: "Sales Order"
 		},
 		{
 			fieldname: "from_date",
 			label: __("From Date"),
 			fieldtype: "Date",
-			default: frappe.datetime.add_days(frappe.datetime.get_today(), -31),
+			default: "01-04-2023",
 			reqd: 1
 		},
 		{
 			"fieldname":"to_date",
 			"label": __("To Date"),
 			"fieldtype": "Date",
-			"default": frappe.datetime.get_today(),
+			"default": "31-03-2023",
 			"reqd": 1
+		},
+		{
+			fieldname: "time_span",
+			label: __("Timespan"),
+			fieldtype: "Select",
+			options: [
+				{ "value": "this month", "label": __("This Month") },
+				{ "value": "last month", "label": __("Last Month") },
+			],
+			default: "this month",
+			reqd: 1
 		},
 		
 		

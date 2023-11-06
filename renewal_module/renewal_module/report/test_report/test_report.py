@@ -2,9 +2,16 @@
 # For license information, please see license.txt
 
 # import frappe
+
+
+# Copyright (c) 2023, Aravind Mandala and contributors
+# For license information, please see license.txt
+
+# import frappe
 import frappe
 from frappe import _
 from datetime import datetime
+from frappe.utils import add_days, add_to_date, flt, getdate,get_timespan_date_range
 from dateutil import relativedelta
 
 
@@ -21,14 +28,14 @@ def execute(filters=None):
 		"Company", filters.company, "default_currency"
 	)
 
-	report_summary = get_report_summary(filters,columns, currency, data)
+	# report_summary = get_report_summary(filters,columns, currency, data)
 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(report_summary)))
 
-	chart = get_chart_data(filters, columns, data)
+	# chart = get_chart_data(filters, columns, data)
 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(chart)))
 	
 	
-	return columns, data, None, chart, report_summary
+	return columns, data
 
 def get_columns():
 	columns = [
@@ -162,6 +169,12 @@ def get_columns():
 
 
 def get_data(filters):
+	date_range = get_timespan_date_range(filters.get("timespan")) 
+	date1 = datetime.strptime(str(date_range[0]),"%Y-%m-%d").strftime("%d-%m-%Y")
+	date2 = datetime.strptime(str(date_range[1]),"%Y-%m-%d").strftime("%d-%m-%Y")
+	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date1)))
+	# from_date = date1.strptime("%d-%m-%Y").date()
+	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date2)))
 	return frappe.db.sql(
 		"""
 		SELECT
@@ -191,14 +204,12 @@ def get_data(filters):
 			else 0  END )as profit ,
 			tst.sales_person,
 			tu.full_name as user,
-			(DATEDIFF(%(to_date)s , %(from_date)s) + 1) AS age,
 			(ttd.target_amount) as target_amount
 		FROM
 			`tabSales Order Item` tsoi
 			{join}
 		WHERE
 			tso.company = %(company)s
-			AND DATE(tso.transaction_date) BETWEEN %(from_date)s AND %(to_date)s
 			{conditions}
 		GROUP BY tsoi.name	
 		
@@ -222,6 +233,14 @@ def get_conditions(filters):
 	if filters.get("sales_order"):
 		conditions.append(" and tso.name=%(sales_order)s")
 
+	if filters.get("timespan"):
+		date_range = get_timespan_date_range(filters.get("timespan")) 
+		date1 = datetime.strptime(str(date_range[0]),"%Y-%m-%d").date()
+		date2 = datetime.strptime(str(date_range[1]),"%Y-%m-%d").date()
+		frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date1)))
+		conditions.append(f" and tso.transaction_date >= '{date1}' and tso.transaction_date <= '{date2}'")
+		
+
 	if filters.get("item_code"):
 		conditions.append(" and tsoi.item_code=%(item_code)s")
 
@@ -241,8 +260,7 @@ def get_conditions(filters):
 	
 	if filters.get("user") :
 		if 'COF Approval' in frappe.get_roles(frappe.session.user) and 'System Manager' not in frappe.get_roles(frappe.session.user):
-			conditions.append(" and tu.full_name = %(user)s")
-	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(conditions)))				
+			conditions.append(" and tu.full_name = %(user)s")		
 
 		
 
@@ -276,152 +294,152 @@ def get_join(filters):
 	return join
 
 
-def get_report_summary(filters,columns, currency, data):
-	sales_user1 = filters.get("sales_person")
-	d1 = filters.get("from_date")
-	d2 = filters.get("to_date")
-	start_date = datetime.strptime(d1, "%Y-%m-%d")
-	end_date = datetime.strptime(d2, "%Y-%m-%d")	
-	delta = relativedelta.relativedelta(end_date, start_date)
-	months = delta.months + 1
-	# frappe.msgprint("<pre>{}</pre>".format(months))
+# def get_report_summary(filters,columns, currency, data):
+# 	sales_user1 = filters.get("sales_person")
+# 	d1 = filters.get("from_date")
+# 	d2 = filters.get("to_date")
+# 	start_date = datetime.strptime(d1, "%Y-%m-%d")
+# 	end_date = datetime.strptime(d2, "%Y-%m-%d")	
+# 	delta = relativedelta.relativedelta(end_date, start_date)
+# 	months = delta.months + 1
+# 	# frappe.msgprint("<pre>{}</pre>".format(months))
 
-	sales_amount, purchase_amount = 0.0, 0
-	fiscal_year = frappe.db.sql(f"""SELECT year_start_date , year_end_date  FROM `tabFiscal Year` tfy WHERE auto_created = 1""", as_dict=1)
+# 	sales_amount, purchase_amount = 0.0, 0
+# 	fiscal_year = frappe.db.sql(f"""SELECT year_start_date , year_end_date  FROM `tabFiscal Year` tfy WHERE auto_created = 1""", as_dict=1)
 	
-	orc = 0
-	target_list = []
-	target_dict = {"Geetha Pudi":0,"Kavitha Pindi":0, "Salman Naved Mohammed":0}
-	days = []
-	target_amount = 0
-	variance = 0
+# 	orc = 0
+# 	target_list = []
+# 	target_dict = {"Geetha Pudi":0,"Kavitha Pindi":0, "Salman Naved Mohammed":0}
+# 	days = []
+# 	target_amount = 0
+# 	variance = 0
 
-	if sales_user1:
-		for period in data:
+# 	if sales_user1:
+# 		for period in data:
 		
-			sales_amount = sales_amount + float(period.profit)
-			purchase_amount += period.purchase_amount
+# 			sales_amount = sales_amount + float(period.profit)
+# 			purchase_amount += period.purchase_amount
 			
-			if datetime.strptime(filters.get("from_date"), '%Y-%m-%d') >= datetime.strptime(str(fiscal_year[0].year_start_date),'%Y-%m-%d') and datetime.strptime(filters.get("to_date"), '%Y-%m-%d')<= datetime.strptime(str(fiscal_year[0].year_end_date),'%Y-%m-%d'):
-				if period.target_amount not in target_list:
-					target_list.append(period.target_amount)
-				if "Salman Naved Mohammed" in period:
-					if period.target_amount not in target_dict.values():
-						target_dict["Salman Naved Mohammed"] = period.target_amount	
-				if period.age not in days:
-					days.append(period.age)	
+# 			if datetime.strptime(filters.get("from_date"), '%Y-%m-%d') >= datetime.strptime(str(fiscal_year[0].year_start_date),'%Y-%m-%d') and datetime.strptime(filters.get("to_date"), '%Y-%m-%d')<= datetime.strptime(str(fiscal_year[0].year_end_date),'%Y-%m-%d'):
+# 				if period.target_amount not in target_list:
+# 					target_list.append(period.target_amount)
+# 				if "Salman Naved Mohammed" in period:
+# 					if period.target_amount not in target_dict.values():
+# 						target_dict["Salman Naved Mohammed"] = period.target_amount	
+# 				if period.age not in days:
+# 					days.append(period.age)	
 
-		if target_list:
+# 		if target_list:
 			
 			
-			if datetime.strptime(filters.get("from_date"), '%Y-%m-%d') == datetime.strptime(str(fiscal_year[0].year_start_date),'%Y-%m-%d') and datetime.strptime(filters.get("to_date"), '%Y-%m-%d')== datetime.strptime(str(fiscal_year[0].year_end_date),'%Y-%m-%d'):
-				for a in target_list:
-					target_amount += a
-				# target_amount =  float(target_list[0])
+# 			if datetime.strptime(filters.get("from_date"), '%Y-%m-%d') == datetime.strptime(str(fiscal_year[0].year_start_date),'%Y-%m-%d') and datetime.strptime(filters.get("to_date"), '%Y-%m-%d')== datetime.strptime(str(fiscal_year[0].year_end_date),'%Y-%m-%d'):
+# 				for a in target_list:
+# 					target_amount += a
+# 				# target_amount =  float(target_list[0])
 								
-				# variance= target_amount - sales_amount	
-			else:
-				diff_days = fiscal_year[0].year_end_date - fiscal_year[0].year_start_date
-				# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(diff_days.days)))
-				for a in target_list:
-					target_amount += a
-				target_amount = float(target_amount) * float(months)	/ 12
-				# variance = target_amount - sales_amount
-			variance= sales_amount - target_amount
+# 				# variance= target_amount - sales_amount	
+# 			else:
+# 				diff_days = fiscal_year[0].year_end_date - fiscal_year[0].year_start_date
+# 				# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(diff_days.days)))
+# 				for a in target_list:
+# 					target_amount += a
+# 				target_amount = float(target_amount) * float(months)	/ 12
+# 				# variance = target_amount - sales_amount
+# 			variance= sales_amount - target_amount
 		
 
-	# target_amount = target_list[0]	
+# 	# target_amount = target_list[0]	
 		
 
 	
-	sales_label = _("Sales Amount")
-	purchase_label = _("Purchase Amount")
-	orc_label = _("ORC Amount")
-	round(sales_amount,2)
-	round(purchase_amount,2)
-	var_indicator= ""
-	if variance >0:
-		var_indicator = "#FBC543"
-	else:
-		var_indicator = "Red"
+# 	sales_label = _("Sales Amount")
+# 	purchase_label = _("Purchase Amount")
+# 	orc_label = _("ORC Amount")
+# 	round(sales_amount,2)
+# 	round(purchase_amount,2)
+# 	var_indicator= ""
+# 	if variance >0:
+# 		var_indicator = "#FBC543"
+# 	else:
+# 		var_indicator = "Red"
 
 
-	return [
-		{"value": round(target_amount, 2),"indicator": "Blue", "label": "Target Amount", "datatype": "Currency"},
-		{"value": round(sales_amount,2),"indicator": "Green", "label": "Achieved", "datatype": "Currency"},		
-		{"value":round(variance,2),"indicator": var_indicator, "label": "Variance", "datatype": "Currency"},
+# 	return [
+# 		{"value": round(target_amount, 2),"indicator": "Blue", "label": "Target Amount", "datatype": "Currency"},
+# 		{"value": round(sales_amount,2),"indicator": "Green", "label": "Achieved", "datatype": "Currency"},		
+# 		{"value":round(variance,2),"indicator": var_indicator, "label": "Variance", "datatype": "Currency"},
 		
 		
-	]
+# 	]
 
 
-def get_chart_data(filters, columns, data):
-	sales_amount, purchase_amount = 0.0, 0.0
-	fiscal_year = frappe.db.sql(f"""SELECT year_start_date , year_end_date  FROM `tabFiscal Year` tfy WHERE auto_created = 1""", as_dict=1)
-	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(data)))
+# def get_chart_data(filters, columns, data):
+# 	sales_amount, purchase_amount = 0.0, 0.0
+# 	fiscal_year = frappe.db.sql(f"""SELECT year_start_date , year_end_date  FROM `tabFiscal Year` tfy WHERE auto_created = 1""", as_dict=1)
+# 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(data)))
 	
-	# labels = ["prospecting" , "proposal_price_quote", "negotiation_review" , "closed_lost", "closed_won", "dead"]	
-	labels = ["Sales Data"]
-	target_list = []
-	days = []
-	target_amount = 0.0
-	variance = 0.0
+# 	# labels = ["prospecting" , "proposal_price_quote", "negotiation_review" , "closed_lost", "closed_won", "dead"]	
+# 	labels = ["Sales Data"]
+# 	target_list = []
+# 	days = []
+# 	target_amount = 0.0
+# 	variance = 0.0
 
-	for period in data:
-		# frappe.msgprint(p)
-		sales_amount += period.sales_amount
-		purchase_amount += period.purchase_amount	
+# 	for period in data:
+# 		# frappe.msgprint(p)
+# 		sales_amount += period.sales_amount
+# 		purchase_amount += period.purchase_amount	
 
-		if datetime.strptime(filters.get("from_date"), '%Y-%m-%d') >= datetime.strptime(str(fiscal_year[0].year_start_date),'%Y-%m-%d') and datetime.strptime(filters.get("to_date"), '%Y-%m-%d')<= datetime.strptime(str(fiscal_year[0].year_end_date),'%Y-%m-%d'):
-			if period.target_amount not in target_list:
-				target_list.append(period.target_amount)
-			if period.age not in days:
-				days.append(period.age)	
+# 		if datetime.strptime(filters.get("from_date"), '%Y-%m-%d') >= datetime.strptime(str(fiscal_year[0].year_start_date),'%Y-%m-%d') and datetime.strptime(filters.get("to_date"), '%Y-%m-%d')<= datetime.strptime(str(fiscal_year[0].year_end_date),'%Y-%m-%d'):
+# 			if period.target_amount not in target_list:
+# 				target_list.append(period.target_amount)
+# 			if period.age not in days:
+# 				days.append(period.age)	
 
-	if target_list:
-		if datetime.strptime(filters.get("from_date"), '%Y-%m-%d') == datetime.strptime(str(fiscal_year[0].year_start_date),'%Y-%m-%d') and datetime.strptime(filters.get("to_date"), '%Y-%m-%d')== datetime.strptime(str(fiscal_year[0].year_end_date),'%Y-%m-%d'):
-		    target_amount =  float(target_list[0])
-			# variance= target_amount - sales_amount	
-		else:
-			diff_days = fiscal_year[0].year_end_date - fiscal_year[0].year_start_date
-			# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(diff_days.days)))
-			target_amount = float(target_list[0]) * float(days[0])	/(diff_days.days + 1)
-			# variance = target_amount - sales_amount
-		variance= sales_amount - target_amount
+# 	if target_list:
+# 		if datetime.strptime(filters.get("from_date"), '%Y-%m-%d') == datetime.strptime(str(fiscal_year[0].year_start_date),'%Y-%m-%d') and datetime.strptime(filters.get("to_date"), '%Y-%m-%d')== datetime.strptime(str(fiscal_year[0].year_end_date),'%Y-%m-%d'):
+# 		    target_amount =  float(target_list[0])
+# 			# variance= target_amount - sales_amount	
+# 		else:
+# 			diff_days = fiscal_year[0].year_end_date - fiscal_year[0].year_start_date
+# 			# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(diff_days.days)))
+# 			target_amount = float(target_list[0]) * float(days[0])	/(diff_days.days + 1)
+# 			# variance = target_amount - sales_amount
+# 		variance= sales_amount - target_amount
 		
 
-	round(sales_amount,2)
-	round(target_amount,2)
-	round(variance,2)
+# 	round(sales_amount,2)
+# 	round(target_amount,2)
+# 	round(variance,2)
 
-	datasets = [{"name":"Target Amount","values":[0.0]},
-	{"name":"Achieved", "values":[0.0]},
-	{"name":"Variance","values":[0.0]}
-	]
+# 	datasets = [{"name":"Target Amount","values":[0.0]},
+# 	{"name":"Achieved", "values":[0.0]},
+# 	{"name":"Variance","values":[0.0]}
+# 	]
 	
-	datasets[0]["values"] = [target_amount]
-	datasets[1]["values"] = [sales_amount]
-	datasets[2]["values"] = [variance]
+# 	datasets[0]["values"] = [target_amount]
+# 	datasets[1]["values"] = [sales_amount]
+# 	datasets[2]["values"] = [variance]
 
-	var_indicator= ""
-	if variance >0:
-		var_indicator = "#145214"
-	else:
-		var_indicator = "Red"
+# 	var_indicator= ""
+# 	if variance >0:
+# 		var_indicator = "#145214"
+# 	else:
+# 		var_indicator = "Red"
 	
 
 	
-	return {
-        'title':"Chart Based On Sales",
-        'data':{
-            'labels':labels,
-            'datasets':datasets
-        },
-        'type':'bar',
-        'height':300,
-		'fieldtype':'Currency',
-		'colors':["#0087AC","#82C272",var_indicator],
-    }
+# 	return {
+#         'title':"Chart Based On Sales",
+#         'data':{
+#             'labels':labels,
+#             'datasets':datasets
+#         },
+#         'type':'bar',
+#         'height':300,
+# 		'fieldtype':'Currency',
+# 		'colors':["#0087AC","#82C272",var_indicator],
+#     }
 
 
 

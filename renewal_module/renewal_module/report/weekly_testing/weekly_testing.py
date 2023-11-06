@@ -116,7 +116,7 @@ def get_columns():
 
 def get_target_data(filters, sales_data):
     sales_users_data = get_parents_data(filters, "Sales Person")
-    frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(sales_users_data)))
+    # frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(sales_users_data)))
 
     if not sales_users_data:
         return
@@ -140,7 +140,7 @@ def get_target_data(filters, sales_data):
     date_field = "transaction_date"
 
     # actual_data = get_actual_data(filters, sales_users, date_field, sales_field)
-    frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(sales_user_wise_item_groups)))
+    # frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(sales_user_wise_item_groups)))
     return prepare_data(
         filters,
         sales_users_data,
@@ -203,8 +203,8 @@ def prepare_data(filters,sales_users_data,sales_user_wise_item_groups,sales_user
                         details["achieved_value"] += r.get("sales_qty", 0)
                     else:
                         details["achieved_value"] += r.get("profit", 0)
-                    details["shortfall"] = details.get("achieved_value") - details.get("topline_target")
-                    frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(sales_user_wise_item_groups.get(d.parent))))
+                    details["shortfall"] = details.get("achieved_value") - details.get("bottomline_target")
+                    # frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(sales_user_wise_item_groups.get(d.parent))))
                 elif (
                     r.sales_person == d.parent
                     and (not sales_user_wise_item_groups.get(d.parent) or(d.category_type == "Brand" and  r.brand == d.category))
@@ -213,8 +213,20 @@ def prepare_data(filters,sales_users_data,sales_user_wise_item_groups,sales_user
                         details["achieved_value"] += r.get("sales_qty", 0)
                     else:
                         details["achieved_value"] += r.get("profit", 0)
-                    details["shortfall"] = details.get("achieved_value") - details.get("topline_target")
+                    details["shortfall"] = details.get("achieved_value") - details.get("bottomline_target")
                     # frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(details)))
+                elif (
+                    r.sales_person == d.parent
+                    and (r.brand not in sales_user_wise_brand.get(d.parent))
+				    and (r.item_group not in sales_user_wise_item_groups.get(d.parent))
+                    and (d.category_type == "Other" )
+                ):
+                    if d.target_uom == "Qty":
+                        details["achieved_value"] += r.get("sales_qty", 0)
+                    else:
+                        details["achieved_value"] += r.get("profit", 0)
+                    details["shortfall"] = details.get("achieved_value") - details.get("bottomline_target")
+                      
     
 
 
@@ -226,7 +238,7 @@ def prepare_data(filters,sales_users_data,sales_user_wise_item_groups,sales_user
 
             # details["achieved_amount"] += details.get("achieved_amount")
             # frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(details)))
-            details["shortfall"] = details.get("achieved_value") - details.get("topline_target")
+            details["shortfall"] = details.get("achieved_value") - details.get("bottomline_target")
 
     return rows
 
