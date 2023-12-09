@@ -1,7 +1,8 @@
 {
  "charts": [],
- "content": "[{\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Renewal Module</span>\",\"col\":12}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Renewal\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Call List\",\"col\":3}},{\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Customer Order Form\",\"col\":3}},{\"type\":\"card\",\"data\":{\"card_name\":\"Renewal Doctype\",\"col\":4}}]",
+ "content": "[{\"id\":\"9AJlJy1uVB\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"New Renewals\",\"col\":4}},{\"id\":\"nBDpaTIveC\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Active Renewals\",\"col\":4}},{\"id\":\"M7wxO5mQ26\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Lost Renewals\",\"col\":4}},{\"id\":\"BnzR54AMYs\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Cofed Renewals\",\"col\":4}},{\"id\":\"oGbdNioD_x\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Renewal Module</span>\",\"col\":12}},{\"id\":\"wjNb1Q2vl-\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Renewal\",\"col\":3}},{\"id\":\"Cj9DP6px-X\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Call List\",\"col\":3}},{\"id\":\"gpPrs2Lu8l\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Customer Order Form\",\"col\":3}},{\"id\":\"tr3WXWHzIw\",\"type\":\"card\",\"data\":{\"card_name\":\"Renewal Doctype\",\"col\":4}}]",
  "creation": "2022-12-03 15:13:07.250823",
+ "custom_blocks": [],
  "docstatus": 0,
  "doctype": "Workspace",
  "for_user": "",
@@ -30,10 +31,28 @@
    "type": "Link"
   }
  ],
- "modified": "2023-04-19 01:54:13.091808",
+ "modified": "2023-11-25 12:13:26.926487",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Renewal Module",
+ "number_cards": [
+  {
+   "label": "Lost Renewals",
+   "number_card_name": "Lost Renewals"
+  },
+  {
+   "label": "New Renewals",
+   "number_card_name": "New Renewals"
+  },
+  {
+   "label": "Cofed Renewals",
+   "number_card_name": "Cofed Renewals"
+  },
+  {
+   "label": "Active Renewals",
+   "number_card_name": "Active Renewals"
+  }
+ ],
  "owner": "Administrator",
  "parent_page": "",
  "public": 1,

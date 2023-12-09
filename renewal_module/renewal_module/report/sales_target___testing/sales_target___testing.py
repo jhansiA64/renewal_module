@@ -84,13 +84,13 @@ def get_columns(filters):
         {
 			"fieldname":"topline_target",
 		    "label":_("Topline Target"),
-		    "fieldtype": "Data",	    
+		    "fieldtype": "Float",	    
 			"width":180
 		},
         {
 			"fieldname":"bottomline_target",
 		    "label":_("Bottomline Target"),
-		    "fieldtype": "Data",	    
+		    "fieldtype": "Float",	    
 			"width":180
 		},
 		
@@ -196,8 +196,8 @@ def prepare_data(filters,sales_users_data,sales_user_wise_item_groups,sales_user
 
 		# target_qty_key = "target_{}".format(p_key)
 		# variance_key = "variance_{}".format(p_key)
-	    details["topline_target"] = (d.get("topline_target") * time_span) / 12
-	    details["bottomline_target"] = (d.get("bottomline_target") * time_span) / 12
+	    details["topline_target"] = round((d.get("topline_target") * time_span) / 12,2)
+	    details["bottomline_target"] = round((d.get("bottomline_target") * time_span) / 12,2)
 	    details["shortfall"] = 0
 		# details["total_target"] += details[target_key]
 	
@@ -222,18 +222,20 @@ def prepare_data(filters,sales_users_data,sales_user_wise_item_groups,sales_user
 				    details["achieved_value"] += r.get("sales_qty", 0)
 			    else:
 				    details["achieved_value"] += r.get("profit", 0)
+				    details["topline_achieved"] += r.get("sales_amount", 0)
 			    details["shortfall"] = details.get("achieved_value") - details.get("bottomline_target")
 			    # frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(details)))
 		    elif (
 			    r.sales_person == d.parent
 			    and (r.brand not in sales_user_wise_brand.get(d.parent))
 			    and (r.item_group not in sales_user_wise_item_groups.get(d.parent))
-			    and (d.category_type == "Other" )
+			    and (d.category_type == "All Category" )
 			):
 			    if d.target_uom == "Qty":
 				    details["achieved_value"] += r.get("sales_qty", 0)
 			    else:
 				    details["achieved_value"] += r.get("profit", 0)
+				    details["topline_achieved"] += r.get("sales_amount", 0)
 			    details["shortfall"] = details.get("achieved_value") - details.get("bottomline_target")
 			
 
@@ -304,7 +306,7 @@ def get_chart_data(filters, columns, data):
         },
         'type':'bar',
         'height':300,
-		'width':100,
+		'width':1000,
 		'fieldtype':'Currency',
 		'colors':["#FBC543", "#82C272", "#9C2162"],
     }

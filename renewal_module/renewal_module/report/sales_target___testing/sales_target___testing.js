@@ -75,7 +75,7 @@ frappe.query_reports["Sales Target - Testing"] = {
 
 			if (data.sales_person) {
 				column.link_onclick =
-					"renewal_module.renewal_module.report.sales_target__testing.sales_target_testing.open_sales_report(" + JSON.stringify(data) + ")";
+					"open_sales_report(" + JSON.stringify(data.sales_person) + ")";
 			}
 			column.is_tree = true;
 		}
@@ -86,24 +86,37 @@ frappe.query_reports["Sales Target - Testing"] = {
 			value = $(`<span>${value}</span>`);
 
 			var $value = $(value).css("font-weight", "bold");
-			if (data.warn_if_negative && data[column.fieldname] < 0) {
-				$value.addClass("text-danger");
+			if (column.fieldname.includes('shortfall')) {
+				if (data[column.fieldname] < 0) {
+					// $value.addClass("text-danger");
+					value = $(value).css("color", "red");
+				}
+				if (data[column.fieldname] > 0) {
+					// $value.addClass("text-danger");
+					value = $(value).css("color", "green");
+				}
 			}
+			else{
+				if (data[column.fieldname] >= 0) {
+					// $value.addClass("text-danger");
+					value = $(value).css("color", "blue");
+				}
+			}	
 
-			value = $value.wrap("<p></p>").parent().html();
-		}
+				value = $value.wrap("<p></p>").parent().html();
+			
+	    }
 
 		return value;
+		
 	},
 	"open_sales_report": function(data) {
 		if (!data.sales_person) return;
-		let project = $.grep(frappe.query_report.filters, function(e){ return e.df.fieldname == 'project'; });
+		// let project = $.grep(frappe.query_report.filters, function(e){ return e.df.fieldname == 'project'; });
 
 		frappe.route_options = {
 			"sales_person": data.sales_person,
-			"company": frappe.query_report.get_filter_value('company'),
 			"timespan": data.timespan,
-			"project": (project && project.length > 0) ? project[0].$input.val() : ""
 		};
 
 		let report = "Sales Based On Timespan";
@@ -116,11 +129,11 @@ frappe.query_reports["Sales Target - Testing"] = {
 
 		frappe.set_route("query-report", report);
 	},
-	"sales_person": "sales_person",
-	"initial_depth": 3,
+	
 	onload: function(report) {
 		// dropdown for links to other financial statements
-		renewal_module.renewal_module.report.sales_target__testing.sales_target_testing.filters = get_filters()
+		// filters = get_filters_1()
+		
 
 		let fiscal_year = erpnext.utils.get_fiscal_year(frappe.datetime.get_today());
 
@@ -132,7 +145,7 @@ frappe.query_reports["Sales Target - Testing"] = {
 		// 	});
 		// });
 
-		// const views_menu = report.page.add_custom_button_group(__('Financial Statements'));
+		const views_menu = report.page.add_custom_button_group(__('Sales Target - Testing'));
 
 		report.page.add_custom_menu_item(views_menu, __("Sales Target - Testing"), function() {
 			var filters = report.get_values();
@@ -140,6 +153,73 @@ frappe.query_reports["Sales Target - Testing"] = {
 		});
 
 		
-	}
+	},
+
+	// function:get_filters_1() {
+	// 	let filters = [
+	// 		{
+	// 			"fieldname":"company",
+	// 			"label": __("Company"),
+	// 			"fieldtype": "Link",
+	// 			"options": "Company",
+	// 			"default": frappe.defaults.get_user_default("Company"),
+	// 			"reqd": 1
+	// 		},
+			
+	// 		{
+	// 			fieldname: "timespan",
+	// 			label: __("Timespan"),
+	// 			fieldtype: "Select",
+	// 			options: [
+	// 				{ "value": "last 6 months", "label": __("Last 6 Months") },
+	// 				{ "value": "last quarter", "label": __("Last Quarter") },
+	// 				{ "value": "last month", "label": __("Last Month") },
+	// 				{ "value": "last week", "label": __("Last Week") },
+	// 				{ "value": "this week", "label": __("This Week") },
+	// 				{ "value": "this month", "label": __("This Month") },
+	// 				{ "value": "this quarter", "label": __("This Quarter") },
+	// 				{ "value": "this year", "label": __("This Year") },
+	// 				{ "value": "next week", "label": __("Next Week") },
+	// 				{ "value": "next month", "label": __("Next Month") },
+	// 				{ "value": "next quarter", "label": __("Next Quarter") },
+	// 				{ "value": "next 6 months", "label": __("Next 6 Months") },
+	// 			],
+	// 			default: "this month",
+	// 			reqd: 1
+	// 		},
+	// 		{
+	// 			fieldname: "fiscal_year",
+	// 			label: __("Fiscal Year"),
+	// 			fieldtype: "Link",
+	// 			options: "Fiscal Year",
+	// 			"default":"2023-2024"
+						
+	// 		},
+	// 		{
+	// 			"fieldname":"sales_person",
+	// 			"label": __("Sales Person"),
+	// 			"fieldtype": "MultiSelectList",
+	// 			   "options": "Sales Person",
+	// 						get_data: function(txt) {
+	// 							// if(frappe.user_info().fullname === "Administrator"){
+	// 							// 	pass
+	// 							// }
+	// 							// else{
+	// 							// 	txt = frappe.user_info().fullname
+	// 							// }
+	// 				return frappe.db.get_link_options('Sales Person', txt);
+	// 			},
+				
+	// 		},
+	// 		// Note:
+	// 		// If you are modifying this array such that the presentation_currency object
+	// 		// is no longer the last object, please make adjustments in cash_flow.js
+	// 		// accordingly.
+			
+	// 	]
+	
+	// 	return filters;
+	// },
+
 
 };

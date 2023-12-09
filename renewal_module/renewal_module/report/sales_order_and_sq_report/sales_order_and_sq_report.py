@@ -4,8 +4,10 @@
 # import frappe
 import frappe
 from frappe import _
+from frappe.utils import flt
 from datetime import datetime
 from dateutil import relativedelta
+# import operator
 
 
 
@@ -21,14 +23,14 @@ def execute(filters=None):
 		"Company", filters.company, "default_currency"
 	)
 
-	# report_summary = get_report_summary(filters,columns, currency, data)
+	report_summary = get_report_summary(filters,columns, currency, data)
 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(report_summary)))
 
-	# chart = get_chart_data(filters, columns, data)
+	chart = get_chart_data(filters, columns, data)
 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(chart)))
 	
 	
-	return columns, data
+	return columns, data, None, chart, report_summary
 
 def get_columns():
 	columns = [
@@ -250,15 +252,19 @@ def get_conditions(filters):
 
 def get_join(filters):
 	join = """Left join `tabSales Order` tso on tsoi.parent = tso.name 
-			Left join `tabQuotation Item` tqi on tsoi.prevdoc_docname = tqi.parent and tsoi.item_code = tqi.item_code and tsoi.qty = tqi.qty 
+			Left join `tabQuotation Item` tqi on tsoi.prevdoc_docname = tqi.parent and tsoi.item_code = tqi.item_code and tsoi.qty = tqi.qty and tsoi.rate = tqi.rate 
 			left join (SELECT toi.parent as opportunity,toi.name , toi.item_code as s_item_code , toi.qty as s_qty ,tpq.name as sq_name, tpq.supplier as supplier,tpq.item_code as sq_item_code,
 			toi.rate as s_rate , tpq.rate as p_rate ,tpq.qty as p_qty, tpq.amount as p_amount, toi.orc as orc, toi.description as description 
 			from 
 			`tabOpportunity Item` toi
-			left join (SELECT tsq.name as name, tsq.supplier as supplier  , tsqi.item_code as item_code , tsqi.rate as rate , tsqi.qty as qty, tsqi.amount as amount, tsq.opportunity as opportunity
-			from `tabSupplier Quotation` tsq 
-			left join (SELECT parent , item_code , rate, qty, amount   FROM `tabSupplier Quotation Item`  WHERE recommended_ =1) as tsqi on tsqi.parent = tsq.name 
-			) as tpq on tpq.opportunity = toi.parent and toi.item_code = tpq.item_code and toi.qty = tpq.qty) as top on top.opportunity = tqi.prevdoc_docname and top.s_item_code = tqi.item_code and top.s_qty = tqi.qty
+			left join (SELECT tsq.name as name,tsq.supplier as supplier,
+			tsqi.item_code as item_code,
+			tsqi.qty as qty ,
+			tsqi.rate as rate ,
+			tsqi.amount as amount ,
+			tsqi.description as description  ,tsq.opportunity as opportunity  from `tabSupplier Quotation` tsq
+			left join `tabSupplier Quotation Item` tsqi on tsq.name = tsqi.parent 
+			WHERE tsqi.recommended_  = 1 ) as tpq on tpq.item_code = toi.item_code and tpq.opportunity = toi.parent and toi.qty = tpq.qty and toi.description = tpq.description) as top on top.opportunity = tqi.prevdoc_docname and top.s_rate = tqi.rate and top.s_item_code = tqi.item_code and top.s_qty = tqi.qty
 			LEFT JOIN 
 			(SELECT toi2.commission_amount as commission_amount, tol.opportunity_id as opportunity_id, toi2.item_code as item_code , toi2.qty as qty ,
 			toi2.rate as rate , toi2.description as description 
@@ -275,152 +281,80 @@ def get_join(filters):
 	return join
 
 
-# def get_report_summary(filters,columns, currency, data):
-# 	sales_user1 = filters.get("sales_person")
-# 	d1 = filters.get("from_date")
-# 	d2 = filters.get("to_date")
-# 	start_date = datetime.strptime(d1, "%Y-%m-%d")
-# 	end_date = datetime.strptime(d2, "%Y-%m-%d")	
-# 	delta = relativedelta.relativedelta(end_date, start_date)
-# 	months = delta.months + 1
-# 	# frappe.msgprint("<pre>{}</pre>".format(months))
+def get_report_summary(filters,columns, currency, data):
+	brand_wise_sales_map = {}
+	labels, datapoints_sales, datapoints_profit = [], [], []
 
-# 	sales_amount, purchase_amount = 0.0, 0
-# 	fiscal_year = frappe.db.sql(f"""SELECT year_start_date , year_end_date  FROM `tabFiscal Year` tfy WHERE auto_created = 1""", as_dict=1)
-	
-# 	orc = 0
-# 	target_list = []
-# 	target_dict = {"Geetha Pudi":0,"Kavitha Pindi":0, "Salman Naved Mohammed":0}
-# 	days = []
-# 	# target_amount = 0
-# 	variance = 0
+	for row in data:
+		item_key = row.get("brand")
 
-# 	if sales_user1:
-# 		for period in data:
-		
-# 			sales_amount = sales_amount + float(period.profit)
-# 			purchase_amount += period.purchase_amount
-			
-# 			if datetime.strptime(filters.get("from_date"), '%Y-%m-%d') >= datetime.strptime(str(fiscal_year[0].year_start_date),'%Y-%m-%d') and datetime.strptime(filters.get("to_date"), '%Y-%m-%d')<= datetime.strptime(str(fiscal_year[0].year_end_date),'%Y-%m-%d'):
-# 				if period.target_amount not in target_list:
-# 					target_list.append(period.target_amount)
-# 				if "Salman Naved Mohammed" in period:
-# 					if period.target_amount not in target_dict.values():
-# 						target_dict["Salman Naved Mohammed"] = period.target_amount	
-# 				if period.age not in days:
-# 					days.append(period.age)	
+		if not item_key in brand_wise_sales_map:
+			brand_wise_sales_map[item_key] = [0.0, 0.0]
 
-# 		if target_list:
-			
-			
-# 			if datetime.strptime(filters.get("from_date"), '%Y-%m-%d') == datetime.strptime(str(fiscal_year[0].year_start_date),'%Y-%m-%d') and datetime.strptime(filters.get("to_date"), '%Y-%m-%d')== datetime.strptime(str(fiscal_year[0].year_end_date),'%Y-%m-%d'):
-# 				for a in target_list:
-# 					target_amount += a
-# 				# target_amount =  float(target_list[0])
-								
-# 				# variance= target_amount - sales_amount	
-# 			else:
-# 				diff_days = fiscal_year[0].year_end_date - fiscal_year[0].year_start_date
-# 				# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(diff_days.days)))
-# 				for a in target_list:
-# 					target_amount += a
-# 				target_amount = float(target_amount) * float(months)	/ 12
-# 				# variance = target_amount - sales_amount
-# 			variance= sales_amount - target_amount
-		
+		brand_wise_sales_map[item_key][0] = flt(brand_wise_sales_map[item_key][0]) + flt(row.get("sales_amount"))
+		brand_wise_sales_map[item_key][1] = flt(brand_wise_sales_map[item_key][1]) + flt(row.get("profit"))
 
-# 	# target_amount = target_list[0]	
-		
+	brand_wise_sales_map = {
+		item: value
+		for item, value in (sorted(brand_wise_sales_map.items(), key=lambda i: i[1], reverse=True))
+	}
 
-	
-# 	sales_label = _("Sales Amount")
-# 	purchase_label = _("Purchase Amount")
-# 	orc_label = _("ORC Amount")
-# 	round(sales_amount,2)
-# 	round(purchase_amount,2)
-# 	var_indicator= ""
-# 	if variance >0:
-# 		var_indicator = "#FBC543"
-# 	else:
-# 		var_indicator = "Red"
+	datasets = []
+
+	for key in brand_wise_sales_map:
+		labels.append(key)
+		datapoints_sales.append(brand_wise_sales_map[key][0])
+		datapoints_profit.append(brand_wise_sales_map[key][1])
+		datasets.append({"value":f"{round(brand_wise_sales_map[key][1]/1000)}/{round(brand_wise_sales_map[key][0]/1000)}","label":f"{key} (K)","indicator": "Green"})
+	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(datasets)))
 
 
-# 	return [
-# 		{"value": round(target_amount, 2),"indicator": "Blue", "label": "Target Amount", "datatype": "Currency"},
-# 		{"value": round(sales_amount,2),"indicator": "Green", "label": "Achieved", "datatype": "Currency"},		
-# 		{"value":round(variance,2),"indicator": var_indicator, "label": "Variance", "datatype": "Currency"},
+
+	# return [
+	# 	{"value": round(datapoints_sales, 2),"indicator": "Blue", "label": "Target Amount", "datatype": "Currency"},
+	# 	{"value": round(sales_amount,2),"indicator": "Green", "label": "Achieved", "datatype": "Currency"},		
+	# 	{"value":round(variance,2),"indicator": var_indicator, "label": "Variance", "datatype": "Currency"},
 		
 		
-# 	]
+	# ]
+	return datasets
 
 
-# def get_chart_data(filters, columns, data):
-# 	sales_amount, purchase_amount = 0.0, 0.0
-# 	fiscal_year = frappe.db.sql(f"""SELECT year_start_date , year_end_date  FROM `tabFiscal Year` tfy WHERE auto_created = 1""", as_dict=1)
-# 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(data)))
-	
-# 	# labels = ["prospecting" , "proposal_price_quote", "negotiation_review" , "closed_lost", "closed_won", "dead"]	
-# 	labels = ["Sales Data"]
-# 	target_list = []
-# 	days = []
-# 	target_amount = 0.0
-# 	variance = 0.0
 
-# 	for period in data:
-# 		# frappe.msgprint(p)
-# 		sales_amount += period.sales_amount
-# 		purchase_amount += period.purchase_amount	
+def get_chart_data(filters,columns, data):
+	brand_wise_sales_map = {}
+	labels, datapoints_sales, datapoints_profit = [], [], []
 
-# 		if datetime.strptime(filters.get("from_date"), '%Y-%m-%d') >= datetime.strptime(str(fiscal_year[0].year_start_date),'%Y-%m-%d') and datetime.strptime(filters.get("to_date"), '%Y-%m-%d')<= datetime.strptime(str(fiscal_year[0].year_end_date),'%Y-%m-%d'):
-# 			if period.target_amount not in target_list:
-# 				target_list.append(period.target_amount)
-# 			if period.age not in days:
-# 				days.append(period.age)	
+	for row in data:
+		item_key = row.get("brand")
 
-# 	if target_list:
-# 		if datetime.strptime(filters.get("from_date"), '%Y-%m-%d') == datetime.strptime(str(fiscal_year[0].year_start_date),'%Y-%m-%d') and datetime.strptime(filters.get("to_date"), '%Y-%m-%d')== datetime.strptime(str(fiscal_year[0].year_end_date),'%Y-%m-%d'):
-# 		    target_amount =  float(target_list[0])
-# 			# variance= target_amount - sales_amount	
-# 		else:
-# 			diff_days = fiscal_year[0].year_end_date - fiscal_year[0].year_start_date
-# 			# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(diff_days.days)))
-# 			target_amount = float(target_list[0]) * float(days[0])	/(diff_days.days + 1)
-# 			# variance = target_amount - sales_amount
-# 		variance= sales_amount - target_amount
-		
+		if not item_key in brand_wise_sales_map:
+			brand_wise_sales_map[item_key] = [0.0, 0.0]
 
-# 	round(sales_amount,2)
-# 	round(target_amount,2)
-# 	round(variance,2)
+		brand_wise_sales_map[item_key][0] = flt(brand_wise_sales_map[item_key][0]) + flt(row.get("sales_amount"))
+		brand_wise_sales_map[item_key][1] = flt(brand_wise_sales_map[item_key][1]) + flt(row.get("profit"))
 
-# 	datasets = [{"name":"Target Amount","values":[0.0]},
-# 	{"name":"Achieved", "values":[0.0]},
-# 	{"name":"Variance","values":[0.0]}
-# 	]
-	
-# 	datasets[0]["values"] = [target_amount]
-# 	datasets[1]["values"] = [sales_amount]
-# 	datasets[2]["values"] = [variance]
+	brand_wise_sales_map = {
+		item: value
+		for item, value in (sorted(brand_wise_sales_map.items(), key=lambda i: i[1], reverse=True))
+	}
 
-# 	var_indicator= ""
-# 	if variance >0:
-# 		var_indicator = "#145214"
-# 	else:
-# 		var_indicator = "Red"
-	
+	for key in brand_wise_sales_map:
+		labels.append(key)
+		datapoints_sales.append(brand_wise_sales_map[key][0])
+		datapoints_profit.append(brand_wise_sales_map[key][1])
+	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(datapoints_sales)))	
 
-	
-# 	return {
-#         'title':"Chart Based On Sales",
-#         'data':{
-#             'labels':labels,
-#             'datasets':datasets
-#         },
-#         'type':'bar',
-#         'height':300,
-# 		'fieldtype':'Currency',
-# 		'colors':["#0087AC","#82C272",var_indicator],
-#     }
+	return {
+		"data": {
+			"labels": labels,  # show max of 30 items in chart
+			"datasets": [{"name": _("Total Sales Amount"), "values": datapoints_sales},
+			              {"name": _("Bottomline Amount"), "values": datapoints_profit}],
+		},
+		"type": "bar",
+		"fieldtype": "Currency",
+		"colors":["#9C2162","#D03454","#772F67","#FFCA3E", "#00A88F","#82C272"],
+	}
 
 
 
