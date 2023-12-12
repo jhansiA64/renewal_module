@@ -135,6 +135,12 @@ override_doctype_class = {
 #	}
 # }
 
+doc_events = {
+	"Customer":{
+		"onload":"renewal_module.api.get_renewals"
+	}
+}
+
 # Scheduled Tasks
 # ---------------
 
