@@ -273,5 +273,16 @@
   "name": "Customize fields",
   "script": "frappe.ui.form.on('Quotation', {\n\trefresh(frm) {\n\t\t// your code here\n\t\tcur_frm.set_df_property(\"valid_till\",\"allow_on_submit\",1);\n\t}\n})",
   "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Opportunity",
+  "enabled": 1,
+  "modified": "2024-01-03 13:01:08.483121",
+  "module": null,
+  "name": "Add Comment Box",
+  "script": "frappe.ui.form.on('Opportunity', {\n\trefresh: function(frm) {\n\t\tfrm.timeline.insert_comment(\"Comment\", frm.doc.cur_frm);\n\t}\n});",
+  "view": "Form"
  }
 ]
