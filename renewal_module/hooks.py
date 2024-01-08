@@ -36,6 +36,8 @@ app_license = "MIT"
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
+doctype_js={"Opportunity": "renewal_module/test.js"}
+
 #Export Fixtures
 fixtures = [{"dt": "Custom Field", "filters": [["name", "in", [
 "Item-availability",

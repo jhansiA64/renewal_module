@@ -22,7 +22,7 @@ def execute(filters=None):
 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(chart)))
 	
 	
-	return columns, data, None, chart, report_summary
+	return columns, data
 
 
 def get_columns():
@@ -115,6 +115,18 @@ def get_columns():
 			"options": "Territory",
 			"width": 150,
 		},
+		{
+			"label": _("Button"),
+			"fieldname": "name1",
+			"fieldtype": "Data",
+			"width": 150,
+		},
+		{
+			"label": _("View Button"),
+			"fieldname": "name2",
+			"fieldtype": "Data",
+			"width": 150,
+		},
 	]
 	return columns
 
@@ -135,7 +147,9 @@ def get_data(filters):
             `tabOpportunity Item`.sales_stage,
             `tabOpportunity Item`.item_group,
 			`tabOpportunity Item`.brand,
-			`tabOpportunity`.territory
+			`tabOpportunity`.territory,
+			`tabOpportunity Item`.name as name1,
+			`tabOpportunity Item`.name as name2
 		FROM
 			`tabOpportunity Item`
 			{join}

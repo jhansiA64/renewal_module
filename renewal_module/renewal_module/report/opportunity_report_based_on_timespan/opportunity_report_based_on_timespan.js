@@ -2,9 +2,9 @@
 // For license information, please see license.txt
 /* eslint-disable */
 
-frappe.query_reports["Sales Person Opportunity Status"] = {
+frappe.query_reports["Opportunity Report Based On Timespan"] = {
 	"filters": [
-        {
+		{
 			"fieldname":"company",
 			"label": __("Company"),
 			"fieldtype": "Link",
@@ -13,18 +13,25 @@ frappe.query_reports["Sales Person Opportunity Status"] = {
 			"reqd": 1
 		},
 		{
-			"fieldname":"from_date",
-			"label": __("From Date"),
-			"fieldtype": "Date",
-			"default": frappe.datetime.add_days(frappe.datetime.get_today(), -7),
-			"reqd": 1
-		},
-		{
-			"fieldname":"to_date",
-			"label": __("To Date"),
-			"fieldtype": "Date",
-			"default": frappe.datetime.get_today(),
-			"reqd": 1
+			fieldname: "timespan",
+			label: __("Timespan"),
+			fieldtype: "Select",
+			options: [
+				{ "value": "last 6 months", "label": __("Last 6 Months") },
+				{ "value": "last quarter", "label": __("Last Quarter") },
+				{ "value": "last month", "label": __("Last Month") },
+				{ "value": "last week", "label": __("Last Week") },
+				{ "value": "this week", "label": __("This Week") },
+				{ "value": "this month", "label": __("This Month") },
+				{ "value": "this quarter", "label": __("This Quarter") },
+				{ "value": "this year", "label": __("This Year") },
+				{ "value": "next week", "label": __("Next Week") },
+				{ "value": "next month", "label": __("Next Month") },
+				{ "value": "next quarter", "label": __("Next Quarter") },
+				{ "value": "next 6 months", "label": __("Next 6 Months") },
+			],
+			default: "this year",
+			reqd: 1
 		},
 		{
 			"fieldname":"item_code",
@@ -103,57 +110,5 @@ frappe.query_reports["Sales Person Opportunity Status"] = {
 			
 		},
 
-	],
-
-
-	formatter(value, row, column, data, default_formatter) {
-		// Show a button instead of the "name"
-		if (column.fieldname == "name1") {
-			const button_html = `<button class="btn btn-default btn-xs" onclick="frappe.query_reports['Sales Person Opportunity Status'].close_todo('${value}')">Submit</button>`;
-			value = button_html;
-			
-		}
-		if (column.fieldname == "name2") {
-			
-			const button_view = `<button class="btn btn-default btn-xs" onclick="frappe.query_reports['Sales Person Opportunity Status'].view_data('${value}')">View</button>`;
-			value = button_view;
-		}
-		return default_formatter(value, row, column, data);
-	  },
-	  close_todo(name) {
-		console.log(name)
-		
-		frappe.prompt({
-			label: 'Comment',
-			fieldname: 'comment',
-			fieldtype: 'Data'
-		}, (values) => {
-			console.log(values);
-			// doc = frappe.db.get_doc("Opportunity",name)
-			// console.log(doc)
-			frappe.db.set_value("Opportunity Item", name, "custom_comment", values.comment).then(() => {
-			// refresh this report and show alert
-			frappe.query_report.refresh();
-			})
-
-			console.log("success")
-		})
-
-	
-		// frappe.db.set_value("Opportunity", name, "status", "Closed").then(() => {
-		//   // refresh this report and show alert
-		//   frappe.query_report.refresh();
-		//   frappe.show_alert("ToDo Closed Successfully!");
-		// });
-	  },
-
-
-	  view_data(name){
-		console.log(name)
-		frappe.db.get_value("Opportunity Item", name, "custom_comment").then((a) => {
-			console.log(a)
-		})
-	}
+	]
 };
-
-
