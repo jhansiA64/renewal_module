@@ -29,7 +29,7 @@ def execute(filters=None):
 def get_columns():
 	columns = [
 		{
-			"label": _("Call"),
+			"label": _("Call ID"),
 			"fieldname": "name",
 			"fieldtype": "Link",
 			"options": "Call List",
@@ -77,6 +77,12 @@ def get_columns():
 			"fieldtype":"Small Text",
 			"width":150
 		},
+		{
+			"label": _("View Button"),
+			"fieldname": "name2",
+			"fieldtype": "Data",
+			"width": 150,
+		},
 		
 		{
 			"fieldname":"sales_person",
@@ -99,7 +105,8 @@ def get_data(filters):
 			`tabCall List`.end_date,
 			`tabCall List`.end_timing,
 			`tabCall List`.description,
-			`tabSales Team`.sales_person
+			`tabSales Team`.sales_person,
+			`tabCall List`.name as name2
 		FROM
 			`tabCall List`
 			{join}
@@ -121,6 +128,9 @@ def get_conditions(filters):
 		conditions.append(" and `tabCall List`.name1 in %(name1)s")
 
 	if filters.get("timespan") != "custom":
+		if filters.get("timespan") == "this year":
+			date = frappe.db.get_value("Fiscal Year",["year_start_date"])
+			frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date)))
 		date_range = get_timespan_date_range(filters.get("timespan")) 
 		date1 = datetime.strptime(str(date_range[0]),"%Y-%m-%d").date()
 		date2 = datetime.strptime(str(date_range[1]),"%Y-%m-%d").date()
@@ -184,11 +194,22 @@ def get_report_summary(filters,columns, currency, data):
 
 
 def get_chart_data(filters,columns, data):
-	status_wise_map = {}
+	status_wise_map = {
+		"Held":0.0,
+		"Scheduled":0.0,
+		"Cancelled":0.0
+	}
 	labels, datapoints_calls = [], []
 
 	for row in data:
 		item_key = row.get("status")
+
+		if item_key == "Held":
+			status_wise_map[item_key] += 1
+		if item_key == "Scheduled":
+			status_wise_map[item_key] += 1
+		if item_key == "Cancelled":
+			status_wise_map[item_key] += 1		
 
 		if not item_key in status_wise_map:
 			status_wise_map[item_key] = 0.0
@@ -204,7 +225,10 @@ def get_chart_data(filters,columns, data):
 	for key in status_wise_map:
 		labels.append(key)
 		datapoints_calls.append(status_wise_map[key])
+	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(datapoints_calls)))	
 
+	
+	
 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json({"labels":labels,"datasets":[{"values":datapoints_sales}]})))
 		
 
@@ -221,31 +245,27 @@ def get_chart_data(filters,columns, data):
 
 
 # def get_chart_data(filters, columns, data):
-# 	labels = []
+# 	labels = ["Held"]
 # 	datasets = []
-# 	if filters.get("timespan") != "custom":
-# 		date_range = get_timespan_date_range(filters.get("timespan")) 
-# 		date1 = datetime.strptime(str(date_range[0]),"%Y-%m-%d").strftime("%d-%m-%Y")
-# 		date2 = datetime.strptime(str(date_range[1]),"%Y-%m-%d").strftime("%d-%m-%Y")
-# 		labels = [f"Target ({date1} to {date2})"]
-	
+		
 # 	held,scheduled, cancelled = 0, 0, 0
 # 	for p in data:
-# 		# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(p)))
+# 		# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(p["status"])))
 # 		if p["status"] == "Held":
 # 			held += 1
 # 		if p["status"] == "Scheduled":
 # 			scheduled += 1
 # 		if p["status"] == "Cancelled":
 # 			cancelled += 1
+# 	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(held)))		
 
-# 	detasets = [{"name":"Held","values":held},
+# 	datasets = [{"name":"Held","values":held},
 #     {"name":"Scheduled", "values":scheduled},
-#     {"name":"Cancelled","values":cancelled}]	
+#     {"name":"Cancelled","values":cancelled}]
+
+# 	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(datasets)))	
 		
-# 	# datasets[0]["values"] = [held]
-# 	# datasets[1]["values"] = [scheduled]
-# 	# datasets[2]["values"] = [cancelled]
+	
 
 # 	return {
 # 		'title':"Chart Based On Call List",

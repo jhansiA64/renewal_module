@@ -148,7 +148,7 @@ def get_data(filters):
             `tabOpportunity Item`.item_group,
 			`tabOpportunity Item`.brand,
 			`tabOpportunity`.territory,
-			`tabOpportunity Item`.name as name1,
+			`tabOpportunity`.name as name1,
 			`tabOpportunity Item`.name as name2
 		FROM
 			`tabOpportunity Item`

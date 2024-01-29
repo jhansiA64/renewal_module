@@ -327,7 +327,9 @@ def get_normalized_weekday_index(dt):
 
 def get_year_start(dt, as_str=False):
 	dt = getdate(dt)
+	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(dt)))
 	date = datetime.date(dt.year, 4, 1)
+	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date)))
 	return date.strftime(DATE_FORMAT) if as_str else date
 
 

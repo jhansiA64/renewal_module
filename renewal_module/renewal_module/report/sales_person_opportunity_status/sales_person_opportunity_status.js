@@ -109,7 +109,7 @@ frappe.query_reports["Sales Person Opportunity Status"] = {
 	formatter(value, row, column, data, default_formatter) {
 		// Show a button instead of the "name"
 		if (column.fieldname == "name1") {
-			const button_html = `<button class="btn btn-default btn-xs" onclick="frappe.query_reports['Sales Person Opportunity Status'].close_todo('${value}')">Submit</button>`;
+			const button_html = `<button class="btn btn-default btn-xs" onclick="frappe.query_reports['Sales Person Opportunity Status'].close_todo('${value}')">Comment</button>`;
 			value = button_html;
 			
 		}
@@ -129,12 +129,14 @@ frappe.query_reports["Sales Person Opportunity Status"] = {
 			fieldtype: 'Data'
 		}, (values) => {
 			console.log(values);
-			// doc = frappe.db.get_doc("Opportunity",name)
-			// console.log(doc)
-			frappe.db.set_value("Opportunity Item", name, "custom_comment", values.comment).then(() => {
+			doc = frappe.db.get_doc("Opportunity",name)
+			console.log(doc)
+			// frappe.db.set_value("Opportunity", name, "custom_comment", values.comment).then(() => {
 			// refresh this report and show alert
-			frappe.query_report.refresh();
-			})
+			// frappe.query_report.refresh();
+			// })
+			doc.timeline.insert_comment("Comment",values.comment)
+			// doc.comments.insert_comment("Comment",values.comment)
 
 			console.log("success")
 		})
