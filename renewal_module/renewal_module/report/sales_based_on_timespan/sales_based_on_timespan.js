@@ -29,9 +29,26 @@ frappe.query_reports["Sales Based On Timespan"] = {
 				{ "value": "next month", "label": __("Next Month") },
 				{ "value": "next quarter", "label": __("Next Quarter") },
 				{ "value": "next 6 months", "label": __("Next 6 Months") },
+				{ "value": "custom", "label": __("Custom") },
 			],
 			default: "this month",
 			reqd: 1
+		},
+		{
+			"fieldname":"from_date",
+			"label": __("From Date"),
+			"fieldtype": "Date",
+			"default": frappe.datetime.add_days(frappe.datetime.get_today(), -7),
+			"depends_on": "eval:doc.timespan == 'custom'",
+			"reqd": 1
+		},
+		{
+			"fieldname":"to_date",
+			"label": __("To Date"),
+			"fieldtype": "Date",
+			"default": frappe.datetime.get_today(),
+			"depends_on": "eval:doc.timespan == 'custom'",
+			"reqd": 1
 		},
 		
 		{

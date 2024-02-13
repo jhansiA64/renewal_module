@@ -159,23 +159,18 @@ def get_columns():
 		    "fieldtype": "Data",
 			"width":250
 		},
-		{
-			"fieldname":"target_amount",
-			"label":_("Target Amount"),
-			"fieldtype":"Currency",
-			"width":150
-		},	
+		# {
+		# 	"fieldname":"target_amount",
+		# 	"label":_("Target Amount"),
+		# 	"fieldtype":"Currency",
+		# 	"width":150
+		# },	
 	]
 	return columns
 
 
 def get_data(filters):
-	date_range = get_timespan_date_range(filters.get("timespan")) 
-	date1 = datetime.strptime(str(date_range[0]),"%Y-%m-%d").strftime("%d-%m-%Y")
-	date2 = datetime.strptime(str(date_range[1]),"%Y-%m-%d").strftime("%d-%m-%Y")
-	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date1)))
-	# from_date = date1.strptime("%d-%m-%Y").date()
-	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date2)))
+	
 	return frappe.db.sql(
 		"""
 		SELECT
@@ -204,8 +199,7 @@ def get_data(filters):
 			WHEN top.p_amount is not NULL and torc.commission_amount IS NULL then tsoi.amount - top.p_amount
 			else 0  END )as profit ,
 			tst.sales_person,
-			tu.full_name as user,
-			(ttd.target_amount) as target_amount
+			tu.full_name as user
 		FROM
 			`tabSales Order Item` tsoi
 			{join}
@@ -234,12 +228,20 @@ def get_conditions(filters):
 	if filters.get("sales_order"):
 		conditions.append(" and tso.name=%(sales_order)s")
 
-	if filters.get("timespan"):
+	if filters.get("timespan") != "custom":
+		if filters.get("timespan") == "this year":
+			date = frappe.db.get_value("Fiscal Year",{'auto_created':1},["year_start_date","year_end_date"])
+			frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date)))
 		date_range = get_timespan_date_range(filters.get("timespan")) 
 		date1 = datetime.strptime(str(date_range[0]),"%Y-%m-%d").date()
 		date2 = datetime.strptime(str(date_range[1]),"%Y-%m-%d").date()
 		# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date1)))
 		conditions.append(f" and tso.transaction_date >= '{date1}' and tso.transaction_date <= '{date2}'")
+
+	if filters.get("timespan") == "custom":
+		
+		conditions.append(" and tso.transaction_date >= %(from_date)s and tso.transaction_date <= %(to_date)s")
+	
 		
 
 	if filters.get("item_code"):

@@ -129,14 +129,14 @@ frappe.query_reports["Sales Person Opportunity Status"] = {
 			fieldtype: 'Data'
 		}, (values) => {
 			console.log(values);
-			doc = frappe.db.get_doc("Opportunity",name)
+			frm = frappe.db.get_doc("Opportunity",name)
 			console.log(doc)
 			// frappe.db.set_value("Opportunity", name, "custom_comment", values.comment).then(() => {
 			// refresh this report and show alert
 			// frappe.query_report.refresh();
 			// })
-			doc.timeline.insert_comment("Comment",values.comment)
-			// doc.comments.insert_comment("Comment",values.comment)
+			// doc.timeline.insert_comment("Comment",values.comment)
+			frm.comments.insert_comment("Comment",values.comment)
 
 			console.log("success")
 		})
@@ -152,7 +152,7 @@ frappe.query_reports["Sales Person Opportunity Status"] = {
 
 	  view_data(name){
 		console.log(name)
-		frappe.db.get_value("Opportunity Item", name, "custom_comment").then((a) => {
+		frappe.db.get_value("Opportunity", name, "custom_comment").then((a) => {
 			console.log(a)
 		})
 	}

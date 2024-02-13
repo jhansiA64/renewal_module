@@ -146,23 +146,30 @@ doc_events = {
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"renewal_module.tasks.all"
-# 	],
-# 	"daily": [
-# 		"renewal_module.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"renewal_module.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"renewal_module.tasks.weekly"
-# 	]
-# 	"monthly": [
-# 		"renewal_module.tasks.monthly"
-# 	]
-# }
+scheduler_events = {
+
+	"cron":{
+		"* * * * *":[
+			"renewal_module.tasks.cron"
+		]
+	}
+
+	# "all": [
+	# 	"renewal_module.tasks.all"
+	# ],
+	# "daily": [
+	# 	"renewal_module.tasks.daily"
+	# ],
+	# "hourly": [
+	# 	"renewal_module.tasks.hourly"
+	# ],
+	# "weekly": [
+	# 	"renewal_module.tasks.weekly"
+	# ]
+	# "monthly": [
+	# 	"renewal_module.tasks.monthly"
+	# ]
+}
 
 # Testing
 # -------

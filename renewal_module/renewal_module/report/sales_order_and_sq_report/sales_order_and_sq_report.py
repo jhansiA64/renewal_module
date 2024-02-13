@@ -351,10 +351,12 @@ def get_chart_data(filters,columns, data):
 			"datasets": [{"name": _("Total Sales Amount"), "values": datapoints_sales},
 			              {"name": _("Bottomline Amount"), "values": datapoints_profit}],
 		},
-		"type": "pie",
+		"type": "bar",
 		"fieldtype": "Currency",
 		"colors":["#9C2162","#D03454","#772F67","#FFCA3E", "#00A88F","#82C272"],
 	}
+
+
 
 
 

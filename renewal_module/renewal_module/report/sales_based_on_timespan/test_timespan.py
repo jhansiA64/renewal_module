@@ -15,6 +15,7 @@ from click import secho
 from dateutil import parser
 from dateutil.parser import ParserError
 from dateutil.relativedelta import relativedelta
+# from datetime import datetime
 
 import frappe
 from frappe import _
@@ -156,7 +157,7 @@ def convert_utc_to_system_timezone(utc_timestamp):
 	return convert_utc_to_timezone(utc_timestamp, time_zone)
 
 def t_get_system_timezone():
-	frappe.msgprint("<pre>{}</pre>".format(frappe.get_system_settings("time_zone")))
+	# frappe.msgprint("<pre>{}</pre>".format(frappe.get_system_settings("time_zone")))
 	# return frappe.get_system_settings("time_zone") or "Asia/Kolkata"  # Default to India ?!
 	return "India Time - Asia/Kolkata"
 
@@ -326,11 +327,16 @@ def get_normalized_weekday_index(dt):
 	return (dt.weekday() + 1) % 7		
 
 def get_year_start(dt, as_str=False):
-	dt = getdate(dt)
-	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(dt)))
-	date = datetime.date(dt.year, 4, 1)
-	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date)))
-	return date.strftime(DATE_FORMAT) if as_str else date
+	# dt = getdate(dt)
+	fy_dict = frappe.db.get_value("Fiscal Year",{"auto_created":1}, ["year_start_date","year_end_date"], as_dict=1)
+	# year_start_date,year_end_date = frappe.db.get_value("Fiscal Year",{"auto_created":1},["year_start_date","year_end_date"])
+	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(datetime.datetime.strptime(fy_dict.year_start_date,"%y-%m-%d"))))
+	if datetime.strptime(fy_dict.year_start_date,"%y%m%d") <= datetime.date(dt) and datetime.strptime(fy_dict.year_end_date,"%y%m%d") >= datetime.date(dt):
+		frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(dt)))
+		date = datetime.date(fy_dict.year_start_date)
+		# date = datetime.date(dt.year, 4, 1)
+		frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date)))
+		return date.strftime(DATE_FORMAT) if as_str else date
 
 
 def get_last_day(dt):

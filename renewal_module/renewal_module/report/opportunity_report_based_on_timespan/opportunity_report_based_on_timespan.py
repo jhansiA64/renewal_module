@@ -158,12 +158,19 @@ def get_conditions(filters):
 	if filters.get("opportunity_id"):
 		conditions.append(" and `tabOpportunity`.name=%(opportunity_id)s")
 
-	if filters.get("timespan"):
+	if filters.get("timespan") != "custom":
+		if filters.get("timespan") == "this year":
+			date = frappe.db.get_value("Fiscal Year",["year_start_date"])
+			frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date)))
 		date_range = get_timespan_date_range(filters.get("timespan")) 
 		date1 = datetime.strptime(str(date_range[0]),"%Y-%m-%d").date()
 		date2 = datetime.strptime(str(date_range[1]),"%Y-%m-%d").date()
 		# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date1)))
 		conditions.append(f" and DATE(`tabOpportunity`.creation) >= '{date1}' and DATE(`tabOpportunity`.creation) <= '{date2}'")	
+	if filters.get("timespan") == "custom":
+		
+		conditions.append(" and DATE(`tabOpportunity`.creation) >= %(from_date)s and DATE(`tabOpportunity`.creation) <= %(to_date)s")
+	
 
 	if filters.get("item_code"):
 		conditions.append(" and `tabOpportunity Item`.item_code=%(item_code)s")
