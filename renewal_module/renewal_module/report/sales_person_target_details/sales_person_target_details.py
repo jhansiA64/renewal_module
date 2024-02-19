@@ -124,10 +124,10 @@ def get_target_data(filters, sales_data):
         sales_user_wise_brand.setdefault(d.parent, [])
         if d.item_group:
             sales_user_wise_item_groups[d.parent].append(d.item_group)
-            sales_user_wise_item_groups[d.parent].append(d.custom_brand)
+            # sales_user_wise_item_groups[d.parent].append(d.custom_brand)
 			
-        if d.custom_brand:
-            sales_user_wise_brand[d.parent].append(d.custom_brand)	
+        # if d.custom_brand:
+        #     sales_user_wise_brand[d.parent].append(d.custom_brand)	
 
     date_field = "transaction_date"
 
@@ -189,7 +189,7 @@ def prepare_data(filters,sales_users_data,sales_user_wise_item_groups,sales_user
             for r in sales_data:
                 if (
                     r.sales_person == d.parent
-                    and (not sales_user_wise_item_groups.get(d.parent) or r.item_group == d.item_group or r.brand == d.custom_brand)
+                    and (not sales_user_wise_item_groups.get(d.parent) or r.item_group == d.item_group )
                 ):
                     details["achieved_qty"] += r.get("sales_qty", 0)
                     details["achieved_amount"] += r.get("profit", 0)

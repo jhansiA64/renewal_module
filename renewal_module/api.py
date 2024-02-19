@@ -34,7 +34,11 @@ def get_renewals(doc,event):
             })        
     # doc.save()
 
-
+def show_error(doc,event):
+    if doc.is_new():
+        frappe.throw("error")
+    else:
+        frappe.msgprint("else stage")    
 
 @frappe.whitelist( allow_guest=True )
 def login(usr, pwd):
