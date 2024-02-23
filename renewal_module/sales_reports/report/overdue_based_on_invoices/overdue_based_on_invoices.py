@@ -110,6 +110,8 @@ def get_columns():
 
 
 def get_data(filters):
+	from_date = filters.get("from_date")
+	to_date = filters.get("to_date")
 	return frappe.db.sql(
 		"""
 		SELECT
@@ -117,7 +119,7 @@ def get_data(filters):
 			tsi.customer ,
 			tsi.status ,
 			tsi.posting_date ,
-			tps.due_date,
+			tsi.due_date,
 			DATEDIFF(now() , tsi.posting_date) AS age,
 			(CASE when tsi.disable_rounded_total != 1 then tsi.rounded_total
 			else tsi.grand_total END )as total_amount,
@@ -131,11 +133,11 @@ def get_data(filters):
 			tsi.outstanding_amount ,
 			tst.sales_person 
 		FROM
-			`tabPayment Schedule` tps 
+			`tabSales Invoice` tsi 
 			{join}
 		WHERE
-		    tps.parenttype = "Sales Invoice" and
-			tsi.company = %(company)s and
+		    tsi.company = %(company)s 
+			AND DATE(tsi.posting_date) BETWEEN %(from_date)s AND %(to_date)s and
 			tsi.is_return !=1 and tsi.status not in ("Paid","Credit Note Issued","Draft","Cancelled")
 			{conditions}
 		
@@ -166,19 +168,11 @@ def get_conditions(filters):
 
 
 def get_join(filters):
-	join = """left join `tabSales Invoice` tsi on tps.parent  = tsi.name 
-           left join `tabSales Team` tst on tst.parent = tsi.name 
+	join = """left join `tabSales Team` tst on tst.parent = tsi.name 
            left JOIN `tabJournal Entry Account` tjea on tjea.reference_type = 'Sales invoice' and tjea.reference_name =tsi.name
            left JOIN `tabJournal Entry` tje on tje.name = tjea.parent  """
 
-	# if filters.get("lost_reason"):
-	# 	join = """JOIN `tabOpportunity Lost Reason Detail`
-	# 		ON `tabOpportunity Lost Reason Detail`.parenttype = 'Opportunity' and
-	# 		`tabOpportunity Lost Reason Detail`.parent = `tabOpportunity`.name and
-	# 		`tabOpportunity Lost Reason Detail`.lost_reason = '{0}'
-	# 		""".format(
-	# 		filters.get("lost_reason")
-	# 	)
+	
 
 	return join
 
@@ -229,16 +223,7 @@ def get_chart_data(filters, columns, data):
 
 	
 	
-	# if not filters.accumulated_values:
-	# 	chart["type"] = "bar"
-	# else:
-	# 	chart["type"] = "bar"
-	# 'colors':["#FBC543","#0087AC", "#00A88F", "#9C2162", "#82C272", "#D03454"],
-
-	# chart["fieldtype"] = "Currency"
 	
-	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(datasets)))
-
 	return {
         'title':"Outstanding",
         'data':{
@@ -250,132 +235,6 @@ def get_chart_data(filters, columns, data):
 		'fieldtype':'Currency',
 		'colors':["#FBC543", "#9C2162", "#82C272", "#D03454"],
     }
-
-
-
-# def get_report_summary(filters,columns, currency, data):
-# 	total, closed_lost, closed_won = 0.0, 0.0, 0.0
-# 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(data)))
-# 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(total)))
-
-
-# 	# from consolidated financial statement
-# 	# if filters.get("accumulated_in_group_company"):
-# 	# 	period_list = get_data(filters, period_list)
-
-# 	for period in data:
-		
-# 		if period.sales_stage:
-# 			total += period.amount
-# 		if period.sales_stage == "Closed Lost":
-# 			closed_lost += period.amount
-# 		if period.sales_stage == "Closed Won":
-# 			closed_won += period.amount
-
-# 	# if len(data) >= 1 :
-# 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(total)))
-	
-# 	total_label = _("Total")
-# 	closed_lost_label = _("Closed Lost")
-# 	closed_won_label = _("Closed Won")
-# 	# else:
-# 	# 	profit_label = _("Net Profit")
-# 	# 	income_label = _("Total Income")
-# 	# 	expense_label = _("Total Expense")
-
-# 	return [
-# 		{"value": total, "label": total_label, "datatype": "Currency", "currency": currency},
-# 		{"type": "separator", "value": "-"},
-# 		{"value":closed_lost, "label": closed_lost_label, "datatype": "Currency", "currency": currency},
-# 		{"type": "separator", "value": "=", "color": "blue"},
-# 		{
-# 			"value": closed_won,
-# 			"indicator": "Green",
-# 			"label": closed_won_label,
-# 			"datatype": "Currency",
-# 			"currency": currency,
-# 		},
-# 	]
-
-
-# def get_chart_data(filters, columns, data):
-# 	prospecting , proposal_price_quote, negotiation_review , closed_lost, closed_won, dead = 0.0, 0.0, 0.0, 0.0, 0.0,0.0
-# 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(data)))
-	
-# 	# labels = ["prospecting" , "proposal_price_quote", "negotiation_review" , "closed_lost", "closed_won", "dead"]	
-# 	labels = ["Sales Stage"]
-
-# 	for p in data:
-# 		# frappe.msgprint(p)
-# 		if p.sales_stage == "Prospecting":
-# 			prospecting += p.amount
-# 		if p.sales_stage == "Proposal/Price Quote":
-# 			proposal_price_quote += p.amount
-# 		if p.sales_stage == "Negotiation/Review":
-# 			negotiation_review += p.amount
-# 		if p.sales_stage == "Closed Lost":
-# 			closed_lost += p.amount
-# 		if p.sales_stage == "Closed Won":
-# 			closed_won += p.amount	
-# 		if p.sales_stage == "Dead":
-# 			dead += p.amount			
-		
-
-# 	datasets = [{"name":"Prospecting","values":[0.0]},
-# 	{"name":"Proposal/Price Quote", "values":[0.0]},{"name":"Negotiation/Review","values":[0.0]},
-# 	{"name":"Closed Lost","values":[0.0]},{"name":"Closed Won","values":[0.0]},{"name":"Dead", "values":[0.0]}
-# 	]
-	
-# 	if prospecting:
-# 		datasets[0]["values"] = [prospecting]
-# 	if proposal_price_quote:
-# 		datasets[1]["values"] = [proposal_price_quote]
-# 	if negotiation_review:
-# 		datasets[2]["values"] = [negotiation_review]
-# 	if closed_lost:
-# 		datasets[3]["values"]= [closed_lost]
-# 	if closed_won:
-# 		datasets[4]["values"] = [closed_won]
-# 	if dead:
-# 		datasets[5]["values"] = [dead]
-
-# 	# datasets = []
-
-# 	# if prospecting:
-# 	# 	datasets.append({"name": _("Prospecting"), "values": [prospecting]})
-# 	# if proposal_price_quote:
-# 	# 	datasets.append({"name": _("Proposal/Price Quote"), "values": [proposal_price_quote] })
-# 	# if negotiation_review:
-# 	# 	datasets.append({"name": _("Negotiation/Review"), "values": [negotiation_review]})
-# 	# if closed_lost:
-# 	# 	datasets.append({"name": _("Closed Lost"), "values": [closed_lost]})
-# 	# if closed_won:
-# 	# 	datasets.append({"name": _("Closed Won"), "values": [closed_won]})
-# 	# if dead:
-# 	# 	datasets.append({"name": _("Dead"), "values": [dead]})		
-
-	
-# 	# if not filters.accumulated_values:
-# 	# 	chart["type"] = "bar"
-# 	# else:
-# 	# 	chart["type"] = "bar"
-# 	# 'colors':["#FBC543","#0087AC", "#00A88F", "#9C2162", "#82C272", "#D03454"],
-
-# 	# chart["fieldtype"] = "Currency"
-	
-# 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(datasets)))
-
-# 	return {
-#         'title':"Script Chart Tutorial : Days since the user's database record was created",
-#         'data':{
-#             'labels':labels,
-#             'datasets':datasets
-#         },
-#         'type':'bar',
-#         'height':300,
-# 		'fieldtype':'Currency',
-# 		'colors':["#FBC543","#0087AC", "#00A88F", "#9C2162", "#82C272", "#D03454"],
-#     }
 
 
 

@@ -102,6 +102,12 @@ frappe.query_reports["Sales Person Opportunity Status"] = {
 			},
 			
 		},
+		{
+			"fieldname":"forecast",
+			"label": __("Forecast"),
+			"fieldtype": "Select",
+			"options": "\nInclude\nExclude"
+		},
 
 	],
 

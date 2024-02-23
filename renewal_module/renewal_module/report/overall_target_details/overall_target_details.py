@@ -245,7 +245,7 @@ def get_chart_data(filters, columns, data):
 				
 		
 
-    datasets = [{"name":"Tatget","values":[0.0]},
+    datasets = [{"name":"Target","values":[0.0]},
     {"name":"Achieved", "values":[0.0]},
     {"name":"Shortfall","values":[0.0]}
     ]

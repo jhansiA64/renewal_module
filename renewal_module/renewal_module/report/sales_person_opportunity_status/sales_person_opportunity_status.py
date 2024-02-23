@@ -22,7 +22,7 @@ def execute(filters=None):
 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(chart)))
 	
 	
-	return columns, data
+	return columns, data, None, chart, report_summary
 
 
 def get_columns():
@@ -155,7 +155,7 @@ def get_data(filters):
 			{join}
 		WHERE
 			`tabOpportunity`.company = %(company)s
-			AND DATE(`tabOpportunity`.creation) BETWEEN %(from_date)s AND %(to_date)s
+			AND DATE(`tabOpportunity`.expected_closing) BETWEEN %(from_date)s AND %(to_date)s
 			{conditions}
 		
 		ORDER BY
@@ -192,7 +192,10 @@ def get_conditions(filters):
 		conditions.append(" and `tabOpportunity Item`.opportunity_type in %(opportunity_type)s")		
 
 	if filters.get("sales_stage"):
-		conditions.append(" and `tabOpportunity Item`.sales_stage in %(sales_stage)s")		
+		conditions.append(" and `tabOpportunity Item`.sales_stage in %(sales_stage)s")	
+	
+	if filters.get("forecast"):
+		conditions.append(" and `tabOpportunity Item`.forecast = %(forecast)s")	
 
 	return " ".join(conditions) if conditions else ""
 
