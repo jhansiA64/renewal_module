@@ -2,6 +2,17 @@
  {
   "docstatus": 0,
   "doctype": "Client Script",
+  "dt": "Purchase Order",
+  "enabled": 0,
+  "modified": "2024-01-23 12:25:26.662531",
+  "module": null,
+  "name": "get POS",
+  "script": "frappe.ui.form.on('Purchase Order', {\n\trefresh(frm) {\n\t\t// your code here\n\t\t\n\t\tsetTimeout(function() {\n\t\tif(frm.doc.shipping_address_name !== undefined){\n\t\t    \n\t\t    frappe.call({\n    \t\t        method: \"frappe.client.get\",\n          \t\t\targs: {\n          \t\t\t\tdoctype: \"Address\",\n          \t\t\t\tfilters: {\n          \t\t\t\t\t\"name\": frm.doc.shipping_address_name,\n          \t\t\t\t\t\n          \t\t\t\t},\n          \t\t\t\t\n          \t\t\t},\n          \t\t\tcallback: function(d){\n          \t\t\t    var data = d.message;\n          \t\t\t    var place_of_supply = data.gst_state_number+\"-\"+data.gst_state;\n          \t\t\t    cur_frm.set_value(\"place_of_supply\",place_of_supply);\n              \t\t\tcur_frm.refresh_field(\"place_of_supply\");\n          \t\t\t    \n          \t\t\t}\n\t\t    });\t\t\t\n\t\t    \n\t\t}\n\t\t}, 2000);  \n\t}\n})",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
   "dt": "Item",
   "enabled": 1,
   "modified": "2023-03-26 13:47:30.711250",
