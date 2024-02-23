@@ -12,25 +12,29 @@
   "renewal_summary_section",
   "naming_series",
   "customer_name",
-  "sales_user",
-  "product_name",
-  "invoice_no",
   "total_quantity",
-  "start_date",
+  "invoice_no",
   "column_break_5",
   "company",
-  "status",
-  "sales_team",
-  "domain_name",
-  "sla",
   "total_amount",
+  "status",
+  "product_details_section",
+  "product_name",
+  "start_date",
+  "column_break_twie",
+  "domain_name",
   "end_date",
   "item_details_section",
   "items",
   "contact_details_section",
   "contact_list",
+  "sales_user_details_section",
+  "sales_user",
+  "column_break_xefp",
+  "sales_team",
   "amount_details_section",
   "rate",
+  "sla",
   "description",
   "column_break_22",
   "serial_nos",
@@ -62,6 +66,7 @@
   {
    "fieldname": "sla",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "SLA",
    "options": "Service Level Agreement"
   },
@@ -70,12 +75,14 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "label": "Product Name"
+   "label": "Product Name",
+   "read_only": 1
   },
   {
    "fieldname": "invoice_no",
    "fieldtype": "Data",
-   "label": "Invoice No"
+   "label": "Invoice No",
+   "read_only": 1
   },
   {
    "fieldname": "total_quantity",
@@ -103,6 +110,7 @@
    "reqd": 1
   },
   {
+   "default": "New Opp",
    "fieldname": "status",
    "fieldtype": "Select",
    "in_global_search": 1,
@@ -125,7 +133,8 @@
    "default": "0",
    "fieldname": "total_amount",
    "fieldtype": "Float",
-   "label": "Total Amount"
+   "label": "Total Amount",
+   "read_only": 1
   },
   {
    "fieldname": "end_date",
@@ -160,11 +169,12 @@
   {
    "fieldname": "amount_details_section",
    "fieldtype": "Section Break",
-   "label": "Amount Details"
+   "label": "More Info"
   },
   {
    "fieldname": "rate",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Rate",
    "options": "Item Price"
   },
@@ -191,11 +201,29 @@
    "fieldname": "subject",
    "fieldtype": "Small Text",
    "label": "Subject"
+  },
+  {
+   "fieldname": "product_details_section",
+   "fieldtype": "Section Break",
+   "label": "Product Details"
+  },
+  {
+   "fieldname": "column_break_twie",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sales_user_details_section",
+   "fieldtype": "Section Break",
+   "label": "Sales User Details"
+  },
+  {
+   "fieldname": "column_break_xefp",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-08-07 12:26:05.348318",
+ "modified": "2024-01-08 10:29:07.969573",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Renewal List",
@@ -215,7 +243,7 @@
    "write": 1
   }
  ],
- "search_fields": "status,end_date",
+ "search_fields": "customer_name,product_name,status,end_date",
  "show_name_in_global_search": 1,
  "sort_field": "modified",
  "sort_order": "DESC",

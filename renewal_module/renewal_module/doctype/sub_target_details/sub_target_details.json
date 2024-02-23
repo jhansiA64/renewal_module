@@ -1,0 +1,111 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2023-12-11 11:26:56.459207",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "category_type",
+  "category",
+  "fiscal_year",
+  "target__amount",
+  "target_distribution",
+  "item_group",
+  "brand",
+  "target_uom",
+  "target_type",
+  "target_value_topline",
+  "target_value_bottomline"
+ ],
+ "fields": [
+  {
+   "fieldname": "category_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Category Type",
+   "options": "\nItem Group\nBrand\nActivity\nAll Category"
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
+   "label": "Category",
+   "options": "category_type"
+  },
+  {
+   "fieldname": "fiscal_year",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Fiscal Year",
+   "options": "Fiscal Year",
+   "reqd": 1
+  },
+  {
+   "fieldname": "target_uom",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Target UOM",
+   "options": "Qty\nAmount"
+  },
+  {
+   "fieldname": "target__amount",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Target  Amount"
+  },
+  {
+   "fieldname": "target_distribution",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Target Distribution",
+   "options": "Monthly Distribution",
+   "reqd": 1
+  },
+  {
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item Group",
+   "options": "Item Group"
+  },
+  {
+   "fieldname": "brand",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Brand",
+   "options": "Brand"
+  },
+  {
+   "fieldname": "target_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Target Type",
+   "options": "Topline\nBottomline"
+  },
+  {
+   "fieldname": "target_value_topline",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Target Value (Topline)"
+  },
+  {
+   "fieldname": "target_value_bottomline",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Target Value (Bottomline)"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2023-12-11 11:40:02.546033",
+ "modified_by": "Administrator",
+ "module": "Renewal Module",
+ "name": "Sub Target Details",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

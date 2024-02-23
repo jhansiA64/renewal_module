@@ -73,6 +73,11 @@ def get_columns():
 			"label":_("Forecast"),
 			"fieldtype":"Data",
 			"width":150
+		},{
+			"fieldname":"expected_date",
+			"label":_("Expected Date"),
+			"fieldtype":"Date",
+			"width":150
 		},
 		
 		{
@@ -121,7 +126,7 @@ def get_data(filters):
 			`tabOpportunity`.party_name,
 			`tabOpportunity Item`.qty,
 			`tabOpportunity Item`.amount,
-			`tabOpportunity Item`.forecast,
+			`tabOpportunity Item`.forecast,`tabOpportunity Item`.expected_date,
 			`tabOpportunity Item`.opportunity_type,
 			`tabOpportunity`.sales_person,
             `tabOpportunity Item`.sales_stage,
@@ -133,7 +138,7 @@ def get_data(filters):
 			{join}
 		WHERE
 			`tabOpportunity`.company = %(company)s
-			AND DATE(`tabOpportunity`.modified) BETWEEN %(from_date)s AND %(to_date)s
+			AND DATE(`tabOpportunity`.expected_closing) BETWEEN %(from_date)s AND %(to_date)s
 			{conditions}
 		
 		ORDER BY
@@ -170,9 +175,43 @@ def get_conditions(filters):
 		conditions.append(" and `tabOpportunity Item`.opportunity_type in %(opportunity_type)s")		
 
 	if filters.get("sales_stage"):
-		conditions.append(" and `tabOpportunity Item`.sales_stage in %(sales_stage)s")		
+		conditions.append(" and `tabOpportunity Item`.sales_stage in %(sales_stage)s")	
+	
+	if filters.get("forecast"):
+		conditions.append(" and `tabOpportunity Item`.forecast = %(forecast)s")	
 
 	return " ".join(conditions) if conditions else ""
+#def get_conditions(filters):
+#	conditions = []
+#
+#	if filters.get("opportunity_id"):
+#		conditions.append(" and `tabOpportunity`.name=%(opportunity_id)s")
+
+#	if filters.get("item_code"):
+#		conditions.append(" and `tabOpportunity Item`.item_code=%(item_code)s")
+
+#	if filters.get("item_group"):
+#		conditions.append(" and `tabOpportunity Item`.item_group in %(item_group)s")
+
+#	if filters.get("brand"):
+#		conditions.append(" and `tabOpportunity Item`.brand in %(brand)s")		
+
+#	if filters.get("party_name"):
+#		conditions.append(" and `tabOpportunity`.party_name in %(party_name)s")
+
+#	if filters.get("sales_person"):
+#		conditions.append(" and `tabOpportunity`.sales_person in %(sales_person)s")	
+
+#	if filters.get("opportunity_type"):
+#		conditions.append(" and `tabOpportunity Item`.opportunity_type in %(opportunity_type)s")		
+
+#	if filters.get("sales_stage"):
+#		conditions.append(" and `tabOpportunity Item`.sales_stage in %(sales_stage)s")
+
+#        if filters.get("forecast"):
+	#	conditions.append(" and `tabOpportunity Item`.forecast = %(forecast)s")	
+
+#	return " ".join(conditions) if conditions else ""
 
 
 def get_join(filters):

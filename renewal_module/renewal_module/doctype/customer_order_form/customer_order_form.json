@@ -15,6 +15,7 @@
   "customer_name",
   "status",
   "amended_from",
+  "po_attachment",
   "column_break_8",
   "company_name",
   "customers_purchase_order",
@@ -43,6 +44,7 @@
   "column_break_16",
   "shipping_address_name",
   "shipping_address",
+  "place_of_supply",
   "company_address",
   "company_address_display",
   "customer_group",
@@ -50,7 +52,6 @@
   "contact_details_section",
   "contact_list",
   "sales_team",
-  "sales_team_section",
   "section_break_73",
   "sales_person",
   "column_break_75",
@@ -141,6 +142,7 @@
    "fieldname": "customer",
    "fieldtype": "Link",
    "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Customer",
    "options": "Customer",
    "reqd": 1
@@ -156,6 +158,7 @@
    "default": "Draft",
    "fieldname": "status",
    "fieldtype": "Select",
+   "in_standard_filter": 1,
    "label": "Status",
    "options": "\nDraft\nWaiting For Approval\nApproved\nRejected\nPending Sales Order\nPending Purchase Order\nPending Client Input\nWaiting For Payment\nPending Inward Material\nPending Customer Invoice\nDuplicate\nClosed"
   },
@@ -557,11 +560,6 @@
    "options": "Renewal Contacts"
   },
   {
-   "fieldname": "sales_team_section",
-   "fieldtype": "Section Break",
-   "label": "Sales Team"
-  },
-  {
    "fieldname": "sales_team",
    "fieldtype": "Table",
    "label": "Sales Team",
@@ -679,12 +677,25 @@
    "fieldname": "terms_tab",
    "fieldtype": "Tab Break",
    "label": "Terms"
+  },
+  {
+   "fieldname": "po_attachment",
+   "fieldtype": "Attach",
+   "ignore_user_permissions": 1,
+   "label": "Po Attachment",
+   "reqd": 1
+  },
+  {
+   "fieldname": "place_of_supply",
+   "fieldtype": "Data",
+   "label": "Place Of Supply",
+   "length": 50
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-08-19 11:41:55.953219",
+ "modified": "2024-01-29 11:19:09.253721",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Customer Order Form",
@@ -702,11 +713,25 @@
    "role": "System Manager",
    "share": 1,
    "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "write": 1
   }
  ],
+ "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
+ "title_field": "customer",
  "track_changes": 1,
  "track_seen": 1
 }

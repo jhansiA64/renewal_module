@@ -100,6 +100,11 @@ frappe.query_reports["Sales Person Opportunity Status"] = {
 				return frappe.db.get_link_options('Sales Stage', txt);
 			},
 			
+		},{
+			"fieldname":"forecast",
+			"label": __("Forecast"),
+			"fieldtype": "Select",
+			"options": "\nInclude\nExclude"
 		},
 
 	]

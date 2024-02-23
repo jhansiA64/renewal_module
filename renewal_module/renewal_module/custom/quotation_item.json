@@ -59,6 +59,7 @@
    "report_hide": 0,
    "reqd": 0,
    "search_index": 0,
+   "sort_options": 0,
    "translatable": 0,
    "unique": 0,
    "width": null
@@ -122,6 +123,7 @@
    "report_hide": 0,
    "reqd": 0,
    "search_index": 0,
+   "sort_options": 0,
    "translatable": 0,
    "unique": 0,
    "width": null
@@ -185,6 +187,7 @@
    "report_hide": 0,
    "reqd": 0,
    "search_index": 0,
+   "sort_options": 0,
    "translatable": 1,
    "unique": 0,
    "width": null
@@ -248,6 +251,7 @@
    "report_hide": 0,
    "reqd": 0,
    "search_index": 0,
+   "sort_options": 0,
    "translatable": 0,
    "unique": 0,
    "width": null
@@ -311,6 +315,7 @@
    "report_hide": 0,
    "reqd": 0,
    "search_index": 0,
+   "sort_options": 0,
    "translatable": 0,
    "unique": 0,
    "width": null
@@ -374,6 +379,7 @@
    "report_hide": 0,
    "reqd": 0,
    "search_index": 0,
+   "sort_options": 0,
    "translatable": 1,
    "unique": 0,
    "width": null
@@ -437,6 +443,7 @@
    "report_hide": 0,
    "reqd": 0,
    "search_index": 0,
+   "sort_options": 0,
    "translatable": 0,
    "unique": 0,
    "width": null
@@ -500,6 +507,7 @@
    "report_hide": 0,
    "reqd": 0,
    "search_index": 0,
+   "sort_options": 0,
    "translatable": 0,
    "unique": 0,
    "width": null
@@ -508,6 +516,59 @@
  "custom_perms": [],
  "doctype": "Quotation Item",
  "links": [],
- "property_setters": [],
+ "property_setters": [
+  {
+   "_assign": null,
+   "_comments": null,
+   "_liked_by": null,
+   "_user_tags": null,
+   "creation": "2023-12-18 17:12:44.720395",
+   "default_value": null,
+   "doc_type": "Quotation Item",
+   "docstatus": 0,
+   "doctype_or_field": "DocField",
+   "field_name": "prevdoc_docname",
+   "idx": 0,
+   "is_system_generated": 0,
+   "modified": "2023-12-18 17:12:44.720395",
+   "modified_by": "Administrator",
+   "module": null,
+   "name": "Quotation Item-prevdoc_docname-reqd",
+   "owner": "Administrator",
+   "parent": null,
+   "parentfield": null,
+   "parenttype": null,
+   "property": "reqd",
+   "property_type": "Check",
+   "row_name": null,
+   "value": "1"
+  },
+  {
+   "_assign": null,
+   "_comments": null,
+   "_liked_by": null,
+   "_user_tags": null,
+   "creation": "2023-12-18 17:12:44.621512",
+   "default_value": null,
+   "doc_type": "Quotation Item",
+   "docstatus": 0,
+   "doctype_or_field": "DocType",
+   "field_name": null,
+   "idx": 0,
+   "is_system_generated": 0,
+   "modified": "2023-12-18 17:12:44.621512",
+   "modified_by": "Administrator",
+   "module": null,
+   "name": "Quotation Item-main-field_order",
+   "owner": "Administrator",
+   "parent": null,
+   "parentfield": null,
+   "parenttype": null,
+   "property": "field_order",
+   "property_type": "Data",
+   "row_name": null,
+   "value": "[\"item_code\", \"customer_item_code\", \"col_break1\", \"item_name\", \"section_break_5\", \"description\", \"gst_hsn_code\", \"is_nil_exempt\", \"is_non_gst\", \"item_group\", \"brand\", \"image_section\", \"image\", \"image_view\", \"quantity_and_rate\", \"qty\", \"stock_uom\", \"col_break2\", \"uom\", \"conversion_factor\", \"stock_qty\", \"section_break_16\", \"price_list_rate\", \"base_price_list_rate\", \"discount_and_margin\", \"margin_type\", \"margin_rate_or_amount\", \"rate_with_margin\", \"column_break_18\", \"discount_percentage\", \"discount_amount\", \"base_rate_with_margin\", \"section_break1\", \"rate\", \"net_rate\", \"amount\", \"net_amount\", \"item_tax_template\", \"col_break3\", \"base_rate\", \"base_net_rate\", \"base_amount\", \"base_net_amount\", \"pricing_rules\", \"stock_uom_rate\", \"is_free_item\", \"is_alternative\", \"has_alternative_item\", \"section_break_43\", \"valuation_rate\", \"column_break_45\", \"gross_profit\", \"item_weight_details\", \"weight_per_unit\", \"total_weight\", \"column_break_20\", \"weight_uom\", \"reference\", \"warehouse\", \"against_blanket_order\", \"blanket_order\", \"blanket_order_rate\", \"column_break_30\", \"prevdoc_doctype\", \"prevdoc_docname\", \"item_balance\", \"projected_qty\", \"actual_qty\", \"col_break4\", \"stock_balance\", \"item_tax_rate\", \"shopping_cart_section\", \"additional_notes\", \"section_break_61\", \"page_break\", \"start_date\", \"end_date\", \"renewal_status\", \"tax_rate\", \"renewal_id\"]"
+  }
+ ],
  "sync_on_migrate": 1
 }

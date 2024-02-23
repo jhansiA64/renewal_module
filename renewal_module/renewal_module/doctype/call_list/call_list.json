@@ -64,7 +64,8 @@
   {
    "fieldname": "start_date",
    "fieldtype": "Date",
-   "label": "Start Date"
+   "label": "Start Date",
+   "reqd": 1
   },
   {
    "depends_on": "eval:doc.status==\"Rescheduled\"",
@@ -75,7 +76,8 @@
   {
    "fieldname": "end_date",
    "fieldtype": "Date",
-   "label": "End Date"
+   "label": "End Date",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_5",
@@ -181,10 +183,11 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2022-11-30 14:27:56.385624",
+ "modified": "2024-01-08 10:27:23.863218",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Call List",
+ "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
  "permissions": [
   {
@@ -204,6 +207,7 @@
  "show_name_in_global_search": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
+ "states": [],
  "title_field": "name1",
  "track_changes": 1,
  "track_seen": 1
