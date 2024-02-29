@@ -129,6 +129,12 @@ fixtures = [{"dt": "Custom Field", "filters": [["name", "in", [
 doc_events = {
 	"Customer":{
 		"onload":"renewal_module.api.get_renewals"
+	},
+	#"Customer Order Form":{
+	#	"onload":"renewal_module.api.get_margin"
+	#},
+	"Sales Partner":{
+		"onload":"renewal_module.api.get_transactions"
 	}
 }
 

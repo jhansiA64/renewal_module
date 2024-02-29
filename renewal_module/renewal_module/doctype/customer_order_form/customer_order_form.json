@@ -23,6 +23,8 @@
   "description",
   "items_section",
   "items",
+  "section_break_poag",
+  "margin_table",
   "section_break_32",
   "total_quantity",
   "base_total",
@@ -690,12 +692,23 @@
    "fieldtype": "Data",
    "label": "Place Of Supply",
    "length": 50
+  },
+  {
+   "fieldname": "section_break_poag",
+   "fieldtype": "Section Break",
+   "read_only": 1
+  },
+  {
+   "fieldname": "margin_table",
+   "fieldtype": "Table",
+   "label": "Margin Table",
+   "options": "Margin Table"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-01-29 11:19:09.253721",
+ "modified": "2024-02-26 12:46:04.185418",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Customer Order Form",
