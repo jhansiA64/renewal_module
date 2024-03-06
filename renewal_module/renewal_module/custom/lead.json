@@ -1,7 +1,7 @@
 {
  "custom_fields": [],
  "custom_perms": [],
- "doctype": "Packed Item",
+ "doctype": "Lead",
  "links": [],
  "property_setters": [
   {
@@ -9,23 +9,23 @@
    "_comments": null,
    "_liked_by": null,
    "_user_tags": null,
-   "creation": "2024-01-24 13:02:39.566635",
+   "creation": "2024-02-29 23:49:21.198052",
    "default_value": null,
-   "doc_type": "Packed Item",
+   "doc_type": "Lead",
    "docstatus": 0,
    "doctype_or_field": "DocField",
-   "field_name": "rate",
+   "field_name": "naming_series",
    "idx": 0,
    "is_system_generated": 0,
-   "modified": "2024-01-24 13:02:39.566635",
+   "modified": "2023-12-09 09:17:16.424617",
    "modified_by": "Administrator",
    "module": null,
-   "name": "Packed Item-rate-read_only",
+   "name": "Lead-naming_series-options",
    "owner": "Administrator",
-   "property": "read_only",
-   "property_type": "Check",
+   "property": "options",
+   "property_type": "Text",
    "row_name": null,
-   "value": "1"
+   "value": "CRM-LEAD-.YYYY.-"
   }
  ],
  "sync_on_migrate": 1
