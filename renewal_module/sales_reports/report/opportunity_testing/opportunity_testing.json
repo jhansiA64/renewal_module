@@ -1,0 +1,39 @@
+{
+ "add_total_row": 0,
+ "columns": [],
+ "creation": "2024-03-21 10:31:29.830961",
+ "disable_prepared_report": 0,
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "quotation-footer",
+ "modified": "2024-03-21 10:31:29.830961",
+ "modified_by": "Administrator",
+ "module": "Sales Reports",
+ "name": "Opportunity Testing",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "Opportunity",
+ "report_name": "Opportunity Testing",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Accounts User"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "Arya - Accounts Manager"
+  }
+ ]
+}

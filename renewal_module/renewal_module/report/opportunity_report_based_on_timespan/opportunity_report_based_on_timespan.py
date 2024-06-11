@@ -258,7 +258,7 @@ def get_chart_data(filters,columns, data):
 
 		brand_wise_sales_map[item_key] = flt(brand_wise_sales_map[item_key]) + flt(row.get("amount"))
 
-	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(brand_wise_sales_map)))	
+	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(brand_wise_sales_map)))	
 	brand_wise_sales_map = {
 		item: value
 		for item, value in (sorted(brand_wise_sales_map.items(), key=lambda i: i[0]))

@@ -1,0 +1,137 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:{sales_person}-{fiscal_year}",
+ "creation": "2024-05-21 12:34:26.139943",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "sales_person",
+  "column_break_mflmq",
+  "fiscal_year",
+  "section_break_xvqra",
+  "category_type",
+  "target_qty",
+  "target_distribution",
+  "parent_table",
+  "target_type",
+  "column_break_thoeo",
+  "category",
+  "target_amount",
+  "topline_target",
+  "bottomline_target",
+  "sub_targets_details_section",
+  "sub_targets"
+ ],
+ "fields": [
+  {
+   "fieldname": "sales_person",
+   "fieldtype": "Link",
+   "label": "Sales Person",
+   "options": "Sales Person"
+  },
+  {
+   "fieldname": "column_break_mflmq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "fiscal_year",
+   "fieldtype": "Link",
+   "label": "Fiscal Year",
+   "options": "Fiscal Year"
+  },
+  {
+   "fieldname": "section_break_xvqra",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "category_type",
+   "fieldtype": "Data",
+   "label": "Category Type"
+  },
+  {
+   "fieldname": "target_distribution",
+   "fieldtype": "Link",
+   "label": "Target Distribution",
+   "options": "Monthly Distribution"
+  },
+  {
+   "fieldname": "parent_table",
+   "fieldtype": "Data",
+   "label": "Parent Table"
+  },
+  {
+   "fieldname": "target_type",
+   "fieldtype": "Data",
+   "label": "Target Type"
+  },
+  {
+   "fieldname": "column_break_thoeo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Data",
+   "label": "Category"
+  },
+  {
+   "fieldname": "target_amount",
+   "fieldtype": "Currency",
+   "label": "Target Amount"
+  },
+  {
+   "fieldname": "topline_target",
+   "fieldtype": "Currency",
+   "label": "Topline Target"
+  },
+  {
+   "fieldname": "bottomline_target",
+   "fieldtype": "Data",
+   "label": "Bottomline Target"
+  },
+  {
+   "fieldname": "sub_targets_details_section",
+   "fieldtype": "Section Break",
+   "label": "Sub Targets Details"
+  },
+  {
+   "fieldname": "sub_targets",
+   "fieldtype": "Table",
+   "label": "Sub Targets",
+   "options": "Sub Target Details List"
+  },
+  {
+   "fieldname": "target_qty",
+   "fieldtype": "Data",
+   "label": "Target Qty"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-05-24 16:03:46.889093",
+ "modified_by": "Administrator",
+ "module": "Custom Module",
+ "name": "Target Data",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

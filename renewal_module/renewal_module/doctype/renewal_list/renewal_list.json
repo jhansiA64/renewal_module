@@ -25,6 +25,7 @@
   "sla",
   "total_amount",
   "end_date",
+  "note",
   "item_details_section",
   "items",
   "contact_details_section",
@@ -191,11 +192,16 @@
    "fieldname": "subject",
    "fieldtype": "Small Text",
    "label": "Subject"
+  },
+  {
+   "fieldname": "note",
+   "fieldtype": "Small Text",
+   "label": "Note"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-08-07 12:41:27.629360",
+ "modified": "2024-04-10 15:41:43.910936",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Renewal List",

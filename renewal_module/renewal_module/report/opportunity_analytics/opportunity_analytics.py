@@ -49,8 +49,8 @@ class Analytics(object):
 
 		if self.filters.tree_type in ["Item Group", "Customer Group", "Territory"]:
 			skip_total_row = 1
-		frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(self.data)))
-		frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(self.columns)))	
+		# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(self.data)))
+		# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(self.columns)))	
 
 		return self.columns, self.data, None, self.chart, None, skip_total_row
 
@@ -433,7 +433,8 @@ class Analytics(object):
 	def get_chart_data(self):
 		length = len(self.columns)
 
-		if self.filters.tree_type in ["Customer", "Sales Person"]:
+		if self.filters.tree_type in ["Customer","Sales Person"]:
+			# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(self.columns)))
 			labels = [d.get("label") for d in self.columns[2 : length - 1]]
 		elif self.filters.tree_type == "Item":
 			labels = [d.get("label") for d in self.columns[3 : length - 1]]
@@ -445,12 +446,13 @@ class Analytics(object):
 		if self.filters.tree_type in ["Customer", "Sales Person"]:
 			for c in self.columns[2 : length - 1]:
 				for d in self.data[2 : length - 1]:
+					# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(c)))
 					# set_list[c.get("fieldname")] = d[c.get("fieldname")]
 					set_list.append(d[c.get("fieldname")])
 
 
 		datasets.append({"name":"Sales", "values":set_list})
-		frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(datasets)))
+		# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(datasets)))
 	    # frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(datasets)))			
 
 

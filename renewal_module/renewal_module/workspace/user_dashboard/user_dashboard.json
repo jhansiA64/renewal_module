@@ -1,0 +1,70 @@
+{
+ "charts": [
+  {
+   "chart_name": "Brand Wise Opportunity Amount",
+   "label": "Brand Wise Opportunity Amount"
+  },
+  {
+   "chart_name": "Sales target (This Quarter)",
+   "label": "Sales target (This Quarter)"
+  },
+  {
+   "chart_name": "Sales Target(Last Quarter)",
+   "label": "Sales Target(Last Quarter)"
+  },
+  {
+   "chart_name": "Sales Target (This Month)",
+   "label": "Sales Target (This Month)"
+  },
+  {
+   "chart_name": "Sales Target (Last Month)",
+   "label": "Sales Target (Last Month)"
+  }
+ ],
+ "content": "[{\"id\":\"OKyj3lQgtr\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">User Dashboard</span>\",\"col\":12}},{\"id\":\"s6RH8zdxin\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Overdue Amount\",\"col\":4}},{\"id\":\"0Z3Q8mT0w8\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Opportunity Details <br></b></span>\",\"col\":12}},{\"id\":\"U5q3HG9CIo\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"New Opportunities\",\"col\":4}},{\"id\":\"XvjqxnCVcc\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Won Opp Amount\",\"col\":4}},{\"id\":\"2t8VKKqQ0-\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Renewals <br></b></span>\",\"col\":12}},{\"id\":\"GbPk_IRBzR\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"New Opp\",\"col\":4}},{\"id\":\"TVcAbj0bTZ\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Active Renewals(This Month)\",\"col\":4}},{\"id\":\"ktntSO8yym\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Target Details <br></b></span>\",\"col\":12}},{\"id\":\"WqPEPNIYSm\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Sales target (This Quarter)\",\"col\":6}},{\"id\":\"4C2DLlxiZQ\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Sales Target(Last Quarter)\",\"col\":6}},{\"id\":\"ypPYAy1Hjx\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Sales Target (This Month)\",\"col\":6}},{\"id\":\"Vxz1NqQc-M\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Sales Target (Last Month)\",\"col\":6}},{\"id\":\"zK_MP9Evlr\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Brand Wise Opportunity Amount\",\"col\":6}}]",
+ "creation": "2024-03-04 12:14:35.467039",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "color-review-points",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "User Dashboard",
+ "links": [],
+ "modified": "2024-03-04 13:25:23.945861",
+ "modified_by": "Administrator",
+ "module": "Renewal Module",
+ "name": "User Dashboard",
+ "number_cards": [
+  {
+   "label": "Overdue Amount",
+   "number_card_name": "Overdue Amount"
+  },
+  {
+   "label": "New Opportunities",
+   "number_card_name": "New Opportunity (Last 1 Month)"
+  },
+  {
+   "label": "Won Opp Amount",
+   "number_card_name": "Won Opportunity Amount (Last Week)"
+  },
+  {
+   "label": "New Opp",
+   "number_card_name": "New Opps"
+  },
+  {
+   "label": "Active Renewals(This Month)",
+   "number_card_name": "Active Renewals(This Month)"
+  }
+ ],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 33.0,
+ "shortcuts": [],
+ "title": "User Dashboard"
+}

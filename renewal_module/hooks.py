@@ -75,6 +75,10 @@ fixtures = [{"dt": "Custom Field", "filters": [["name", "in", [
 #	"Role": "home_page"
 # }
 
+website_route_rules = [
+    {"from_route": "/job-opening/<name>", "to_route": "job_opening"}
+]
+
 # Generators
 # ----------
 

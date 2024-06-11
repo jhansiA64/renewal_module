@@ -92,7 +92,7 @@ def get_columns():
 			"width":150
 		},
 		{
-			"fieldname":"outstanding",
+			"fieldname":"outstanding_amount",
 			"label":_("Outstanding Amount"),
 			"fieldtype":"Data",
 			"width":150

@@ -1,0 +1,161 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "prompt",
+ "creation": "2024-03-20 15:22:48.672204",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "service_name",
+  "image",
+  "solution_order",
+  "is_published",
+  "column_break_hcadn",
+  "status",
+  "solution_image",
+  "route",
+  "images_section_section",
+  "solution_images",
+  "solution_icon",
+  "column_break_wy4vl",
+  "section_break_dqdlz",
+  "qa_table",
+  "section_break_rcmwv",
+  "partner_logos",
+  "section_break_lgest",
+  "defination",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "service_name",
+   "fieldtype": "Data",
+   "label": "Service Name"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_published",
+   "fieldtype": "Check",
+   "label": "Is Published"
+  },
+  {
+   "fieldname": "column_break_hcadn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Enable\nDisable"
+  },
+  {
+   "fieldname": "route",
+   "fieldtype": "Data",
+   "label": "Route"
+  },
+  {
+   "fieldname": "section_break_rcmwv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description"
+  },
+  {
+   "fieldname": "section_break_lgest",
+   "fieldtype": "Section Break",
+   "label": "Product Description"
+  },
+  {
+   "fieldname": "partner_logos",
+   "fieldtype": "Table",
+   "label": "Partner Logos",
+   "options": "Partner Logos Table"
+  },
+  {
+   "description": "size should be 600x400, this image for home page",
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Image"
+  },
+  {
+   "fieldname": "section_break_dqdlz",
+   "fieldtype": "Section Break",
+   "label": "Q&A Section"
+  },
+  {
+   "fieldname": "qa_table",
+   "fieldtype": "Table",
+   "options": "Solutions QA Table"
+  },
+  {
+   "description": "This image for solution page.",
+   "fieldname": "solution_image",
+   "fieldtype": "Attach Image",
+   "label": "Solution Image"
+  },
+  {
+   "fieldname": "solution_icon",
+   "fieldtype": "Attach Image",
+   "label": "Solution Icon",
+   "read_only": 1
+  },
+  {
+   "fieldname": "images_section_section",
+   "fieldtype": "Section Break",
+   "label": "Images Section"
+  },
+  {
+   "fieldname": "solution_images",
+   "fieldtype": "Link",
+   "label": "Solution Images",
+   "options": "Solutions Images"
+  },
+  {
+   "fieldname": "column_break_wy4vl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "defination",
+   "fieldtype": "Small Text",
+   "label": "Defination"
+  },
+  {
+   "fieldname": "solution_order",
+   "fieldtype": "Int",
+   "label": "Solution Order"
+  }
+ ],
+ "has_web_view": 1,
+ "index_web_pages_for_search": 1,
+ "is_published_field": "is_published",
+ "links": [],
+ "modified": "2024-06-09 19:42:53.840013",
+ "modified_by": "Administrator",
+ "module": "Custom Website",
+ "name": "Solutions",
+ "naming_rule": "Set by user",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "route": "Solution",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

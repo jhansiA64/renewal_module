@@ -1,0 +1,107 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2024-06-05 15:21:14.734420",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "column_break_c6zj5",
+  "status",
+  "section_break_9vbvf",
+  "heading",
+  "button_name",
+  "background_image",
+  "column_break_m3vsx",
+  "sub_heading",
+  "button_url"
+ ],
+ "fields": [
+  {
+   "fieldname": "column_break_c6zj5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Enable\nDisable"
+  },
+  {
+   "fieldname": "section_break_9vbvf",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "heading",
+   "fieldtype": "Small Text",
+   "label": "Heading"
+  },
+  {
+   "fieldname": "button_name",
+   "fieldtype": "Data",
+   "label": "Button name"
+  },
+  {
+   "fieldname": "column_break_m3vsx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sub_heading",
+   "fieldtype": "Small Text",
+   "label": "Sub Heading"
+  },
+  {
+   "fieldname": "button_url",
+   "fieldtype": "Data",
+   "label": "Button URL"
+  },
+  {
+   "fieldname": "background_image",
+   "fieldtype": "Attach Image",
+   "label": "Background Image"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "HM.YY.####"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-06-05 15:33:43.172192",
+ "modified_by": "Administrator",
+ "module": "Custom Website",
+ "name": "Custom Home Page Banner Section",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [
+  {
+   "color": "Blue",
+   "title": "Enable"
+  },
+  {
+   "color": "Red",
+   "title": "Disable"
+  }
+ ]
+}

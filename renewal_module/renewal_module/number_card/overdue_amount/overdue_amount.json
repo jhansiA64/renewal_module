@@ -1,0 +1,23 @@
+{
+ "creation": "2024-03-04 13:05:27.762093",
+ "docstatus": 0,
+ "doctype": "Number Card",
+ "dynamic_filters_json": "{\"company\":\" frappe.defaults.get_user_default(\\\"Company\\\")\"}",
+ "filters_json": "{\"from_date\":\"2024-02-26\",\"to_date\":\"2024-03-04\",\"customer\":[],\"sales_person\":[]}",
+ "function": "Count",
+ "idx": 0,
+ "is_public": 1,
+ "is_standard": 1,
+ "label": "Overdue Amount",
+ "modified": "2024-03-04 13:07:22.318307",
+ "modified_by": "Administrator",
+ "module": "Renewal Module",
+ "name": "Overdue Amount",
+ "owner": "Administrator",
+ "report_field": "total_amount",
+ "report_function": "Sum",
+ "report_name": "Overdue Report",
+ "show_percentage_stats": 1,
+ "stats_time_interval": "Daily",
+ "type": "Report"
+}

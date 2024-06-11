@@ -39,13 +39,6 @@ def execute(filters=None):
     )
 	chart = get_chart_data(filters, columns, data)
 
-    # report_summary = get_report_summary(filters,columns, currency, data)
-    # frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(sales_data)))
-    # chart = get_chart_data(filters, columns, data)
-	
-    # chart = get_chart_data(filters, columns, data)
-    # frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(chart)))
-
 	return columns, data, None, chart
 
 def get_columns(filters):
@@ -199,7 +192,7 @@ def prepare_data(filters,sales_users_data,sales_data,date_field,sales_field,
 			    details["shortfall"] = details.get("achieved_value") - details.get("bottomline_target")
 			
 
-	    details["shortfall"] = details.get("achieved_value") - details.get("bottomline_target")
+	    details["shortfall"] = round((details.get("achieved_value") - details.get("bottomline_target")),2)
 
     return rows
 
@@ -254,8 +247,8 @@ def get_chart_data(filters, columns, data):
 	# 	datasets[0]["values"] = [prospecting]
 	
     datasets[0]["values"] = [bottomline_target]
-    datasets[1]["values"] = [achieved_value]
-    datasets[2]["values"] = [shortfall]
+    datasets[1]["values"] = [round(achieved_value,2)]
+    datasets[2]["values"] = [round(shortfall,2)]
 		
 
     return {

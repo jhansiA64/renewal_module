@@ -209,7 +209,7 @@ def get_data(filters):
 		GROUP BY tsoi.name	
 		
 		ORDER BY
-			tso.name ASC """.format(
+			tso.name DESC """.format(
 			conditions=get_conditions(filters), join=get_join(filters)
 		),
 		filters,
@@ -272,15 +272,19 @@ def get_conditions(filters):
 
 def get_join(filters):
 	join = """Left join `tabSales Order` tso on tsoi.parent = tso.name 
-			Left join `tabQuotation Item` tqi on tsoi.prevdoc_docname = tqi.parent and tsoi.item_code = tqi.item_code and tsoi.qty = tqi.qty 
-			left join (SELECT toi.parent as opportunity,toi.name , toi.item_code as s_item_code , toi.qty as s_qty ,tpq.name as sq_name, tpq.supplier as supplier,tpq.item_code as sq_item_code,
-			toi.rate as s_rate , tpq.rate as p_rate ,tpq.qty as p_qty, tpq.amount as p_amount, toi.orc as orc, toi.description as description 
+			Left join `tabQuotation Item` tqi on tsoi.prevdoc_docname = tqi.parent and tsoi.item_code = tqi.item_code and
+			 tsoi.qty = tqi.qty  and tsoi.rate = tqi.rate
+			left join 
+			(SELECT toi.parent as opportunity,toi.name , toi.item_code as s_item_code , toi.qty as s_qty ,tpq.name as sq_name, tpq.supplier as supplier,tpq.item_code as sq_item_code,
+			toi.rate as s_rate , tpq.rate as p_rate ,tpq.qty as p_qty, tpq.amount as p_amount, toi.orc as orc, toi.description 
 			from 
 			`tabOpportunity Item` toi
-			left join (SELECT tsq.name as name, tsq.supplier as supplier  , tsqi.item_code as item_code , tsqi.rate as rate , tsqi.qty as qty, tsqi.amount as amount, tsq.opportunity as opportunity
+			left join (SELECT tsq.name as name, tsq.supplier as supplier  , tsqi.item_code as item_code , tsqi.rate as rate , 
+			tsqi.qty as qty, tsqi.amount as amount, tsq.opportunity as opportunity, tsqi.description as description
 			from `tabSupplier Quotation` tsq 
-			left join (SELECT parent , item_code , rate, qty, amount   FROM `tabSupplier Quotation Item`  WHERE recommended_ =1) as tsqi on tsqi.parent = tsq.name 
-			) as tpq on tpq.opportunity = toi.parent and toi.item_code = tpq.item_code and toi.qty = tpq.qty) as top on top.opportunity = tqi.prevdoc_docname and top.s_item_code = tqi.item_code and top.s_qty = tqi.qty
+			left join (SELECT parent , item_code , rate, qty, amount, description   FROM `tabSupplier Quotation Item`  WHERE recommended_ =1) as tsqi on tsqi.parent = tsq.name 
+			) as tpq on tpq.opportunity = toi.parent and toi.item_code = tpq.item_code and toi.qty = tpq.qty and tpq.description = toi.description
+			) as top on top.opportunity = tqi.prevdoc_docname and top.s_item_code = tqi.item_code and top.s_qty = tqi.qty and top.description = tqi.description
 			LEFT JOIN 
 			(SELECT toi2.commission_amount as commission_amount, tol.opportunity_id as opportunity_id, toi2.item_code as item_code , toi2.qty as qty ,
 			toi2.rate as rate , toi2.description as description 
