@@ -103,7 +103,9 @@
   "invoice_no",
   "new_add",
   "start_date",
-  "end_date"
+  "end_date",
+  "column_break_ziuf",
+  "renewal_id"
  ],
  "fields": [
   {
@@ -162,6 +164,8 @@
    "width": "200px"
   },
   {
+   "fetch_from": "item_code.item_group",
+   "fetch_if_empty": 1,
    "fieldname": "item_group",
    "fieldtype": "Link",
    "hidden": 1,
@@ -173,6 +177,8 @@
    "read_only": 1
   },
   {
+   "fetch_from": "item_code.brand",
+   "fetch_if_empty": 1,
    "fieldname": "brand",
    "fieldtype": "Data",
    "hidden": 1,
@@ -840,11 +846,21 @@
    "fieldname": "end_date",
    "fieldtype": "Date",
    "label": "End Date"
+  },
+  {
+   "fieldname": "column_break_ziuf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "renewal_id",
+   "fieldtype": "Link",
+   "label": "Old Renewal ID",
+   "options": "Renewal List"
   }
  ],
  "istable": 1,
  "links": [],
- "modified": "2023-02-17 13:01:04.089748",
+ "modified": "2024-04-24 10:37:55.447768",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Renewal Item",

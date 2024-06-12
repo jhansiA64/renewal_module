@@ -75,6 +75,11 @@
   "item_tax_rate",
   "shopping_cart_section",
   "additional_notes",
+  "section_break_wukf",
+  "orc",
+  "column_break_zmys",
+  "orc_id",
+  "orc_amount",
   "section_break_61",
   "page_break"
  ],
@@ -645,15 +650,41 @@
    "report_hide": 1
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "margin_amount",
    "fieldtype": "Currency",
    "label": "Margin Amount",
    "read_only": 1
+  },
+  {
+   "fieldname": "section_break_wukf",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "orc",
+   "fieldtype": "Check",
+   "label": "ORC"
+  },
+  {
+   "fieldname": "column_break_zmys",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "orc_id",
+   "fieldtype": "Link",
+   "label": "ORC ID",
+   "options": "ORC List"
+  },
+  {
+   "fieldname": "orc_amount",
+   "fieldtype": "Currency",
+   "label": "ORC Amount"
   }
  ],
  "istable": 1,
  "links": [],
- "modified": "2024-02-26 12:43:23.494414",
+ "modified": "2024-05-23 18:19:32.759180",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Customer Order Form Item",

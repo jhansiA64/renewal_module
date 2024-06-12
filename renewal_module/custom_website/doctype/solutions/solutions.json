@@ -1,0 +1,157 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "prompt",
+ "creation": "2024-06-12 18:09:08.784321",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "service_name",
+  "image",
+  "solution_order",
+  "is_published",
+  "column_break_ltut",
+  "status",
+  "solution_image",
+  "route",
+  "section_break_bmaq",
+  "solution_images",
+  "solution_icon",
+  "column_break_mooi",
+  "qasection",
+  "qa_table",
+  "section_break_rcok",
+  "partner_logos",
+  "product_description_section",
+  "defination",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "service_name",
+   "fieldtype": "Data",
+   "label": "Service Name"
+  },
+  {
+   "description": "size should be 600x400, this image for home page",
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Image"
+  },
+  {
+   "fieldname": "solution_order",
+   "fieldtype": "Int",
+   "label": "Solution Order"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_published",
+   "fieldtype": "Check",
+   "label": "Is Published"
+  },
+  {
+   "fieldname": "column_break_ltut",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Enable\nDisable"
+  },
+  {
+   "description": "This image for solution page.",
+   "fieldname": "solution_image",
+   "fieldtype": "Attach Image",
+   "label": "Solution Image"
+  },
+  {
+   "fieldname": "route",
+   "fieldtype": "Data",
+   "label": "Route"
+  },
+  {
+   "fieldname": "section_break_bmaq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "solution_images",
+   "fieldtype": "Link",
+   "label": "Solution Images",
+   "options": "Solutions Images"
+  },
+  {
+   "fieldname": "solution_icon",
+   "fieldtype": "Attach Image",
+   "label": "Solution Icon",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_mooi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "qasection",
+   "fieldtype": "Section Break",
+   "label": "Q&ASection"
+  },
+  {
+   "fieldname": "qa_table",
+   "fieldtype": "Table",
+   "options": "Solutions QA Table"
+  },
+  {
+   "fieldname": "section_break_rcok",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "partner_logos",
+   "fieldtype": "Table",
+   "label": "Partner Logos",
+   "options": "Partner Logos Table"
+  },
+  {
+   "fieldname": "product_description_section",
+   "fieldtype": "Section Break",
+   "label": "Product Description"
+  },
+  {
+   "fieldname": "defination",
+   "fieldtype": "Small Text",
+   "label": "Defination"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description"
+  }
+ ],
+ "has_web_view": 1,
+ "index_web_pages_for_search": 1,
+ "is_published_field": "is_published",
+ "links": [],
+ "modified": "2024-06-12 18:43:43.361629",
+ "modified_by": "Administrator",
+ "module": "Custom Website",
+ "name": "Solutions",
+ "naming_rule": "Set by user",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "route": "Solution",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

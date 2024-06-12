@@ -18,6 +18,7 @@
   "company",
   "total_amount",
   "status",
+  "note",
   "product_details_section",
   "product_name",
   "start_date",
@@ -33,7 +34,6 @@
   "column_break_xefp",
   "sales_team",
   "amount_details_section",
-  "rate",
   "sla",
   "description",
   "column_break_22",
@@ -116,7 +116,7 @@
    "in_global_search": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "New Opp\nActive\nDraft\nAwaiting Response\nCofed\nDuplicate\nRenewed\nUpgraded\nVoid\nLost\nCancelled\nCompetitor Sales\nAuto Created\nOut Of Business\nProduct Changed"
+   "options": "\nActive\nAwaiting Response\nCancelled\nCofed\nDraft\nDuplicate\nLost\nNew Opp\nOut Of Business\nProduct Changed\nRenewed\nUpgraded\nVoid\nX-Renewal\nX-Opp"
   },
   {
    "fieldname": "sales_user",
@@ -172,13 +172,6 @@
    "label": "More Info"
   },
   {
-   "fieldname": "rate",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "label": "Rate",
-   "options": "Item Price"
-  },
-  {
    "fieldname": "column_break_22",
    "fieldtype": "Column Break"
   },
@@ -219,11 +212,16 @@
   {
    "fieldname": "column_break_xefp",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "note",
+   "fieldtype": "Small Text",
+   "label": "Note"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-01-08 10:29:07.969573",
+ "modified": "2024-04-25 15:50:05.113464",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Renewal List",

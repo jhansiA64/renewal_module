@@ -1,0 +1,94 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-06-12 18:44:56.089498",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "series",
+  "column_break_bxcf",
+  "status",
+  "section_break_rnhi",
+  "heading",
+  "button_name",
+  "background_image",
+  "column_break_njnl",
+  "sub_heading",
+  "button_url"
+ ],
+ "fields": [
+  {
+   "fieldname": "series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "HM.YY.####"
+  },
+  {
+   "fieldname": "column_break_bxcf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Enable\nDisable"
+  },
+  {
+   "fieldname": "section_break_rnhi",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "heading",
+   "fieldtype": "Small Text",
+   "label": "Heading"
+  },
+  {
+   "fieldname": "button_name",
+   "fieldtype": "Data",
+   "label": "Button name"
+  },
+  {
+   "fieldname": "background_image",
+   "fieldtype": "Attach Image",
+   "label": "Background Image"
+  },
+  {
+   "fieldname": "column_break_njnl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sub_heading",
+   "fieldtype": "Small Text",
+   "label": "Sub Heading"
+  },
+  {
+   "fieldname": "button_url",
+   "fieldtype": "Data",
+   "label": "Button URL"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-06-12 18:51:57.026275",
+ "modified_by": "Administrator",
+ "module": "Custom Website",
+ "name": "Custom Home Page Banner Section",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
