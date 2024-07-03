@@ -1072,3 +1072,214 @@
 {
     color:#ee502d;
 }
+/* Solution Page card */
+/* .card1 {
+    border: none;
+    border-radius: 8px;
+    border-top-left-radius: 10px;
+    display: inline-block;
+    vertical-align: top;
+    background-color:transparent;
+    position: relative;
+    width: 100%;
+  }
+  
+  .card-header {
+    font-size: 18px;
+    margin-bottom: 10px;
+    font-weight: bold;
+    color: black;
+    background-color: initial;
+    cursor: pointer;
+  }
+  .card-header.active{
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    
+    background-color: #EE502D;
+    color: white;
+    
+
+  }
+  .card-header:hover{
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    background-color: #EE502D;
+    color: white;
+  }
+  .card-body {
+    margin-bottom: 10px;
+    background-color: transparent;
+  }
+  .hidden-content {
+    display: none;
+    font-style: sans-serif;
+    color: rgb(28, 10, 58);
+  }
+  .rotate-180 {
+    transform: rotate(180deg);
+  }
+  .toggle-button {
+    position: absolute;
+    right: 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    color: #EE502D;
+    
+  }
+  .arrow-button.active{
+    color: white !important;
+  }
+  .arrow-button:hover{
+    color: white;
+  }
+  .toggle-button.active { 
+    color: white; 
+  }
+  
+   */
+
+.accordion-item{
+    background-color: transparent;
+}  
+.card1 {
+    margin-bottom: 10px; /* Margin between accordion cards */
+    border: none;
+    border-radius: 8px;
+    border-top-left-radius: 10px;
+    display: inline-block;
+    vertical-align: top;
+    background-color:transparent;
+    position: relative;
+    width: 100%;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+
+  }
+  
+  .collapsible {
+    background-color: #ffffff; /* Background color of the accordion header */
+    color: #333; /* Text color of the accordion header */
+    cursor: pointer;
+    padding: 15px;
+    width: 100%;
+    text-align: left;
+    border: none;
+    outline: none;
+    font-size: 18px;
+    font-weight: bold;
+    transition: background-color 0.3s ease; /* Transition effect for background color */
+    position: relative;/* Ensure position is relative for the chevron icon */
+    margin: 5px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    
+  }
+  
+  .collapsible.active {
+    background-color:#e85433; /* Background color when accordion is active/open */
+    color:white;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+  }
+  
+  .icon-right {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: transform 0.3s ease; /* Transition effect for chevron icon */
+  }
+  
+  .content {
+    display: none; /* Initially hide accordion content */
+    padding: 10px;
+    background-color: #fff; /* Background color of accordion content */
+    overflow: hidden; /* Ensure content does not overflow */
+    transition: max-height 0.3s ease-out; /* Transition effect for expanding/collapsing content */
+  }
+  
+  .content.show {
+    display: block; /* Show accordion content when active */
+  }
+  
+  .collapsible.active .icon-right {
+    transform: translateY(-50%) rotate(180deg); /* Rotate chevron icon when accordion is active */
+  }
+  
+  .card1:hover .collapsible {
+    background-color: #e85433; /* Background color when hovering over accordion header */
+    color: #ffff;
+  }
+  
+  /* Optional: Add additional styling for images inside accordion content */
+  .content img {
+    max-width: 100%; /* Ensure images resize appropriately */
+    max-height: 100px; /* Limit image height */
+    object-fit: cover; /* Ensure images cover their containers */
+    margin: 5px; /* Margin between images */
+ }
+  
+  .card-body {
+    margin-bottom: 10px;
+    background-color: transparent;
+  }
+
+  /* .card1 {
+    margin-bottom: 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 0;
+    border:none;
+
+   }
+   .collapsible {
+    background-color: #ffffff; 
+    color: #333; 
+    cursor: pointer;
+    padding: 15px;
+    width: 100%;
+    text-align: left;
+    border: none; 
+    outline: none;
+    font-size: 18px;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    
+    
+  }
+  .collapsible.active , 
+.collapsible:hover {
+    background-color: #e85433;
+    color:#fff;
+
+}
+.icon-right {
+    transition: transform 0.3s;
+}
+.collapsible.active .icon-right {
+    transform: rotate(180deg);
+}
+
+.content {
+    display:none;
+    padding: 0 15px;
+}
+
+.content.show {
+    display: block;
+}
+.card-body {
+    padding: 15px;
+    background-color: none;
+    border-top: 1px solid #e0e0e0;
+}
+.card-body img {
+    margin:10px 0;
+} */

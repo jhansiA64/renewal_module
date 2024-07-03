@@ -19,25 +19,28 @@
 # if __name__ == '__main__':
 #     app.run(debug=True)
 
-from flask import Flask, request, render_template, jsonify
 import frappe
 
-app = Flask(__name__)
+@frappe.whitelist(allow_guest=True)
+def send_contact_email(name, email,phone, subject, message):
+    subject = "New Contact Us Form Submission"
+    content = f"""
+    <p>You have received a new message from your website contact form.</p>
+    <p><strong>Name:</strong> {name}</p>
+    <p><strong>Email:</strong> {email}</p>
+    <p><strong>Message:</strong></p>
+    <p>{message}</p>
+    """
+    recipients = ['jhansi.a@64network.com']  # Replace with your email address
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/career', methods=['POST'])
-def fetch_job_data():
-    data = request.json
-    job_name = data.get('name')
-
-    # Fetch the job document using Frappe
-    job_list = frappe.get_all("Job Opening", filters={'name': job_name}, fields=['name', 'currency', 'lower_range', 'upper_range'])
-
-    # Render the fetched data using a Jinja template
-    return render_template('carrer_job.html', job_list=job_list)
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    try:
+        # Send email
+        frappe.sendmail(
+            recipients=recipients,
+            subject=subject,
+            message=content
+        )
+        return 'success'
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), 'Contact Form Error')
+        return 'error'

@@ -1,0 +1,47 @@
+{% extends "templates/web.html" %}
+{% block content %}
+    <div class="container">
+        <h2>Create New Record</h2>
+        <form id="create-record-form">
+            <!-- Add your form fields here -->
+            <div class="form-group">
+                <label for="field1">Field 1:</label>
+                <input type="text" class="form-control" id="field1" name="field1" required>
+            </div>
+            <div class="form-group">
+                <label for="field2">Field 2:</label>
+                <input type="text" class="form-control" id="field2" name="field2" required>
+            </div>
+            <!-- Add more fields as necessary -->
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+        <button id="create-record-btn" class="btn btn-success">Create New Record</button>
+    </div>
+{% endblock %}
+
+{% block script %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('create-record-btn').addEventListener('click', function() {
+            var field1 = document.getElementById('field1').value;
+            var field2 = document.getElementById('field2').value;
+
+            frappe.call({
+                method: 'your_app.api.create_new_record',
+                args: {
+                    field1: field1,
+                    field2: field2
+                },
+                callback: function(response) {
+                    if (response.message === 'Record created successfully!') {
+                        frappe.msgprint('New record has been created.');
+                        document.getElementById('create-record-form').reset();
+                    } else {
+                        frappe.msgprint('There was an error creating the record. Please try again later.');
+                    }
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

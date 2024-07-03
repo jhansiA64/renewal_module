@@ -179,32 +179,82 @@
 
 
 })(jQuery);
-function sendData(inputName) {
-    console.log("js function")
-const nameValue = document.getElementById(inputName).value;
-const dataToSend = nameValue || "Default Value"; // Use a default value if nameValue is empty
-window.location.href = `carrer_job.html?data=${encodeURIComponent(dataToSend)}`;
-}
-function fetchJobData() {
-    // Example: Get the value from an input element or a specific source
-    const jobName = document.getElementById('displayData').innerText;
 
-    // Make an AJAX request to fetch job data
-    fetch('/career', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ name: jobName })
-    })
-    .then(response => response.text())
-    .then(data => {
-        // Inject the job data HTML into the page
-        document.getElementById("jobData").innerHTML = data;
-    })
-    .catch(error => {
-        console.error('Error fetching job data:', error);
-        document.getElementById("jobData").innerText = 'Error loading job data.';
+
+
+frappe.require([
+    '/assets/frappe/js/frappe-web.min.js',
+    '/assets/js/website.min.js'
+], function() {
+    // Your custom JavaScript code here
+    document.getElementById('contact-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        console.log("sending email")
+
+        var name = document.getElementById('name').value;
+        var email = document.getElementById('email').value;
+        var phone = document.getElementById('phone').value;
+        var subject = document.getElementById('subject').value;
+        var message = document.getElementById('message').value;
+
+        frappe.call({
+            method: 'renewal_module.www.app.send_contact_email',
+            args: {
+                name: name,
+                email: email,
+                phone: phone,
+                subject:subject,
+                message: message
+            },
+            callback: function(response) {
+                if (response.message === 'success') {
+                    frappe.msgprint('Thank you for your message. We will get back to you shortly.');
+                    document.getElementById('contact-form').reset();
+                } else {
+                    frappe.msgprint('There was an error sending your message. Please try again later.');
+                }
+            }
+        });
     });
-}
+});
+
+// function toggleBox(element) {
+//     var content = element.nextElementSibling;
+//     var icon = element.querySelector('i');
+//     var card = element.closest('.card1');
+//     var header = card.querySelector('.card-header');
+//     var button =card.querySelector('.icon-right')
+   
+   
+//     if (content.classList.contains('show')) {
+//         // If content is already shown, hide it
+//         content.classList.remove('show');
+//         icon.classList.remove('fa-circle-chevron-down');
+//         icon.classList.add('fa-circle-chevron-up');
+//         header.classList.remove('active');
+//         button.classList.remove('active');
+       
+//     } else {
+//         // If content is hidden, show it
+//         content.classList.add('show');
+//         icon.classList.remove('fa-circle-chevron-up');
+//         icon.classList.add('fa-circle-chevron-down');
+//         header.classList.add('active');
+//         button.classList.add('active');
+//     }
+// }
+
+// Ensure the first card is open when the page loads
+// document.addEventListener("DOMContentLoaded", function() {
+//     var firstHeader = document.querySelector('.card-header');
+//     var firstContent = document.querySelector('.hidden-content');
+//     firstHeader.classList.add('active');
+//     firstContent.classList.add('show');
+//     firstHeader.querySelector('i').classList.remove('fa-circle-chevron-up');
+//     firstHeader.querySelector('i').classList.add('fa-circle-chevron-down');
+//     button.classList.add('active');
+// });
+
+ 
+
 

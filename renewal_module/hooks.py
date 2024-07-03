@@ -16,6 +16,7 @@ app_license = "MIT"
 # app_include_css = "/assets/renewal_module/css/renewal_module.css"
 # app_include_js = "/assets/renewal_module/js/renewal_module.js"
 
+
 # include js, css files in header of web template
 # web_include_css = "/assets/renewal_module/css/renewal_module.css"
 # web_include_js = "/assets/renewal_module/js/renewal_module.js"
@@ -110,6 +111,15 @@ website_route_rules = [
 # permission_query_conditions = {
 # 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
 # }
+
+permission_query_conditions = {
+	"Opportunity":"renewal_module.tasks.filter_opportunities",
+}
+
+has_permission = {
+    "Opportunity": "renewal_module.tasks.has_permission"
+}
+
 #
 # has_permission = {
 # 	"Event": "frappe.desk.doctype.event.event.has_permission",
@@ -147,7 +157,8 @@ doc_events = {
 	},
 	"Customer Order Form":{
 		"onload":"renewal_module.api.show_error"
-	}
+	},
+	
 }
 
 # Scheduled Tasks

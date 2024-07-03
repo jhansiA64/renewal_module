@@ -30,6 +30,12 @@
 
         <!-- Template Stylesheet -->
         <link href="css/style.css" rel="stylesheet">
+
+        <!-- frappe scripts -->
+        
+    <script src="/assets/frappe/js/frappe-web.min.js"></script>
+    <script src="/assets/js/website.min.js"></script>
+    
     </head>
 
     <body>
@@ -93,11 +99,11 @@
                             <a href="index.html" class="nav-item nav-link ">Home</a>
                             <a href="#" class="nav-item nav-link">About</a>
                             <a href="solutions.html" class="nav-item nav-link">Solutions</a>
-                            <a href="#" class="nav-item nav-link">Blog</a>
+                            <a href="blog1.html" class="nav-item nav-link">Blog</a>
                             <a href="career.html" class="nav-item nav-link">Career</a>
                             
                             <a href="contact.html" class="nav-item nav-link active">Contact</a>
-                            <a href="#" class="nav-item nav-link ">Login</a>
+                            <a href="/login" class="nav-item nav-link ">Login</a>
                       </div>
                         <div class="d-flex align-items-center flex-nowrap pt-xl-0">
                             
@@ -153,10 +159,11 @@
                                
                             </div>
                             <div class="d-flex align-items-center mb-4">
-                                <div class="bg-primary btn-lg-square rounded-circle p-4"><i class="fa fa-home text-white"></i></div>
+                                <div class="bg-primary btn-lg-square rounded-circle p-4"><i class="fa fa-map-marker-alt text-white"></i></div>
                                 <div class="ms-4">
-                                    <h4>Addresses</h4>
-                                    <p class="mb-0">Kolluri House, 5th Floor, 8-3-318/11/3, Plot No 3, Jaya Prakash Nagar, Yella Reddy Guda, Hyderabad, Telangana 500073</p>
+                                    <h4>Branches</h4>
+                                    <p class="mb-0">Hyderabad | Bangalore | Chennai | Indore</p>
+
                                 </div>
                             </div>
                             <div class="d-flex align-items-center mb-4">
@@ -176,7 +183,7 @@
                         </div>
                     </div>
                     <div class="col-lg-6 wow fadeInRight" data-wow-delay="0.3s">
-                        <form>
+                        <form id="contact-form">
                             <div class="row g-3">
                                 <div class="col-lg-12 col-xl-6">
                                     <div class="form-floating">
@@ -215,7 +222,7 @@
                                     </div>
                                 </div>
                                 <div class="col-12">
-                                    <button class="btn btn-primary w-100 py-3">Send Message</button>
+                                    <button type="submit" class="btn btn-primary w-100 py-3">Send Message</button>
                                 </div>
                             </div>
                         </form>
@@ -253,7 +260,7 @@
                         <div class="footer-item d-flex flex-column">
                             <h4 class="text-white mb-4">Explore</h4>
                             
-                            <a href="#"><i class="fas fa-angle-right me-2"></i> About Us</a>
+                            <a href="aboutus.html"><i class="fas fa-angle-right me-2"></i> About Us</a>
                             <a href="#"><i class="fas fa-angle-right me-2"></i> Solutions</a>
                             
                             <a href="#"><i class="fas fa-angle-right me-2"></i> Blog</a>
@@ -301,10 +308,17 @@
     <script src="lib/counterup/counterup.min.js"></script>
     <script src="lib/owlcarousel/owl.carousel.min.js"></script>
     <script src="lib/lightbox/js/lightbox.min.js"></script>
+
+    
+    <script src="/assets/frappe/js/frappe-web.min.js"></script>
+    <script src="/assets/js/website.min.js"></script>
     
 
     <!-- Template Javascript -->
     <script src="js/main.js"></script>
+
+
+    
     </body>
 
 </html>

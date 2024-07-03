@@ -3,7 +3,7 @@
 
     <head>
         <meta charset="utf-8">
-        <title>Kaspersky | 64 Network Security</title>
+        <title>Blog | 64 Network Security</title>
         <link rel="icon" href="img/fav.png">
         <meta content="width=device-width, initial-scale=1.0" name="viewport">
         <meta content="" name="keywords">
@@ -54,27 +54,9 @@
                         </div>
                     </div>
                     <div class="col-lg-10 text-center text-lg-end">
-                        <div class="d-flex align-items-center justify-content-end">
-                            <marquee>
-                         
-                        {% for event in event_list if event_list %}
-                            {% set start_datetime = event.starts_on %}
-                            {% set start_date = start_datetime.strftime("%d-%m-%Y")  %}
-                            {% set start_time = start_datetime.time() %}
-                            {% set end_datetime = event.starts_on %}
-                            {% set end_date = end_datetime.strftime("%d-%m-%Y")  %}
-                            
-                            {% if start_datetime >= today %}                            
-                        
-                                <i class="fas fa-shield-alt text-primary me-2"></i>
-                                {{event.subject }} starts on {{ start_date }} at {{start_time}}  and ends on {{end_date}}. &nbsp;
-                                                    <!-- {{event.name}} -->
-                            {% endif %}                        
-                            
-                        {% endfor %}
-                        </marquee>
+                        <div class="d-flex align-items-center justify-content-end"><marquee><i class="fas fa-shield-alt text-primary me-2"></i>GITEX 2023. Dubai. Kaspersky experts to speak about a fundamentally new approach to enhancing safety and security.</marquee>
                         </div>
-                        
+                    </div>
                 </div>
             </div>
         </div>
@@ -86,7 +68,7 @@
             <div class="position-absolute bg-dark" style="left: 0; top: 0; width: 100%; height: 100%;">
             </div>
             <div class="container px-0">
-              <nav class="navbar navbar-expand-lg navbar-dark bg-white py-3 px-4">
+          <nav class="navbar navbar-expand-lg navbar-dark bg-white py-3 px-4">
                     <a href="index.html" class="navbar-brand p-0">
                         <img src="img/logo.png">
                         <!-- <img src="img/logo.png" alt="Logo"> -->
@@ -103,7 +85,7 @@
                             <a href="career.html" class="nav-item nav-link">Career</a>
                             
                             <a href="contact.html" class="nav-item nav-link ">Contact</a>
-                            <a href="/login" class="nav-item nav-link ">Login</a>
+                            <a href="#" class="nav-item nav-link ">Login</a>
                       </div>
                         <div class="d-flex align-items-center flex-nowrap pt-xl-0">
                             
@@ -138,90 +120,156 @@
         <div class="container-fluid bg-solutions">
             <div class="bg-breadcrumb-single"></div>
             <div class="container text-center py-5" style="max-width: 900px;">
-                <h4 class="text-white display-4 mb-4 wow fadeInDown" data-wow-delay="0.1s">Solutions</h4>
+                <h4 class="text-white display-4 mb-4 wow fadeInDown" data-wow-delay="0.1s">Blog</h4>
                 <ol class="breadcrumb justify-content-center mb-0 wow fadeInDown" data-wow-delay="0.3s">
                     <li class="breadcrumb-item"><a href="index.html">Home</a></li>
-                    <li class="breadcrumb-item"><a href="Solutions.html">Solutions</a></li>
-                    <li class="breadcrumb-item active text-primary">Kaspersky</li>
+                   
+                    <li class="breadcrumb-item active text-primary">BLog</li>
                 </ol>    
             </div>
         </div>
         <!-- Header End -->
 
         <!-- Contact Start -->
-      <div style="background-color: #ffffff;" class="container-fluid faq pb-5">
+      <div class="container-fluid about bg-light py-5">
+            <div class="container-fluid blog pb-5">
             <div class="container pb-5">
-                <div class="row g-5 align-items-center">
-                    <div class="col-lg-6 wow fadeInLeft" data-wow-delay="0.1s"><br>
-                        <div class="pb-5">
-                            <h4 class="text-primary">Kaspersky</h4>
-                            <h1 class="display-4">Get the Answers to Common Questions</h1>
+                <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 800px;">
+                    <h1 class="display-4">Latest Articles & News from the Blogs</h1>
+                </div>
+                <div class="row g-4 justify-content-center">
+                    <div class="col-md-6 col-lg-6 col-xl-4 wow fadeInUp" data-wow-delay="0.1s">
+                        <div class="blog-item bg-light rounded p-4" style="background-image: url(img/bg.png);">
+                            <div class="mb-4">
+                                <h4 class="text-primary mb-2">Kaspersky</h4>
+                                <div class="d-flex justify-content-between">
+                                    <p class="mb-0"><span class="text-dark fw-bold">On</span> June 26, 2024</p>
+                                    
+                                </div>
+                            </div>
+                            <div class="project-img">
+                                <img src="img/blog-1.jpg" class="img-fluid w-100 rounded" alt="Image">
+                                <div class="blog-plus-icon">
+                                    <a href="img/blog-1.jpg" data-lightbox="blog-1" class="btn btn-primary btn-md-square rounded-pill"><i class="fas fa-plus fa-1x"></i></a>
+                                </div>
+                            </div>
+                            <div class="my-4">
+                                <a href="#" class="h4">Don't forget about Recall, because Recall won't forget about you</a>
+                            </div>
+                            <a class="btn btn-primary rounded-pill py-2 px-4" href="blog_inner.html">Explore More</a>
                         </div>
-                       <div class="accordion bg-light rounded p-4" id="accordionExample">
-                            <div class="accordion-item border-0 mb-4">
-                                <h2 class="accordion-header" id="headingOne">
-                                    <button class="accordion-button text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseTOne">
-                                        What Does a Financial Advisor Do?
-                                    </button>
-                                </h2>
-                                <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2">
-                                        <h5>Dolor sit amet consectetur adipisicing elit.</h5>
-                                        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Ad nemo impedit, sapiente quis illo quia nulla atque maxime fuga minima ipsa quae cum consequatur, sit, delectus exercitationem odit officiis maiores! Neque, quidem corrupti modi architecto eos saepe incidunt dignissimos rerum.</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="accordion-item border-0 mb-4">
-                                <h2 class="accordion-header" id="headingTwo">
-                                    <button class="accordion-button collapsed text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-                                        What industries do you specialize in? 
-                                    </button>
-                                </h2>
-                                <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2">
-                                        <h5>Dolor sit amet consectetur adipisicing elit.</h5>
-                                        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Ad nemo impedit, sapiente quis illo quia nulla atque maxime fuga minima ipsa quae cum consequatur, sit, delectus exercitationem odit officiis maiores! Neque, quidem corrupti modi architecto eos saepe incidunt dignissimos rerum.</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="accordion-item border-0 mb-4">
-                                <h2 class="accordion-header" id="headingThree">
-                                    <button class="accordion-button collapsed text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-                                        Can you guarantee for growth?
-                                    </button>
-                                </h2>
-                                <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2">
-                                        <h5>Dolor sit amet consectetur adipisicing elit.</h5>
-                                        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Ad nemo impedit, sapiente quis illo quia nulla atque maxime fuga minima ipsa quae cum consequatur, sit, delectus exercitationem odit officiis maiores! Neque, quidem corrupti modi architecto eos saepe incidunt dignissimos rerum.</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="accordion-item border-0 mb-0">
-                                <h2 class="accordion-header" id="headingFour">
-                                    <button class="accordion-button collapsed text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
-                                        What makes your business plans so special?
-                                    </button>
-                                </h2>
-                                <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2">
-                                        <h5>Dolor sit amet consectetur adipisicing elit.</h5>
-                                        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Ad nemo impedit, sapiente quis illo quia nulla atque maxime fuga minima ipsa quae cum consequatur, sit, delectus exercitationem odit officiis maiores! Neque, quidem corrupti modi architecto eos saepe incidunt dignissimos rerum.</p>
-                                    </div>
-                                </div>
-                            </div>
-                       </div>
                     </div>
-                    <div class="col-lg-6 wow fadeInRight" data-wow-delay="0.3s">
-                        <div class="faq-img RotateMoveRight rounded">
-                            <img src="img/kas.jpg" class="img-fluid rounded w-100" alt="Image">
-                            <a class="faq-btn btn btn-primary rounded-pill text-white py-3 px-5" href="https://64ns-my.sharepoint.com/:b:/g/personal/jhansi_a_64network_com/EeNPyIz2Mq9KhD-xPFXkbN8BkmfbO9JAEBvyJo7spxvzog" target="_blank">Download Data Sheet <i class="fas fa-arrow-right ms-2"></i></a>
-                            <!-- <a class="faq-btn btn btn-primary rounded-pill text-white py-3 px-5" href="https://64ns-my.sharepoint.com/:b:/g/personal/jhansi_a_64network_com/EeNPyIz2Mq9KhD-xPFXkbN8BkmfbO9JAEBvyJo7spxvzog">Download File</a>  -->
+                    <div class="col-md-6 col-lg-6 col-xl-4 wow fadeInUp" data-wow-delay="0.3s">
+                        <div class="blog-item bg-light rounded p-4" style="background-image: url(img/bg.png);">
+                            <div class="mb-4">
+                                <h4 class="text-primary mb-2">Kaspersky</h4>
+                                <div class="d-flex justify-content-between">
+                                    <p class="mb-0"><span class="text-dark fw-bold">On</span> June 24, 2024</p>
+                                   
+                                </div>
+                            </div>
+                            <div class="project-img">
+                                <img src="img/blog-2.jpg" class="img-fluid w-100 rounded" alt="Image">
+                                <div class="blog-plus-icon">
+                                    <a href="img/blog-2.jpg" data-lightbox="blog-2" class="btn btn-primary btn-md-square rounded-pill"><i class="fas fa-plus fa-1x"></i></a>
+                                </div>
+                            </div>
+                            <div class="my-4">
+                                <a href="#" class="h4">Other people's smartphones are spying on your router.</a>
+                            </div>
+                            <a class="btn btn-primary rounded-pill py-2 px-4" href="blog_inner.html">Explore More</a>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-6 col-xl-4 wow fadeInUp" data-wow-delay="0.5s">
+                        <div class="blog-item bg-light rounded p-4" style="background-image: url(img/bg.png);">
+                            <div class="mb-4">
+                                <h4 class="text-primary mb-2">Kaspersky</h4>
+                                <div class="d-flex justify-content-between">
+                                    <p class="mb-0"><span class="text-dark fw-bold">On</span> June 20, 2024</p>
+                                    
+                                </div>
+                            </div>
+                            <div class="project-img">
+                                <img src="img/blog-3.jpg" class="img-fluid w-100 rounded" alt="Image">
+                                <div class="blog-plus-icon">
+                                    <a href="img/blog-3.jpg" data-lightbox="blog-3" class="btn btn-primary btn-md-square rounded-pill"><i class="fas fa-plus fa-1x"></i></a>
+                                </div>
+                            </div>
+                            <div class="my-4">
+                                <a href="#" class="h4">Progressive phishing: How PWAs can be used to steal passwords</a>
+                            </div>
+                            <a class="btn btn-primary rounded-pill py-2 px-4" href="blog_inner.html">Explore More</a>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 col-lg-6 col-xl-4 wow fadeInUp" data-wow-delay="0.5s">
+                        <div class="blog-item bg-light rounded p-4" style="background-image: url(img/bg.png);">
+                            <div class="mb-4">
+                                <h4 class="text-primary mb-2">Kaspersky</h4>
+                                <div class="d-flex justify-content-between">
+                                    <p class="mb-0"><span class="text-dark fw-bold">On</span> June 20, 2024</p>
+                                    
+                                </div>
+                            </div>
+                            <div class="project-img">
+                                <img src="img/blog-4.jpg" class="img-fluid w-100 rounded" alt="Image">
+                                <div class="blog-plus-icon">
+                                    <a href="img/blog-3.jpg" data-lightbox="blog-3" class="btn btn-primary btn-md-square rounded-pill"><i class="fas fa-plus fa-1x"></i></a>
+                                </div>
+                          </div>
+                            <div class="my-4">
+                                <a href="#" class="h4">How hackers can crack your password in an hour</a>
+                            </div>
+                            <a class="btn btn-primary rounded-pill py-2 px-4" href="blog_inner.html">Explore More</a>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-6 col-xl-4 wow fadeInUp" data-wow-delay="0.5s">
+                        <div class="blog-item bg-light rounded p-4" style="background-image: url(img/bg.png);">
+                            <div class="mb-4">
+                                <h4 class="text-primary mb-2">Kaspersky</h4>
+                                <div class="d-flex justify-content-between">
+                                    <p class="mb-0"><span class="text-dark fw-bold">On</span> June 20, 2024</p>
+                                    
+                                </div>
+                            </div>
+                            <div class="project-img">
+                                <img src="img/blog-5.jpg" class="img-fluid w-100 rounded" alt="Image">
+                                <div class="blog-plus-icon">
+                                    <a href="img/blog-3.jpg" data-lightbox="blog-3" class="btn btn-primary btn-md-square rounded-pill"><i class="fas fa-plus fa-1x"></i></a>
+                                </div>
+                          </div>
+                            <div class="my-4">
+                                <a href="#" class="h4">Hidden dangers of biometric authentication devices</a>
+                            </div>
+                            <a class="btn btn-primary rounded-pill py-2 px-4" href="blog_inner.html">Explore More</a>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-6 col-xl-4 wow fadeInUp" data-wow-delay="0.5s">
+                        <div class="blog-item bg-light rounded p-4" style="background-image: url(img/bg.png);">
+                            <div class="mb-4">
+                                <h4 class="text-primary mb-2">Kaspersky</h4>
+                                <div class="d-flex justify-content-between">
+                                    <p class="mb-0"><span class="text-dark fw-bold">On</span> June 20, 2024</p>
+                                    
+                                </div>
+                            </div>
+                            <div class="project-img">
+                                <img src="img/blog-6.jpg" class="img-fluid w-100 rounded" alt="Image">
+                                <div class="blog-plus-icon">
+                                    <a href="img/blog-3.jpg" data-lightbox="blog-3" class="btn btn-primary btn-md-square rounded-pill"><i class="fas fa-plus fa-1x"></i></a>
+                                </div>
+                          </div>
+                            <div class="my-4">
+                                <a href="#" class="h4">When two-factor authentication is useless</a>
+                            </div>
+                            <a class="btn btn-primary rounded-pill py-2 px-4" href="#">Explore More</a>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        </div>
+        
         <!-- Contact End -->
 
         <!-- Footer Start -->

@@ -51,7 +51,7 @@
                 <div class="row gx-0 align-items-center" style="height: 45px;">
                     <div class="col-lg-2 text-center text-lg-start mb-lg-0">
                         <div class="d-flex flex-wrap">
-                            <a href="#" class="text-muted me-4"><i class="fas fa-calendar-alt text-primary me-2"></i>Upcomming Events</a>
+                            <a href="#" style="color: #ffffff;" class="text-muted me-4"><i class="fas fa-calendar-alt text-primary me-2"></i>Upcomming Events</a>
                             
                         </div>
                     </div>
@@ -60,7 +60,7 @@
                     
                     <div class="col-lg-10 text-center text-lg-end">
                         <div class="d-flex align-items-center justify-content-end">
-                            <marquee>
+                            <marquee style="color: #ffffff;">
                          
                         {% for event in event_list if event_list %}
                             {% set start_datetime = event.starts_on %}
@@ -70,9 +70,9 @@
                             {% set end_date = end_datetime.strftime("%d-%m-%Y")  %}
                             
                             {% if start_datetime >= today %}                            
-                        
-                                <i class="fas fa-shield-alt text-primary me-2"></i>
-                                {{event.subject }} starts on {{ start_date }} at {{start_time}}  and ends on {{end_date}}. &nbsp;
+                            <a href="events.html" style="color: #ffffff;"><i class="fas fa-shield-alt text-primary me-2" ></i>
+                                {{event.subject }} starts on {{ start_date }} at {{start_time}}  and ends on {{end_date}}.</a>
+                                 &nbsp;
                                                     <!-- {{event.name}} -->
                             {% endif %}                        
                             
@@ -105,9 +105,9 @@
                     <div class="collapse navbar-collapse" id="navbarCollapse">
                         <div class="navbar-nav ms-auto py-0">
                             <a href="index.html" class="nav-item nav-link active">Home</a>
-                            <a href="#" class="nav-item nav-link">About</a>
+                            <a href="aboutus.html" class="nav-item nav-link">About</a>
                             <a href="solutions.html" class="nav-item nav-link">Solutions</a>
-                            <a href="#" class="nav-item nav-link">Blog</a>
+                            <a href="blog1.html" class="nav-item nav-link">Blog</a>
                             <a href="career.html" class="nav-item nav-link">Career</a>
                             
                             <a href="contact.html" class="nav-item nav-link">Contact</a>
@@ -203,9 +203,18 @@
                         </div>
                   </div>
                     <div class="col-lg-6 col-xl-7 wow fadeInRight" data-wow-delay="0.3s">
+                        {% set company = frappe.get_doc("Company", "64 Network Security Pvt Ltd - TG") %}
+                                    {% set established_date = company.date_of_establishment %}
+                                    <!-- {% set date1 = frappe.utils.formatdate(frappe.utils.today(), 'dd-MM-YYYY') %}
+                                    {% set date2 = frappe.utils.formatdate(established_date, 'dd-MM-YYYY') %}
+                                     -->
+                                     {% set today = frappe.utils.now_datetime().date() %}
+                                     {% set company_age = frappe.utils.date_diff(today, established_date)//365 %}
+
+                                    
                         <h4 class="text-primary">Who we are ?</h4>
                         <h1 class="display-5 mb-4">We are the emerging pioneers of Network Security</h1>
-                        <p class="text ps-4 mb-4">With over 13 years of experience delivering high performance security across the IT infrastructure of small and medium businesses, enterprises and government agencies in India, our network security and hybrid cloud solutions secure thousands of networks and their emails, applications and data across India.
+                        <p class="text ps-4 mb-4">With over {{ company_age }} years of experience delivering high performance security across the IT infrastructure of small and medium businesses, enterprises and government agencies in India, our network security and hybrid cloud solutions secure thousands of networks and their emails, applications and data across India.
                       </p>
                         
                         
@@ -224,14 +233,6 @@
                             </div>
                             <div class="col-sm-4">
                                 <div class="bg-dark rounded p-4">
-                                    {% set company = frappe.get_doc("Company", "64 Network Security Pvt Ltd - TG") %}
-                                    {% set established_date = company.date_of_establishment %}
-                                    <!-- {% set date1 = frappe.utils.formatdate(frappe.utils.today(), 'dd-MM-YYYY') %}
-                                    {% set date2 = frappe.utils.formatdate(established_date, 'dd-MM-YYYY') %}
-                                     -->
-                                     {% set today = frappe.utils.now_datetime().date() %}
-                                     {% set company_age = frappe.utils.date_diff(today, established_date)//365 %}
-
                                     <div class="d-flex align-items-center justify-content-center">
                                         <span class="counter-value fs-1 fw-bold text-white" data-toggle="counter-up">{{ company_age }}</span>
                                         <h4 class="text-white fs-1 mb-0" style="font-weight: 600; font-size: 25px;">+</h4>
@@ -252,7 +253,7 @@
                                         <h4 class="text-dark fs-1 mb-0" style="font-weight: 600; font-size: 25px;">+</h4>
                                     </div>
                                     <div class="w-100 d-flex align-items-center justify-content-center">
-                                        <p class="text-white mb-0">Our Partners
+                                        <p class="text-white mb-0">Brands
 </p>
                                     </div>
                                 </div>
@@ -267,13 +268,16 @@
 <div class="ncontainer" style="text-align:center;">
   <h4 class="text-primary">Our Partner</h4>
 
-  {%  set partner_logos =frappe.get_all("Partner Logos",filters={'status': 'Enable'},fields=['name','logo'],order_by='name asc') %}  
+  <!-- {%  set partner_logos =frappe.get_all("Partner Logos",filters={'status': 'Enable'},fields=['name','logo'],order_by='name asc') %}   -->
+  {%  set partner_logos =frappe.get_all("Brand",filters={'custom_status': 'Enable'},fields=['name','image'],order_by='name asc') %}  
                 
   <div class="lides">
     {% for logo in partner_logos %}
+    {%if logo.image %}
 
     <!-- <img src={{logo.logo}} width="120" height="120" alt="Logo"> -->
-    <img src="{{logo.logo}}" >
+    <img src="{{logo.image}}" >
+    {% endif %}
     {% endfor %}
 <!-- <img src="img/clients/aimbra.jpg" >
 <img src="img/clients/amazon.jpg" >
@@ -560,7 +564,7 @@
                         <div class="footer-item d-flex flex-column">
                             <h4 class="text-white mb-4">Explore</h4>
                             
-                            <a href="#"><i class="fas fa-angle-right me-2"></i> About Us</a>
+                            <a href="aboutus.html"><i class="fas fa-angle-right me-2"></i> About Us</a>
                             <a href="#"><i class="fas fa-angle-right me-2"></i> Solutions</a>
                             
                             <a href="#"><i class="fas fa-angle-right me-2"></i> Blog</a>
