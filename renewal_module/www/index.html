@@ -55,10 +55,34 @@
                             
                         </div>
                     </div>
+                    {% set event_list = frappe.get_all("Event",filters={'status': 'Open','event_category':'Event'},fields=['name','subject','starts_on','ends_on'],order_by='starts_on asc') %}
+                    {% set today = frappe.utils.now_datetime() %}
+                    
                     <div class="col-lg-10 text-center text-lg-end">
-                        <div class="d-flex align-items-center justify-content-end"><marquee><i class="fas fa-shield-alt text-primary me-2"></i>GITEX 2023. Dubai. Kaspersky experts to speak about a fundamentally new approach to enhancing safety and security.</marquee>
-                        </div>
+                        <div class="d-flex align-items-center justify-content-end">
+                            <marquee>
+                         
+                        {% for event in event_list if event_list %}
+                            {% set start_datetime = event.starts_on %}
+                            {% set start_date = start_datetime.strftime("%d-%m-%Y")  %}
+                            {% set start_time = start_datetime.time() %}
+                            {% set end_datetime = event.starts_on %}
+                            {% set end_date = end_datetime.strftime("%d-%m-%Y")  %}
+                            
+                            {% if start_datetime >= today %}                            
+                        
+                                <i class="fas fa-shield-alt text-primary me-2"></i>
+                                {{event.subject }} starts on {{ start_date }} at {{start_time}}  and ends on {{end_date}}. &nbsp;
+                                                    <!-- {{event.name}} -->
+                            {% endif %}                        
+                            
+                        {% endfor %}
+                    </marquee>
+                </div>
+
+                        
                     </div>
+                    
                 </div>
             </div>
         </div>
@@ -120,20 +144,22 @@
 
         <!-- Carousel Start -->
         <div class="header-carousel owl-carousel">
+            {%  set banners=frappe.get_all("Custom Home Page Banner Section",filters={'status': 'Enable'},fields=['heading','sub_heading','button_name','button_url','background_image']) %}  
+            {% for banner in banners %}
             <div class="header-carousel-item">
                 <div class="header-carousel-item-img-1">
-                    <img src="img/carousel-1.jpg" class="img-fluid w-100" alt="Image">
+                    <img src={{banner.background_image}} class="img-fluid w-100" alt="Image">
                 </div>
                 <div class="carousel-caption">
                     <div class="carousel-caption-inner text-center p-3">
-                        <h1 class="display-1 text-capitalize text-white mb-4 fadeInUp animate__animated" data-animation="fadeInUp" data-delay="1.3s" style="animation-delay: 1.3s;">Kaspersky Enterprise security you can trust</h1>
-                        <p class="mb-5 fs-5 fadeInUp animate__animated" data-animation="fadeInUp" data-delay="1.5s" style="animation-delay: 1.5s;">Get adaptive protection against advanced threats targeting your business 
-                        </p>
-                        <a class="btn btn-primary rounded-pill py-2 px-5 mb-4 me-4 fadeInUp animate__animated" data-animation="fadeInUp" data-delay="1.5s" style="animation-delay: 1.7s;" href="#">Get in Touch</a>
+                        <h1 class="display-1 text-capitalize text-white mb-4 fadeInUp animate__animated" data-animation="fadeInUp" data-delay="1.3s" style="animation-delay: 1.3s;"> {{banner.heading}} </h1>
+                        <p class="mb-5 fs-5 fadeInUp animate__animated" data-animation="fadeInUp" data-delay="1.5s" style="animation-delay: 1.5s;">{{banner.sub_heading}}              </p>
+                        <a class="btn btn-primary rounded-pill py-2 px-5 mb-4 me-4 fadeInUp animate__animated" data-animation="fadeInUp" data-delay="1.5s" style="animation-delay: 1.7s;" href="{{banner.button_url}}">{{banner.button_name}} </a>
                     </div>
                 </div>
             </div>
-            <div class="header-carousel-item mx-auto">
+            {% endfor %}
+            <!-- <div class="header-carousel-item mx-auto">
                 <div class="header-carousel-item-img-2">
                     <img src="img/carousel-2.jpg" class="img-fluid w-100" alt="Image">
                 </div>
@@ -162,7 +188,7 @@
                         
                     </div>
                 </div>
-            </div>
+            </div> -->
         </div>
         <!-- Carousel End -->
 
@@ -177,9 +203,18 @@
                         </div>
                   </div>
                     <div class="col-lg-6 col-xl-7 wow fadeInRight" data-wow-delay="0.3s">
+                        {% set company = frappe.get_doc("Company", "64 Network Security Pvt Ltd - TG") %}
+                                    {% set established_date = company.date_of_establishment %}
+                                    <!-- {% set date1 = frappe.utils.formatdate(frappe.utils.today(), 'dd-MM-YYYY') %}
+                                    {% set date2 = frappe.utils.formatdate(established_date, 'dd-MM-YYYY') %}
+                                     -->
+                                     {% set today = frappe.utils.now_datetime().date() %}
+                                     {% set company_age = frappe.utils.date_diff(today, established_date)//365 %}
+
+                                    
                         <h4 class="text-primary">Who we are ?</h4>
                         <h1 class="display-5 mb-4">We are the emerging pioneers of Network Security</h1>
-                        <p class="text ps-4 mb-4">With over 13 years of experience delivering high performance security across the IT infrastructure of small and medium businesses, enterprises and government agencies in India, our network security and hybrid cloud solutions secure thousands of networks and their emails, applications and data across India.
+                        <p class="text ps-4 mb-4">With over {{ company_age }} years of experience delivering high performance security across the IT infrastructure of small and medium businesses, enterprises and government agencies in India, our network security and hybrid cloud solutions secure thousands of networks and their emails, applications and data across India.
                       </p>
                         
                         
@@ -199,22 +234,26 @@
                             <div class="col-sm-4">
                                 <div class="bg-dark rounded p-4">
                                     <div class="d-flex align-items-center justify-content-center">
-                                        <span class="counter-value fs-1 fw-bold text-white" data-toggle="counter-up">16</span>
+                                        <span class="counter-value fs-1 fw-bold text-white" data-toggle="counter-up">{{ company_age }}</span>
                                         <h4 class="text-white fs-1 mb-0" style="font-weight: 600; font-size: 25px;">+</h4>
                                     </div>
                                     <div class="w-100 d-flex align-items-center justify-content-center">
                                         <p class="mb-0">Years Of Experience</p>
+                                        
                                     </div>
                                 </div>
                             </div>
                             <div class="col-sm-4">
                                 <div class="bg-primary rounded p-4">
+                                    {% set brand_list = frappe.get_all("Brand",filters={'custom_status': 'Enable'},fields=['name']) %}
+                                    {% set partners = brand_list|length %}
+                                    
                                     <div class="d-flex align-items-center justify-content-center">
-                                        <span class="counter-value fs-1 fw-bold text-dark" data-toggle="counter-up">850</span>
+                                        <span class="counter-value fs-1 fw-bold text-dark" data-toggle="counter-up">{{ partners }}</span>
                                         <h4 class="text-dark fs-1 mb-0" style="font-weight: 600; font-size: 25px;">+</h4>
                                     </div>
                                     <div class="w-100 d-flex align-items-center justify-content-center">
-                                        <p class="text-white mb-0">Client's reviews
+                                        <p class="text-white mb-0">Brands
 </p>
                                     </div>
                                 </div>
@@ -228,42 +267,17 @@
 
 <div class="ncontainer" style="text-align:center;">
   <h4 class="text-primary">Our Partner</h4>
+
+  {%  set partner_logos =frappe.get_all("Brand",filters={'custom_status': 'Enable'},fields=['name','image'],order_by='name asc') %}  
+                
   <div class="lides">
-    <img src="img/clients/acer.jpg" >
-<img src="img/clients/aimbra.jpg" >
-<img src="img/clients/amazon.jpg" >
-<img src="img/clients/aruba.jpg">
- <img src="img/clients/azure.jpg">
- <img src="img/clients/cisco.jpg">
- <img src="img/clients/dell.jpg">
-  <img src="img/clients/fortinet.jpg" >
-  <img src="img/clients/google.jpg">
-  <img src="img/clients/hp.jpg">
-<img src="img/clients/intune.jpg" >
-<img src="img/clients/lenovo.jpg">
- <img src="img/clients/m.jpg" >
-<img src="img/clients/ms.jpg" >
- <img src="img/clients/netapp.jpg" >
- <img src="img/clients/nextgen.jpg">
-  <img src="img/clients/prgt.jpg">
-  <img src="img/clients/qnap.jpg" >
-<img src="img/clients/quantum.jpg">
- <img src="img/clients/rapid7.jpg">
- <img src="img/clients/rediff.jpg">
-<img src="img/clients/ruckus.jpg">
- <img src="img/clients/safehouse.jpg" >
-  <img src="img/clients/seclore.jpg">
-  <img src="img/clients/securate.jpg" >
-  <img src="img/clients/solarwind.jpg" >
-<img src="img/clients/sophos.jpg">
-<img src="img/clients/soti.jpg">
-<img src="img/clients/aimbra.jpg">
-<img src="img/clients/synology.jpg">
-<img src="img/clients/tectoro.jpg" >
- <img src="img/clients/tenable.jpg" >
- <img src="img/clients/tripwire.jpg" >
- <img src="img/clients/webworks.jpg" >
- <img src="img/clients/zecurion.jpg">
+    {% for logo in partner_logos %}
+    {%if logo.image %}
+
+    <!-- <img src={{logo.logo}} width="120" height="120" alt="Logo"> -->
+    <img src="{{logo.image}}" >
+    {% endif %}
+    {% endfor %}
   </div>
 </div>
         <!-- Services Start -->
@@ -273,24 +287,28 @@
                     <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 800px;">
                     <h4 class="text-primary">Our Solutions</h4>
                 </div>
-                    <div class="col-xl-12">
+                {% set solution_images =["img/icons/firewall.jpg","img/icons/epp.jpg","img/icons/eps.jpg","img/icons/cloud.jpg","img/icons/email.jpg","img/icons/iam.jpg","img/icons/backup.jpg","img/icons/Data-Loss-Protection-(DLP).jpg",
+                "img/icons/Information-Rights-Management-(IRM).jpg","img/icons/Laptops-&-Desktops.jpg"] %}
+                {%  set solutions=frappe.get_all("Solutions",filters={'status': 'Enable','is_published': 1},fields=['service_name','name','route','image','solution_icon'],order_by='name asc') %}  
+                <div class="col-xl-12">
                         <div class="testimonial-carousel  owl-carousel wow fadeInUp" data-wow-delay="0.1s">
-                            
+                            {% for solution in solutions %}
                             
                             <div class="service-item bg-light rounded">
                             <div class="service-img">
-                                <img src="img/icons/firewall.jpg" class="img-fluid w-100 rounded-top" alt="">
+                                {% set random_value = solution_images|random %}
+                                <img src={{solution.solution_icon}} class="img-fluid w-100 rounded-top" alt="">
                             </div>
                             <div class="service-content text-center p-4">
                                 <div class="service-content-inner">
-                                    <h6>NGFW (Firewalls)
-</h6>
+                                    <h6>{{ solution.name }}</h6>
                                   
-                                    <a class="btn btn-light rounded-pill py-1 px-5" href="solutions.html">Read More</a>
+                                    <a class="btn btn-light rounded-pill rm" href="solutions.html">Read More</a>
                                 </div>
                             </div>
                         </div>
-                            <div class="service-item bg-light rounded">
+                        {% endfor %}
+                            <!-- <div class="service-item bg-light rounded">
                             <div class="service-img">
                                 <img src="img/icons/epp.jpg" class="img-fluid w-100 rounded-top" alt="">
                             </div>
@@ -351,7 +369,7 @@
                                     <a class="btn btn-light rounded-pill py-1 px-5" href="solutions.html">Read More</a>
                                 </div>
                             </div>
-                        </div>
+                        </div> -->
                         </div>
                     </div>
                 </div>
@@ -512,10 +530,10 @@
                             <h4 class="text-white mb-4">Explore</h4>
                             
                             <a href="#"><i class="fas fa-angle-right me-2"></i> About Us</a>
-                            <a href="#"><i class="fas fa-angle-right me-2"></i> Solutions</a>
+                            <a href="solutions.html"><i class="fas fa-angle-right me-2"></i> Solutions</a>
                             
                             <a href="#"><i class="fas fa-angle-right me-2"></i> Blog</a>
-                            <a href="#"><i class="fas fa-angle-right me-2"></i> Contact Us</a>
+                            <a href="contact.html"><i class="fas fa-angle-right me-2"></i> Contact Us</a>
                         </div>
                     </div>
                     <div class="col-md-6 col-lg-6 col-xl-3">

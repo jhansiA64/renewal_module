@@ -46,6 +46,9 @@ def execute(filters=None):
 				"margin",
 				"orc",
 				"gross_profit",
+				"technical_value",
+				"mdf",
+				"net_profit",
 				"sales_person",
 				"supplier",
 				"supplier_quotation",
@@ -310,6 +313,27 @@ def get_columns(group_wise_columns, filters):
 				"options": "currency",
 				"width": 100,
 			},
+			"net_profit": {
+				"label": _("Net Profit"),
+				"fieldname": "net_profit",
+				"fieldtype": "Currency",
+				"options": "currency",
+				"width": 100,
+			},
+			"technical_value": {
+				"label": _("Technical Value"),
+				"fieldname": "technical_value",
+				"fieldtype": "Currency",
+				"options": "currency",
+				"width": 100,
+			},
+			"mdf": {
+				"label": _("MDF"),
+				"fieldname": "mdf",
+				"fieldtype": "Currency",
+				"options": "currency",
+				"width": 100,
+			},
 			"gross_profit_percent": {
 				"label": _("Gross Profit Percent"),
 				"fieldname": "gross_profit_%",
@@ -438,6 +462,9 @@ def get_column_names():
 			"margin":"margin",
 			"orc":"orc",
 			"gross_profit": "gross_profit",
+			"technical_value":"technical_value",
+			"mdf":"mdf",
+			"net_profit":"net_profit",
 			"gross_profit_percent": "gross_profit_%",
 			"project": "project",
 			"supplier":"supplier",
@@ -514,6 +541,16 @@ class GrossProfitGenerator(object):
 
 			# calculate gross profit
 			row.gross_profit = flt((flt(row.margin)- flt(row.orc)), self.currency_precision)
+
+			#calculate technical value
+			row.technical_value = flt((flt(row.gross_profit)*0.1), self.currency_precision)
+
+			#calculate mdf
+			row.mdf = flt((flt(row.gross_profit)*0.1), self.currency_precision)
+
+			#calculate net profit
+			row.net_profit = flt((flt(row.gross_profit)- (flt(row.technical_value)+ flt(row.mdf))), self.currency_precision)
+
 			if row.base_amount:
 				row.gross_profit_percent = flt(
 					(row.gross_profit / row.base_amount) * 100.0, self.currency_precision
@@ -651,7 +688,7 @@ class GrossProfitGenerator(object):
 	def load_order_items(self):
 		conditions = ""
 		if self.filters.company:
-			conditions += " and `tabSales Order`.company = %(company)s"
+			conditions += " and `tabSales Order`.company in %(company)s"
 		if self.filters.timespan != "custom":
 			
 			date_range = get_timespan_date_range(self.filters.timespan) 
@@ -937,13 +974,14 @@ class GrossProfitGenerator(object):
 
 
 def get_report_summary(filters,columns, currency, data):
-	sales_amount, buying_amount,orc, profit = 0.0, 0.0, 0.0, 0.0
+	sales_amount, buying_amount,orc, profit,net_profit = 0.0, 0.0, 0.0, 0.0,0.0
 	for period in data:
 		if period.indent == 0.0 and filters.group_by =="Order":
 			# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(period.selling_amount)))
 			sales_amount += flt(period.selling_amount)
 			buying_amount += flt(period.buying_amount)
 			profit += flt(period.gross_profit)
+			net_profit += flt(period.net_profit)
 			orc += flt(period.orc)
 		
 			
@@ -952,6 +990,7 @@ def get_report_summary(filters,columns, currency, data):
 	sales_label = ("Sales Amount")
 	buying_label = _("Purchase Amount")
 	profit_label = _("Profit")
+	net_label = _("Net Profit")
 	
 
 	return [
@@ -959,7 +998,9 @@ def get_report_summary(filters,columns, currency, data):
 		
 		{"value":round(buying_amount,2),"indicator": "Red", "label": buying_label, "datatype": "Currency"},
 		{"value":round(orc,2),"indicator": "Blue", "label": _("ORC Amount"), "datatype": "Currency"},
-		{"value":round(profit,2),"indicator": "Green", "label": profit_label, "datatype": "Currency"}
+		{"value":round(profit,2),"indicator": "Green", "label": profit_label, "datatype": "Currency"},
+		{"value":round(net_profit,2),"indicator": "Green", "label": net_label, "datatype": "Currency"}
+		
 		
 		
 	]

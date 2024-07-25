@@ -7,17 +7,18 @@
  "engine": "InnoDB",
  "field_order": [
   "service_name",
-  "image",
   "solution_order",
-  "is_published",
   "column_break_ltut",
   "status",
-  "solution_image",
+  "section_break_uurw",
+  "is_published",
+  "column_break_muqf",
   "route",
   "section_break_bmaq",
   "solution_images",
   "solution_icon",
   "column_break_mooi",
+  "solution_page_image",
   "qasection",
   "qa_table",
   "section_break_rcok",
@@ -31,12 +32,6 @@
    "fieldname": "service_name",
    "fieldtype": "Data",
    "label": "Service Name"
-  },
-  {
-   "description": "size should be 600x400, this image for home page",
-   "fieldname": "image",
-   "fieldtype": "Attach Image",
-   "label": "Image"
   },
   {
    "fieldname": "solution_order",
@@ -60,24 +55,19 @@
    "options": "Enable\nDisable"
   },
   {
-   "description": "This image for solution page.",
-   "fieldname": "solution_image",
-   "fieldtype": "Attach Image",
-   "label": "Solution Image"
-  },
-  {
    "fieldname": "route",
    "fieldtype": "Data",
    "label": "Route"
   },
   {
    "fieldname": "section_break_bmaq",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "label": "image section"
   },
   {
    "fieldname": "solution_images",
    "fieldtype": "Link",
-   "label": "Solution Images",
+   "label": "Solution Icon",
    "options": "Solutions Images"
   },
   {
@@ -124,13 +114,27 @@
    "fieldname": "description",
    "fieldtype": "Text Editor",
    "label": "Description"
+  },
+  {
+   "fieldname": "section_break_uurw",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_muqf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "This image for solution page.",
+   "fieldname": "solution_page_image",
+   "fieldtype": "Attach Image",
+   "label": "Solution Page Image"
   }
  ],
  "has_web_view": 1,
  "index_web_pages_for_search": 1,
  "is_published_field": "is_published",
  "links": [],
- "modified": "2024-06-12 18:43:43.361629",
+ "modified": "2024-06-13 11:51:04.830792",
  "modified_by": "Administrator",
  "module": "Custom Website",
  "name": "Solutions",

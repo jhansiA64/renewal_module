@@ -13,6 +13,7 @@
   {
    "fieldname": "partner_name",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Partner Name",
    "options": "Brand"
   },
@@ -26,7 +27,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-06-12 18:01:16.342192",
+ "modified": "2024-06-13 10:35:28.845699",
  "modified_by": "Administrator",
  "module": "Custom Website",
  "name": "Partner Logos Table",

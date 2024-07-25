@@ -54,7 +54,25 @@
                         </div>
                     </div>
                     <div class="col-lg-10 text-center text-lg-end">
-                        <div class="d-flex align-items-center justify-content-end"><marquee><i class="fas fa-shield-alt text-primary me-2"></i>GITEX 2023. Dubai. Kaspersky experts to speak about a fundamentally new approach to enhancing safety and security.</marquee>
+                        <div class="d-flex align-items-center justify-content-end">
+                            <marquee>
+                         
+                        {% for event in event_list if event_list %}
+                            {% set start_datetime = event.starts_on %}
+                            {% set start_date = start_datetime.strftime("%d-%m-%Y")  %}
+                            {% set start_time = start_datetime.time() %}
+                            {% set end_datetime = event.starts_on %}
+                            {% set end_date = end_datetime.strftime("%d-%m-%Y")  %}
+                            
+                            {% if start_datetime >= today %}                            
+                        
+                                <i class="fas fa-shield-alt text-primary me-2"></i>
+                                {{event.subject }} starts on {{ start_date }} at {{start_time}}  and ends on {{end_date}}. &nbsp;
+                                                    <!-- {{event.name}} -->
+                            {% endif %}                        
+                            
+                        {% endfor %}
+                        </marquee>
                         </div>
                     </div>
                 </div>
@@ -135,335 +153,37 @@
             
             <div class="accordion bg-light rounded p-4" id="accordionExample">
             <h4 class="text-primary text-center">Our Solutions</h4>
+            {%  set solutions=frappe.get_all("Solutions",filters={'status': 'Enable','is_published': 1},fields=['service_name','defination' ,'name','route','solution_order']) %}
+            {% set sorted_solutions = solutions | sort(attribute='solution_order', reverse=false) %}
+
+            {% for solution in sorted_solutions %}              
+            
                             <div class="accordion-item border-0 mb-4">
                                 <h2 class="accordion-header" id="headingOne">
                                     <button class="accordion-button text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseTOne">
-                                       NGFW (Firewalls)
+                                       {{ solution.name }} 
                                     </button>
                                 </h2>
                                 <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+                                    <p class="text ps-4 mb-4 mt-4">{{ solution.defination }}</p>
+                                    {% set parent1 = solution.name %}   
+                                    {%  set partner_logos =frappe.get_all("Partner Logos Table",filters={'parent': parent1},fields=['partner_name','name','logo'],order_by='name asc') %}
+                        
                                     <div class="accordion-body my-2" style="word-spacing:30px;">
-                                       <a href="#" target="_blank"><img class="shadow" src="img/clients/fortinet.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/sophos.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/sonicwall.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/checkpoint.jpg" ></a>
+                                        {% for logo in partner_logos %} 
+                                        {% if logo.logo %}
+                                        <a href="#" ><img src={{logo.logo}} ></a>
+                                        <!-- <a href="solutions_Kaspersky.html" target="_blank"><img class="shadow" src={{logo.logo}} ></a> -->
+                                        {% endif %}
+                                        {% endfor %}
+                                       <!-- <a href="#" target="_blank"><img src="img/client/fortinet.png" ></a>
+                                    <a href="#" target="_blank"><img src="img/client/sophos.png" ></a>
+                                    <a href="#" target="_blank"><img src="img/client/sonicwall.png" ></a>
+                                    <a href="#" target="_blank"><img src="img/client/checkpoint.png" ></a> -->
                                     </div>
                                 </div>
                             </div>
-                            <div class="accordion-item border-0 mb-4">
-                                <h2 class="accordion-header" id="headingTwo">
-                                    <button class="accordion-button collapsed text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-                                        EPP, EDR & MDR
- 
-                                    </button>
-                                </h2>
-                                <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2" style="word-spacing:30px;">
-                                       <a href="solutions_Kaspersky.html" target="_blank"><img class="shadow" src="img/clients/kaspersky.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/sophos.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/trelly.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/symentec.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/eset.jpg" ></a>
-                                    
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="accordion-item border-0 mb-4">
-                                <h2 class="accordion-header" id="headingThree">
-                                    <button class="accordion-button collapsed text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-                                       Data Centre & Cloud Solutions
-
-                                    </button>
-                                </h2>
-                                <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2" style="word-spacing:30px;">
-                                       <a href="#" target="_blank"><img class="shadow" src="img/clients/azure.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/amazon.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/webworks.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/sifi.jpg" ></a>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="accordion-item border-0 mb-4">
-                                <h2 class="accordion-header" id="headingFour">
-                                    <button class="accordion-button collapsed text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
-                                       Hosted Email Messaging Solution
-
-                                    </button>
-                                </h2>
-                                <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2" style="word-spacing:30px;">
-                                       <a href="#" target="_blank"><img class="shadow" src="img/clients/ms.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/google-workspace.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/zoho.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/rediff.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/aimbra.jpg" ></a>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="accordion-item border-0 mb-4">
-                                <h2 class="accordion-header" id="headingFive">
-                                    <button class="accordion-button collapsed text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive" aria-expanded="false" aria-controls="collapseFive">
-                                       Identity and Access Management (IAM)
-
-
-
-                                    </button>
-                                </h2>
-                            <div id="collapseFive" class="accordion-collapse collapse" aria-labelledby="headingFive" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2" style="word-spacing:30px;">
-                                       <a href="#" target="_blank"><img class="shadow" src="img/clients/fortinet.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/zoho.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/azure.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/ol.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/IS.jpg" ></a>
-                  </div>
-                                </div>
-                            </div>
-
-                            <div class="accordion-item border-0 mb-4">
-                                <h2 class="accordion-header" id="headingSix">
-                                    <button class="accordion-button collapsed text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSix" aria-expanded="false" aria-controls="collapseSix">
-                                      Information Rights Management (IRM)
-
-
-                                    </button>
-                                </h2>
-                                <div id="collapseSix" class="accordion-collapse collapse" aria-labelledby="headingSix" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2" style="word-spacing:30px;">
-                                       <a href="#" target="_blank"><img class="shadow" src="img/clients/seclore.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/zecurion.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/microsoft.jpg" ></a>
-                                    
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="accordion-item border-0 mb-4">
-                                <h2 class="accordion-header" id="headingSeven">
-                                    <button class="accordion-button collapsed text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSeven" aria-expanded="false" aria-controls="collapseSeven">
-                                       Security Information and Event Management (SIEM)
-
-
-                                    </button>
-                                </h2>
-                                <div id="collapseSeven" class="accordion-collapse collapse" aria-labelledby="headingSeven" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2" style="word-spacing:30px;">
-                                       <a href="#" target="_blank"><img class="shadow" src="img/clients/fortinet.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/seceon.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/kaspersky.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/zoho.jpg" ></a>
-                                    
-                                    </div>
-                                </div>
-                            </div>
-
-<div class="accordion-item border-0 mb-4">
-                                <h2 class="accordion-header" id="headingEight">
-                                    <button class="accordion-button collapsed text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEight" aria-expanded="false" aria-controls="collapseEight">
-                                       Mobile Device Management (MDM)
-
-
-                                    </button>
-                                </h2>
-                                <div id="collapseEight" class="accordion-collapse collapse" aria-labelledby="headingEight" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2" style="word-spacing:30px;">
-                                       <a href="#" target="_blank"><img class="shadow" src="img/clients/intune.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/soti.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/zecurion.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/tectoro.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/zoho.jpg" ></a>
-                                    </div>
-                                </div>
-                            </div>
-
-                            
-                            <div class="accordion-item border-0 mb-4">
-                                <h2 class="accordion-header" id="headingNine">
-                                    <button class="accordion-button collapsed text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNine" aria-expanded="false" aria-controls="collapseNine">
-                                      Secure Application Access Solutions
-
-                                    </button>
-                                </h2>
-                                <div id="collapseNine" class="accordion-collapse collapse" aria-labelledby="headingNine" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2" style="word-spacing:30px;">
-                                       <a href="#" target="_blank"><img class="shadow" src="img/clients/accops.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/IS.jpg" ></a>
-                                   
-                                    </div>
-                                </div>
-                            </div>
-
-<div class="accordion-item border-0 mb-4">
-                                <h2 class="accordion-header" id="headingTen">
-                                    <button class="accordion-button collapsed text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTen" aria-expanded="false" aria-controls="collapseTen">
-                                      Web Application Firewall (WAF)
-
-
-                                    </button>
-                                </h2>
-                                <div id="collapseTen" class="accordion-collapse collapse" aria-labelledby="headingTen" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2" style="word-spacing:30px;">
-                                       <a href="#" target="_blank"><img class="shadow" src="img/clients/fortinet.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/indusface.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/prophaze.jpg" ></a>
-                                    
-                                    </div>
-                                </div>
-                            </div>
-
-
-<div class="accordion-item border-0 mb-4">
-                                <h2 class="accordion-header" id="headingEleven">
-                                    <button class="accordion-button collapsed text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEleven" aria-expanded="false" aria-controls="collapseEleven">
-                                       Vulnerability Assessment Solution
-
-                                    </button>
-                                </h2>
-                                <div id="collapseEleven" class="accordion-collapse collapse" aria-labelledby="headingEleven" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2" style="word-spacing:30px;">
-                                       <a href="#" target="_blank"><img class="shadow" src="img/clients/tenable.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/tripwire.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/rapid7.jpg" ></a>
-                                   
-                                    </div>
-                                </div>
-                            </div>
-
-                            
-                            <div class="accordion-item border-0 mb-4">
-                                <h2 class="accordion-header" id="headingTwelve">
-                                    <button class="accordion-button collapsed text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwelve" aria-expanded="false" aria-controls="collapseTwelve">
-                                       Network Monitoring Tools
-
-
-                                    </button>
-                                </h2>
-                                <div id="collapseTwelve" class="accordion-collapse collapse" aria-labelledby="headingTwelve" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2" style="word-spacing:30px;">
-                                       <a href="#" target="_blank"><img class="shadow" src="img/clients/everest.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/solarwind.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/me.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/prgt.jpg" ></a>
-                                    
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="accordion-item border-0 mb-4">
-                                <h2 class="accordion-header" id="headingFourteen">
-                                    <button class="accordion-button collapsed text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFourteen" aria-expanded="false" aria-controls="collapseFourteen">
-                                       Data Loss Protection
-(DLP)
-
-
-                                    </button>
-                                </h2>
-                                <div id="collapseFourteen" class="accordion-collapse collapse" aria-labelledby="headingFourteen" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2" style="word-spacing:30px;">
-                                       <a href="#" target="_blank"><img class="shadow" src="img/clients/safetica.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/end.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/fp.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/mcafee.jpg" ></a>
-                                    
-                                    </div>
-                                </div>
-                            </div>
-
-                            
-                            <div class="accordion-item border-0 mb-4">
-                                <h2 class="accordion-header" id="headingFifteen">
-                                    <button class="accordion-button collapsed text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFifteen" aria-expanded="false" aria-controls="collapseFifteen">
-                                       Laptops & Desktops
-
-
-                                    </button>
-                                </h2>
-                                <div id="collapseFifteen" class="accordion-collapse collapse" aria-labelledby="headingFifteen" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2" style="word-spacing:30px;">
-                                       <a href="#" target="_blank"><img class="shadow" src="img/clients/dell.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/hp.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/lenovo.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/acer.jpg" ></a>
-                                    
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="accordion-item border-0 mb-4">
-                                <h2 class="accordion-header" id="headingSixteen">
-                                    <button class="accordion-button collapsed text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSixteen" aria-expanded="false" aria-controls="collapseSixteen">
-                                      Servers & Storage
-
-
-                                    </button>
-                                </h2>
-                                <div id="collapseSixteen" class="accordion-collapse collapse" aria-labelledby="headingSixteen" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2" style="word-spacing:30px;">
-                                       <a href="#" target="_blank"><img class="shadow" src="img/clients/dell.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/hp.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/lenovo.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/netapp.jpg" ></a>
-                                    
-                                    </div>
-                                </div>
-                            </div>
-
-<div class="accordion-item border-0 mb-4">
-                                <h2 class="accordion-header" id="headingSeventeen">
-                                    <button class="accordion-button collapsed text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSeventeen" aria-expanded="false" aria-controls="collapseSeventeen">
-                                       Backup
-
-                                    </button>
-                                </h2>
-                                <div id="collapseSeventeen" class="accordion-collapse collapse" aria-labelledby="headingSeventeen" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2" style="word-spacing:30px;">
-                                       <a href="#" target="_blank"><img class="shadow" src="img/clients/veeam.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/acronis.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/veritas.jpg" ></a>
-                                    
-                                    </div>
-                                </div>
-                            </div>
-
-
-<div class="accordion-item border-0 mb-4">
-                                <h2 class="accordion-header" id="headingEightteen">
-                                    <button class="accordion-button collapsed text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEightteen" aria-expanded="false" aria-controls="collapseEightteen">
-                                       Email Security
-
-
-                                    </button>
-                                </h2>
-                                <div id="collapseEightteen" class="accordion-collapse collapse" aria-labelledby="headingEightteen" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2" style="word-spacing:30px;">
-                                       <a href="#" target="_blank"><img class="shadow" src="img/clients/fortinet.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/checkpoint.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/sophos.jpg" ></a>
-                                    <a href="#" target="_blank"><img class="shadow" src="img/clients/cisco.jpg" ></a>
-                                    
-                                    </div>
-                                </div>
-                            </div>
-
-<div class="accordion-item border-0 mb-4">
-                                <h2 class="accordion-header" id="headingNineteen">
-                                    <button class="accordion-button collapsed text-dark fs-5 fw-bold rounded-top" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNineteen" aria-expanded="false" aria-controls="collapseNineteen">
-                                       Mobile & PC/MAC Cyber Guard
-
-
-                                    </button>
-                                </h2>
-                                <div id="collapseNineteen" class="accordion-collapse collapse" aria-labelledby="headingNineteen" data-bs-parent="#accordionExample">
-                                    <div class="accordion-body my-2" style="word-spacing:30px;">
-                                       <a href="#" target="_blank"><img class="shadow" src="img/clients/safehouse.jpg" ></a>
-                                    
-                                    </div>
-                                </div>
-                            </div>
-
+            {% endfor %}                
                             
                        </div>
                 
@@ -493,10 +213,10 @@
                             <h4 class="text-white mb-4">Explore</h4>
                             
                             <a href="#"><i class="fas fa-angle-right me-2"></i> About Us</a>
-                            <a href="#"><i class="fas fa-angle-right me-2"></i> Solutions</a>
+                            <a href="solutions.html"><i class="fas fa-angle-right me-2"></i> Solutions</a>
                             
                             <a href="#"><i class="fas fa-angle-right me-2"></i> Blog</a>
-                            <a href="#"><i class="fas fa-angle-right me-2"></i> Contact Us</a>
+                            <a href="contact.html"><i class="fas fa-angle-right me-2"></i> Contact Us</a>
                         </div>
                     </div>
                     <div class="col-md-6 col-lg-6 col-xl-3">
