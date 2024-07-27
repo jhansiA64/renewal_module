@@ -24,6 +24,9 @@
         <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
         <link href="lib/lightbox/css/lightbox.min.css" rel="stylesheet">
 
+        <meta name="csrf-token" content="{{ csrf_token }}">
+
+
 
         <!-- Customized Bootstrap Stylesheet -->
         <link href="css/bootstrap.min.css" rel="stylesheet">
@@ -79,7 +82,7 @@
                     <div class="collapse navbar-collapse" id="navbarCollapse">
                         <div class="navbar-nav ms-auto py-0">
                             <a href="index.html" class="nav-item nav-link ">Home</a>
-                            <a href="#" class="nav-item nav-link">About</a>
+                            <a href="aboutus.html" class="nav-item nav-link">About</a>
                             <a href="solutions.html" class="nav-item nav-link">Solutions</a>
                             <a href="#" class="nav-item nav-link">Blog</a>
                             <a href="career.html" class="nav-item nav-link">Career</a>
@@ -130,7 +133,7 @@
         <!-- Header End -->
 
         <!-- Contact Start -->
-        <div class="container-fluid contact bg-light py-5">
+        <!-- <div class="container-fluid contact bg-light py-5">
             <div class="container py-5">
                 <div class="row g-5">
                     <div class="col-lg-6 wow fadeInLeft" data-wow-delay="0.1s">
@@ -218,8 +221,110 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </div> -->
         <!-- Contact End -->
+
+        <!-- Contact Start -->
+        <div class="container-fluid contact bg-light py-5">
+            <div class="container py-5">
+                <div class="row g-5">
+                    <div class="col-lg-6 wow fadeInLeft" data-wow-delay="0.1s">
+                        <div class="contact-item">
+                            <div class="pb-5">
+                             
+                                <h1 class="display-4 mb-4">Get In Touch With Us</h1>
+                               
+                            </div>
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="bg-primary btn-lg-square rounded-circle p-4"><i class="fa fa-map-marker-alt text-white"></i></div>
+                                <div class="ms-4">
+                                    <h4>Branches</h4>
+                                    <p class="mb-0">Hyderabad | Bengaluru | Chennai | Indore | Kolkata</p>
+
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="bg-primary btn-lg-square rounded-circle p-2"><i class="fa fa-phone-alt text-white"></i></div>
+                                <div class="ms-4">
+                                    <h4>Mobile</h4>
+                                    <p class="mb-0">+91 79956 46464</p>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="bg-primary btn-lg-square rounded-circle p-2"><i class="fa fa-envelope-open text-white"></i></div>
+                                <div class="ms-4">
+                                    <h4>Email</h4>
+                                    <p class="mb-0">info@64network.com</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 wow fadeInRight" data-wow-delay="0.3s">
+                        <form id="contactForm" action="/api/method/renewal_module.www.contact.handle_contact_form" method="POST">    
+                            <div class="row g-3">
+                                <div class="col-lg-12 col-xl-6">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="name" name="name" placeholder="Your Name">
+                                        <label for="name">Your Name</label>
+                                    </div>
+                                </div>
+                                <div class="col-lg-12 col-xl-6">
+                                    <div class="form-floating">
+                                        <input type="email" class="form-control" name="email" id="email" placeholder="Your Email">
+                                        <label for="email">Your Email</label>
+                                    </div>
+                                </div>
+                                <div class="col-lg-12 col-xl-6">
+                                    <div class="form-floating">
+                                        <input type="phone" class="form-control" name="phone_no" id="phone" placeholder="Phone">
+                                        <label for="phone">Your Phone</label>
+                                    </div>
+                                </div>
+                                <div class="col-lg-12 col-xl-6">
+                                    <div class="form-floating">
+                                        <!-- <input type="text" class="form-control" name="project" id="project" placeholder="Project"> -->
+                                        
+                                        <select name="service_name" id="service" class="form-control" placeholder="Solution" style="background-color: #ffffff;">
+                                            {%  set solutions=frappe.get_all("Solutions",filters={'status': 'Enable','is_published': 1},fields=['service_name','defination' ,'name','route','solution_order']) %}
+                                            {% set sorted_solutions = solutions | sort(attribute='solution_order', reverse=false) %}
+                                            {% for solution in sorted_solutions %} 
+                                                <option value=""> </option>
+                                                <option value="{{solution.service_name}}">{{solution.service_name}}</option>
+                                            {%endfor%}
+                                        </select>
+                                        <label for="project" style="color:black;"> Solution</label>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" name="subject" id="subject" placeholder="Subject">
+                                        <label for="subject">Subject</label>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-floating">
+                                        <textarea class="form-control" name="message" placeholder="Leave a message here" id="message" style="height: 160px"></textarea>
+                                        <label for="message">Message</label>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary w-100 py-3">Send Message</button>
+                                </div>
+                            </div>
+                        </form> 
+                    </div>
+                    <div class="col-12 wow fadeInUp" data-wow-delay="0.1s">                                                     
+                        <div class="rounded h-100">
+                            <iframe class="rounded-top w-100" 
+                            style="height: 300px; margin-bottom: -6px;" src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d15226.077686389774!2d78.43881!3d17.434836!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bcb90dae9db9cb9%3A0xe1711766ff5ea84e!2s64%20Network%20Security%20Private%20Limited!5e0!3m2!1sen!2sin!4v1715082804007!5m2!1sen!2sin" 
+                            loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+         <!-- Contact End -->
 
         <!-- Footer Start -->
         <div class="container-fluid footer py-5 wow fadeIn" data-wow-delay="0.2s">
@@ -293,6 +398,56 @@
 
     <!-- Template Javascript -->
     <script src="js/main.js"></script>
+
+    <script>
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('contactForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+
+                const formData = new FormData(this);
+                const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+                const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
+
+                if (!csrfToken) {
+                    console.error('CSRF token not found');
+                    alert('CSRF token not found. Please reload the page and try again.');
+                    return;
+                }
+
+                fetch('/api/method/renewal_module.www.contact.handle_contact_form', {
+                    method: 'POST',
+                    headers: {
+                        'X-Frappe-CSRF-Token': csrfToken
+                    },
+                    body: formData
+                })
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            console.error('Response body:', data);
+                            throw new Error(data.message || 'Network response was not ok');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(data);
+                    if (data.status === 'success') {  // Corrected 'succcess' to 'success'
+                        alert(data.message);
+                        window.location.reload();
+                    } else {
+                        alert('There was an issue submitting the form. Please try again.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert(`There was an error submitting the form: ${error.message}`);  // Fixed template literal syntax
+                });
+            });
+        });
+    </script>
     </body>
 
 </html>

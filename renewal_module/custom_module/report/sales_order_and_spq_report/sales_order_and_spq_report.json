@@ -10,7 +10,7 @@
  "is_standard": "Yes",
  "letter_head": "quotation-footer",
  "letterhead": null,
- "modified": "2024-07-02 14:16:11.405112",
+ "modified": "2024-07-26 17:55:00.955680",
  "modified_by": "Administrator",
  "module": "Custom Module",
  "name": "Sales Order And SPQ Report",
@@ -25,6 +25,9 @@
   },
   {
    "role": "System Manager"
+  },
+  {
+   "role": "Accounts Manager"
   }
  ]
 }

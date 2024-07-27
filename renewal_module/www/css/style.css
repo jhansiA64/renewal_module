@@ -1052,4 +1052,94 @@
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     background: var(--bs-dark) !important;
 }
+
 /*** copyright end ***/
+
+
+/* Solution page */
+
+.accordion-item{
+    background-color: transparent;
+}  
+.card1 {
+    margin-bottom: 10px; /* Margin between accordion cards */
+    border: none;
+    border-radius: 8px;
+    border-top-left-radius: 10px;
+    display: inline-block;
+    vertical-align: top;
+    background-color:transparent;
+    position: relative;
+    width: 100%;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+
+  }
+  
+  .collapsible {
+    background-color: #ffffff; /* Background color of the accordion header */
+    color: #333; /* Text color of the accordion header */
+    cursor: pointer;
+    padding: 15px;
+    width: 100%;
+    text-align: left;
+    border: none;
+    outline: none;
+    font-size: 18px;
+    font-weight: bold;
+    transition: background-color 0.3s ease; /* Transition effect for background color */
+    position: relative;/* Ensure position is relative for the chevron icon */
+    margin: 5px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    
+  }
+  
+  .collapsible.active {
+    background-color:#e85433; /* Background color when accordion is active/open */
+    color:white;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+  }
+  
+  .icon-right {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: transform 0.3s ease; /* Transition effect for chevron icon */
+  }
+  
+  .content {
+    display: none; /* Initially hide accordion content */
+    padding: 10px;
+    background-color: #fff; /* Background color of accordion content */
+    overflow: hidden; /* Ensure content does not overflow */
+    transition: max-height 0.3s ease-out; /* Transition effect for expanding/collapsing content */
+  }
+  
+  .content.show {
+    display: block; /* Show accordion content when active */
+  }
+  
+  .collapsible.active .icon-right {
+    transform: translateY(-50%) rotate(180deg); /* Rotate chevron icon when accordion is active */
+  }
+  
+  .card1:hover .collapsible {
+    background-color: #e85433; /* Background color when hovering over accordion header */
+    color: #ffff;
+  }
+  
+  /* Optional: Add additional styling for images inside accordion content */
+  .content img {
+    max-width: 100%; /* Ensure images resize appropriately */
+    max-height: 100px; /* Limit image height */
+    object-fit: cover; /* Ensure images cover their containers */
+    margin: 5px; /* Margin between images */
+ }
+  
+  .card-body {
+    margin-bottom: 10px;
+    background-color: transparent;
+  }
