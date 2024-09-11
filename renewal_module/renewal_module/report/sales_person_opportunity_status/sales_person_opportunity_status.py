@@ -5,6 +5,7 @@
 
 import frappe
 from frappe import _
+from frappe.utils import cint, flt, formatdate
 
 
 
@@ -216,46 +217,105 @@ def get_join(filters):
 
 	return join
 
-def get_report_summary(filters,columns, currency, data):
-	new,new_total, renewal, renewal_total = 0,0, 0, 0
+# def get_report_summary(filters,columns, currency, data):
+# 	new,new_total, renewal, renewal_total = 0,0, 0, 0
 	
-	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(new)))
-	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(data)))
+# 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(new)))
+# 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(data)))
 
 
-	# from consolidated financial statement
-	# if filters.get("accumulated_in_group_company"):
-	# 	period_list = get_data(filters, period_list)
+# 	# from consolidated financial statement
+# 	# if filters.get("accumulated_in_group_company"):
+# 	# 	period_list = get_data(filters, period_list)
+
+# 	for period in data:
+		
+# 		if period.sales_stage == "Closed Won" and period.opportunity_type in ["New", "Additional"] :
+# 			new += 1
+# 		if period.sales_stage  and period.opportunity_type in ["New", "Additional"]:
+# 			new_total += 1	
+# 		if period.sales_stage == "Closed Won" and period.opportunity_type == "Renewal" :
+# 			renewal += 1
+# 		if period.sales_stage  and period.opportunity_type =="Renewal":
+# 			renewal_total += 1		
+		
+
+# 	# if len(data) >= 1 :
+# 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(new_total)))
+# 	new_label = ("New")
+# 	new_total_label = _("Total")
+# 	renewal_label = _("Renewal")
+# 	# renewal_total_label = _("Closed Won")
+# 	# else:
+# 	# 	profit_label = _("Net Profit")
+# 	# 	income_label = _("Total Income")
+# 	# 	expense_label = _("Total Expense")
+
+# 	return [
+# 		{"value": str(new)+ "/" + str(new_total),"indicator": "Green", "label": new_label, "datatype": "Data"},
+		
+# 		{"value":str(renewal)+ "/" + str(renewal_total),"indicator": "Blue", "label": renewal_label, "datatype": "Data"},
+		
+# 	]
+
+def get_report_summary(filters,columns, currency, data):
+	closed_won, closed_lost, prospect, total = 0.0, 0.0, 0.0, 0.0
+	won_count,lost_count, prospect_count, total_count = 0,0,0, 0
+
+	opportunity_seen = set()
+
+
+	# Dictionary to store seen opportunities and track sales amounts
+    # opportunity_seen = set()	
 
 	for period in data:
+		# if filters.group_by == "Opportunity":
+			
+		frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(period)))
+		if period.name not in opportunity_seen:
+			opportunity_seen.add(period.name)  # Mark this parent Opportunity as processed
+			total_count += 1
+			total += flt(period.amount)
+			if period.sales_stage == "Closed Won":
+				won_count += 1
+				
+			if period.sales_stage == "Closed Lost":
+				lost_count += 1
+			if period.sales_stage == "Prospect":
+				prospect_count += 1
+
+		if period.sales_stage == "Closed Won":
+			closed_won += flt(period.amount)
+			
+		if period.sales_stage == "Closed Lost":
+			closed_lost += flt(period.amount)
+		if period.sales_stage == "Prospect":
+			prospect += flt(period.amount)	
+				
 		
-		if period.sales_stage == "Closed Won" and period.opportunity_type in ["New", "Additional"] :
-			new += 1
-		if period.sales_stage  and period.opportunity_type in ["New", "Additional"]:
-			new_total += 1	
-		if period.sales_stage == "Closed Won" and period.opportunity_type == "Renewal" :
-			renewal += 1
-		if period.sales_stage  and period.opportunity_type =="Renewal":
-			renewal_total += 1		
+			
 		
 
-	# if len(data) >= 1 :
-	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(new_total)))
-	new_label = ("New")
-	new_total_label = _("Total")
-	renewal_label = _("Renewal")
-	# renewal_total_label = _("Closed Won")
-	# else:
-	# 	profit_label = _("Net Profit")
-	# 	income_label = _("Total Income")
-	# 	expense_label = _("Total Expense")
+	won_label = ("Closed Won")
+	lost_label = _("Closed Lost")
+	prospect_label = _("Open")
+
+	won_count_label = _("Closed Won") + " (" + str(won_count) + ")"
+	lost_count_label = _("Closed Lost") + " (" + str(lost_count) + ")"
+	prospect_count_label = _("Open") + " (" + str(prospect_count) + ")"
+	total_label = _("Total Opportunities") + " (" + str(total_count) + ")"
+	
 
 	return [
-		{"value": str(new)+ "/" + str(new_total),"indicator": "Green", "label": new_label, "datatype": "Data"},
-		
-		{"value":str(renewal)+ "/" + str(renewal_total),"indicator": "Blue", "label": renewal_label, "datatype": "Data"},
+		{"value": round(total,2), "indicator": "Blue", "label": total_label, "datatype": "Currency"},
+		{"value": round(closed_won, 2), "indicator": "Green", "label": won_count_label, "datatype": "Currency"},
+        {"value": round(closed_lost, 2), "indicator": "Red", "label": lost_count_label, "datatype": "Currency"},
+        {"value": round(prospect, 2), "indicator": "Yellow", "label": prospect_count_label, "datatype": "Currency"},
+        
 		
 	]
+
+
 
 def get_chart_data(filters, columns, data):
 	prospecting , proposal_price_quote, negotiation_review , closed_lost, closed_won, dead = 0.0, 0.0, 0.0, 0.0, 0.0,0.0

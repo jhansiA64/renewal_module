@@ -49,7 +49,7 @@
                 <div class="row gx-0 align-items-center" style="height: 45px;">
                     <div class="col-lg-2 text-center text-lg-start mb-lg-0">
                         <div class="d-flex flex-wrap">
-                            <a href="#" class="text-muted me-4"><i class="fas fa-calendar-alt text-primary me-2"></i>Upcomming Events</a>
+                            <a href="#" style="color: #ffffff;" class="text-muted me-4"><i class="fas fa-calendar-alt text-primary me-2"></i>Upcomming Events</a>
                             
                         </div>
                     </div>
@@ -58,7 +58,7 @@
                     
                     <div class="col-lg-10 text-center text-lg-end">
                         <div class="d-flex align-items-center justify-content-end">
-                            <marquee>
+                            <marquee style="color: #ffffff;">
                          
                         {% for event in event_list if event_list %}
                             {% set start_datetime = event.starts_on %}
@@ -68,10 +68,9 @@
                             {% set end_date = end_datetime.strftime("%d-%m-%Y")  %}
                             
                             {% if start_datetime >= today %}                            
-                        
-                                <i class="fas fa-shield-alt text-primary me-2"></i>
-                                {{event.subject }} starts on {{ start_date }} at {{start_time}}  and ends on {{end_date}}. &nbsp;
-                                                    <!-- {{event.name}} -->
+                            <a href="events.html" style="color: #ffffff;"><i class="fas fa-shield-alt text-primary me-2" ></i>
+                                {{event.subject }} starts on {{ start_date }} at {{start_time}}  and ends on {{end_date}}.</a>
+                                 &nbsp;
                             {% endif %}                        
                             
                         {% endfor %}
@@ -84,23 +83,6 @@
                 </div>
             </div>
         </div>
-        
-        <!-- <div class="container-fluid topbar px-0 d-none d-lg-block">
-            <div class="container px-0">
-                <div class="row gx-0 align-items-center" style="height: 45px;">
-                    <div class="col-lg-2 text-center text-lg-start mb-lg-0">
-                        <div class="d-flex flex-wrap">
-                            <a href="#" class="text-muted me-4"><i class="fas fa-calendar-alt text-primary me-2"></i>Upcomming Events</a>
-                            
-                        </div>
-                    </div>
-                    <div class="col-lg-10 text-center text-lg-end">
-                        <div class="d-flex align-items-center justify-content-end"><marquee><i class="fas fa-shield-alt text-primary me-2"></i>GITEX 2023. Dubai. Kaspersky experts to speak about a fundamentally new approach to enhancing safety and security.</marquee>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div> -->
         <!-- Topbar End -->
 
 
@@ -124,6 +106,7 @@
                             <a href="solutions.html" class="nav-item nav-link">Solutions</a>
                             <a href="blog1.html" class="nav-item nav-link">Blog</a>
                             <a href="career.html" class="nav-item nav-link">Career</a>
+                            <a href="events.html" class="nav-item nav-link">Events</a>
                             
                             <a href="contact.html" class="nav-item nav-link ">Contact</a>
                             <a href="/login" class="nav-item nav-link ">Login</a>
@@ -193,9 +176,12 @@
                       <h1 class="display-5 mb-4">With over {{ company_age}} years of experience </h1>
                         <p class="text ps-4 mb-4">With over {{company_age}} years of experience delivering high performance security across the IT infrastructure of small and medium businesses, enterprises and government agencies in India, our network security and hybrid cloud solutions secure thousands of networks and their emails, applications and data across India.
                       </p>
-                      <h4 class="text-primary">Our Vision</h4>
+                      <h4 class="text-primary">Enabling the Information Age</h4>
                        
-                        <p class="text ps-4 mb-4">With over {{company_age}} years of experience delivering high performance security across the IT infrastructure of small and medium businesses, enterprises and government agencies in India, our network security and hybrid cloud solutions secure thousands of networks and their emails, applications and data across India.
+                        <p class="text ps-4 mb-4">For more than {{company_age}} years, we have been at the forefront of constant upgradation of knowledge in technology to 
+                            bring to our clients with optimized and best fitted solutions. Every day we strive for better and improved 
+                            solutions. Our Technology consulting and Support continues to make a difference to our client's IT 
+                            infrastructure. 64Network team size is approximately 30 people.
                       </p>
                         
                         
@@ -203,15 +189,36 @@
                   </div>
                     
               </div>
-                
-                <div class="row g-5 align-items-center">
+              <div class="row g-5 align-items-center wow fadeInLeft" data-wow-delay="0.1s">
+                <img src="img/64cm.png" >
+                <!-- <img src="img/64cm (1).png"> -->
+
+            </div><br><br>
+                <div class="row g-5 align-items-center ">
                     
                     <div class="col-lg-6 col-xl-7 wow fadeInRight" data-wow-delay="0.3s">
-                        <h4 class="text-primary">Our Misson</h4>
-                        
-                        <p class="text ps-4 mb-4">With over 13 years of experience delivering high performance security across the IT infrastructure of small and medium businesses, enterprises and government agencies in India, our network security and hybrid cloud solutions secure thousands of networks and their emails, applications and data across India.
+                        <h4 class="text-primary">Our Core Values</h4>
+                        <h4>Integrity</h4>
+                        <p class="text ps-4 mb-4">We believe integrity is the foundation of our 
+                            individual and Corporate actions that drive 
+                            our organization.
                       </p>
-                        
+                      <h4>Teamwork</h4>
+                        <p class="text ps-4 mb-4">When it comes to the productivity of an 
+                            organization, nothing beats the power of 
+                            Teamwork and co-operation.
+                      </p>
+                      <h4>Performance</h4>
+                        <p class="text ps-4 mb-4">We believe performance excellence will drive 
+                            the results that differentiate us from our 
+                            competitors.
+                      </p>
+                      <h4>Learning</h4>
+                        <p class="text ps-4 mb-4">We believe a learning environment is the 
+                            way to achieve the full potential of each 
+                            individual and the company.
+                      </p>
+                    
                         
                   
                     </div>
@@ -221,6 +228,12 @@
                         </div>
                   </div>
                 </div>
+                <div class="row g-5 align-items-center wow fadeInRight" data-wow-delay="0.1s">
+                    <!-- <h4 >Awards</h4> -->
+                    <img src="img/awards.png" >
+    
+                </div>
+                
             </div>
         </div>
         

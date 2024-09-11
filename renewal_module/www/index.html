@@ -109,6 +109,7 @@
                             <a href="solutions.html" class="nav-item nav-link">Solutions</a>
                             <a href="blog1.html" class="nav-item nav-link">Blog</a>
                             <a href="career.html" class="nav-item nav-link">Career</a>
+                            <a href="events.html" class="nav-item nav-link">Events</a>
                             
                             <a href="contact.html" class="nav-item nav-link">Contact</a>
                             <a href="/login" class="nav-item nav-link">Login</a>
@@ -199,7 +200,7 @@
                 <div class="row g-5 align-items-center">
                     <div class="col-lg-6 col-xl-5 wow fadeInLeft" data-wow-delay="0.1s">
                         <div class="about-img">
-                          <img src="img/about-2.jpg" class="img-fluid" alt="Image">
+                          <img src="img/about-2_1.jpg" class="img-fluid" alt="Image">
                         </div>
                   </div>
                     <div class="col-lg-6 col-xl-7 wow fadeInRight" data-wow-delay="0.3s">
@@ -265,56 +266,6 @@
         </div>
         <!-- About End -->
 
-<div class="ncontainer" style="text-align:center;">
-  <h4 class="text-primary">Our Partner</h4>
-
-  <!-- {%  set partner_logos =frappe.get_all("Partner Logos",filters={'status': 'Enable'},fields=['name','logo'],order_by='name asc') %}   -->
-  {%  set partner_logos =frappe.get_all("Brand",filters={'custom_status': 'Enable'},fields=['name','image'],order_by='name asc') %}  
-                
-  <div class="lides">
-    {% for logo in partner_logos %}
-    {%if logo.image %}
-
-    <!-- <img src={{logo.logo}} width="120" height="120" alt="Logo"> -->
-    <img src="{{logo.image}}" >
-    {% endif %}
-    {% endfor %}
-<!-- <img src="img/clients/aimbra.jpg" >
-<img src="img/clients/amazon.jpg" >
-<img src="img/clients/aruba.jpg">
- <img src="img/clients/azure.jpg">
- <img src="img/clients/cisco.jpg">
- <img src="img/clients/dell.jpg">
-  <img src="img/clients/fortinet.jpg" >
-  <img src="img/clients/google.jpg">
-  <img src="img/clients/hp.jpg">
-<img src="img/clients/intune.jpg" >
-<img src="img/clients/lenovo.jpg">
- <img src="img/clients/m.jpg" >
-<img src="img/clients/ms.jpg" >
- <img src="img/clients/netapp.jpg" >
- <img src="img/clients/nextgen.jpg">
-  <img src="img/clients/prgt.jpg">
-  <img src="img/clients/qnap.jpg" >
-<img src="img/clients/quantum.jpg">
- <img src="img/clients/rapid7.jpg">
- <img src="img/clients/rediff.jpg">
-<img src="img/clients/ruckus.jpg">
- <img src="img/clients/safehouse.jpg" >
-  <img src="img/clients/seclore.jpg">
-  <img src="img/clients/securate.jpg" >
-  <img src="img/clients/solarwind.jpg" >
-<img src="img/clients/sophos.jpg">
-<img src="img/clients/soti.jpg">
-<img src="img/clients/aimbra.jpg">
-<img src="img/clients/synology.jpg">
-<img src="img/clients/tectoro.jpg" >
- <img src="img/clients/tenable.jpg" >
- <img src="img/clients/tripwire.jpg" >
- <img src="img/clients/webworks.jpg" >
- <img src="img/clients/zecurion.jpg"> -->
-  </div>
-</div>
         <!-- Services Start -->
         <div class="container-fluid testimonial bg-light py-5">
             <div class="container py-5">
@@ -412,6 +363,27 @@
         </div>
         <!-- Services End -->
 
+        <!-- Partners Start -->
+        <div class="ncontainer" style="text-align:center;">
+            <h4 class="text-primary">Our Partner</h4>
+          
+            <!-- {%  set partner_logos =frappe.get_all("Partner Logos",filters={'status': 'Enable'},fields=['name','logo'],order_by='name asc') %}   -->
+            {%  set partner_logos =frappe.get_all("Brand",filters={'custom_status': 'Enable'},fields=['name','image'],order_by='name asc') %}  
+                          
+            <div class="lides">
+              {% for logo in partner_logos %}
+              {%if logo.image %}
+          
+              <!-- <img src={{logo.logo}} width="120" height="120" alt="Logo"> -->
+              <img src="{{logo.image}}" >
+              {% endif %}
+              {% endfor %}
+          
+            </div>
+          </div>
+          
+         <!-- Partners End -->
+
 
         <!-- Project Start -->
         
@@ -425,29 +397,41 @@
                     <h4 class="text-primary">Our Blogs</h4>
                     <h1 class="display-4">Latest Articles & News from the Blogs</h1>
                 </div>
+                {% from "frappe/utils/data.py" import formatdate, format_time %}
+                {%  set blogs =frappe.get_all("Blog Post",filters={'published': 1},fields=['name', 'title','meta_title', 'blogger','blog_category', 'meta_description','meta_image','content','blog_intro','published_on'],order_by='published_on asc') %}  
+            
                 <div class="row g-4 justify-content-center">
-                    <div class="col-md-6 col-lg-6 col-xl-4 wow fadeInUp" data-wow-delay="0.1s">
-                        <div class="blog-item bg-light rounded p-4" style="background-image: url(img/bg.png);">
-                            <div class="mb-4">
-                                <h4 class="text-primary mb-2">Investment</h4>
-                                <div class="d-flex justify-content-between">
-                                    <p class="mb-0"><span class="text-dark fw-bold">On</span> Mar 14, 2024</p>
-                                    <p class="mb-0"><span class="text-dark fw-bold">By</span> Mark D. Brock</p>
+                    {% for blog in blogs %}
+                        {%if blog.meta_title %}
+                        {% set blogger_name = blog.blogger %}
+                        {%  set blogger =frappe.get_all("Blogger",filters={'name': blogger_name},fields=['name', 'full_name']) %}  
+                        {%  set blog_category =frappe.get_all("Blog Category",filters={'name': blog.blog_category},fields=['name', 'title']) %}  
+            
+                            <div class="col-md-6 col-lg-6 col-xl-4 wow fadeInUp" data-wow-delay="0.1s">
+                                <div class="blog-item bg-light rounded p-4" style="background-image: url(img/bg.png);">
+                                    <div class="mb-4">
+                                        <h4 class="text-primary mb-2">{{ blog.title }}</h4>
+                                        <div class="d-flex justify-content-between">
+                                            <p class="mb-0"><span class="text-dark fw-bold">On</span> {{ blog.published_on.strftime("%d %b, %Y") }} </p>
+                                            <p class="mb-0"><span class="text-dark fw-bold">By</span> {{ blogger[0].name}}</p>
+                                        </div>
+                                    </div>
+                                    <div class="project-img">
+                                        <img src={{blog.meta_image}} class="img-fluid w-100 rounded"  alt="Image">
+                                        <!-- <div class="blog-plus-icon">
+                                            <a href="img/blog-1.jpg" data-lightbox="blog-1" class="btn btn-primary btn-md-square rounded-pill"><i class="fas fa-plus fa-1x"></i></a>
+                                        </div> -->
+                                    </div>
+                                    <div class="my-4">
+                                        <h5 class="text-primary mb-2">{{ blog_category[0].title}}</h5>
+                                        <a href="/blog_inner?blog={{blog.name}}" class="h4" style="font-size: 14px;font-family: 'Roboto', sans-serif;">{{blog.meta_description}}</a>
+                                    </div>
+                                    <a class="btn btn-primary rounded-pill py-2 px-4" href="/blog_inner?blog={{blog.name}}">Explore More</a>
                                 </div>
                             </div>
-                            <div class="project-img">
-                                <img src="img/blog-1.jpg" class="img-fluid w-100 rounded" alt="Image">
-                                <div class="blog-plus-icon">
-                                    <a href="img/blog-1.jpg" data-lightbox="blog-1" class="btn btn-primary btn-md-square rounded-pill"><i class="fas fa-plus fa-1x"></i></a>
-                                </div>
-                            </div>
-                            <div class="my-4">
-                                <a href="#" class="h4">Revisiting Your Investment & Distribution Goals</a>
-                            </div>
-                            <a class="btn btn-primary rounded-pill py-2 px-4" href="#">Explore More</a>
-                        </div>
-                    </div>
-                    <div class="col-md-6 col-lg-6 col-xl-4 wow fadeInUp" data-wow-delay="0.3s">
+                        {% endif %}
+                    {% endfor %}
+                    <!-- <div class="col-md-6 col-lg-6 col-xl-4 wow fadeInUp" data-wow-delay="0.3s">
                         <div class="blog-item bg-light rounded p-4" style="background-image: url(img/bg.png);">
                             <div class="mb-4">
                                 <h4 class="text-primary mb-2">Business</h4>
@@ -457,7 +441,7 @@
                                 </div>
                             </div>
                             <div class="project-img">
-                                <img src="img/blog-2.jpg" class="img-fluid w-100 rounded" alt="Image">
+                                <img src="img/blog-2.jpg" class="img-fluid w-100 rounded" style="height: 10px;" alt="Image">
                                 <div class="blog-plus-icon">
                                     <a href="img/blog-2.jpg" data-lightbox="blog-2" class="btn btn-primary btn-md-square rounded-pill"><i class="fas fa-plus fa-1x"></i></a>
                                 </div>
@@ -488,7 +472,7 @@
                             </div>
                             <a class="btn btn-primary rounded-pill py-2 px-4" href="#">Explore More</a>
                         </div>
-                    </div>
+                    </div>  -->
                 </div>
             </div>
         </div>

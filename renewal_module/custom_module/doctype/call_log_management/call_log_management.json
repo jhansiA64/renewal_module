@@ -10,11 +10,18 @@
  "field_order": [
   "naming_series",
   "name1",
-  "phonenumber",
+  "contact_person",
+  "designation",
   "column_break_8hzez",
+  "call_type",
+  "phonenumber",
+  "email_id",
+  "section_break_kzsix",
   "datetime",
   "time",
-  "timestamp"
+  "column_break_spy07",
+  "timestamp",
+  "duration"
  ],
  "fields": [
   {
@@ -26,6 +33,7 @@
   {
    "fieldname": "name1",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Name"
   },
   {
@@ -45,17 +53,53 @@
   {
    "fieldname": "timestamp",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Time stamp"
   },
   {
    "fieldname": "datetime",
-   "fieldtype": "Data",
+   "fieldtype": "Date",
    "label": "Date"
+  },
+  {
+   "fieldname": "contact_person",
+   "fieldtype": "Link",
+   "label": "Contact Person",
+   "options": "Contact"
+  },
+  {
+   "fieldname": "call_type",
+   "fieldtype": "Select",
+   "label": "Call Type",
+   "options": "Cold Call\nScheduled\nReminder\nRepeat"
+  },
+  {
+   "fieldname": "section_break_kzsix",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_spy07",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "duration",
+   "fieldtype": "Data",
+   "label": "Duration (in Sec)"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Data",
+   "label": "Designation"
+  },
+  {
+   "fieldname": "email_id",
+   "fieldtype": "Data",
+   "label": "Email ID"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-05-14 15:50:04.760997",
+ "modified": "2024-08-05 13:08:14.122213",
  "modified_by": "Administrator",
  "module": "Custom Module",
  "name": "Call Log Management",

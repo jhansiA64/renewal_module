@@ -16,6 +16,11 @@ app_license = "MIT"
 # app_include_css = "/assets/renewal_module/css/renewal_module.css"
 # app_include_js = "/assets/renewal_module/js/renewal_module.js"
 
+# Include your JavaScript file
+app_include_js = "/assets/renewal_module/js/target_page.js"
+
+app_include_css = "/assets/renewal_module/css/desk_custom.css"
+
 
 # include js, css files in header of web template
 # web_include_css = "/assets/renewal_module/css/renewal_module.css"
@@ -112,13 +117,13 @@ website_route_rules = [
 # 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
 # }
 
-permission_query_conditions = {
-	"Opportunity":"renewal_module.tasks.filter_opportunities",
-}
+# permission_query_conditions = {
+# 	"Opportunity":"renewal_module.tasks.filter_opportunities",
+# }
 
-has_permission = {
-    "Opportunity": "renewal_module.tasks.has_permission"
-}
+# has_permission = {
+#     "Opportunity": "renewal_module.tasks.has_permission"
+# }
 
 #
 # has_permission = {
@@ -170,11 +175,11 @@ scheduler_events = {
 		"* * * * *":[
 			"renewal_module.tasks.cron"
 		]
-	}
+	},
 
-	# "all": [
-	# 	"renewal_module.tasks.all"
-	# ],
+	"all": [
+		"renewal_module.tasks.send_call_reminders"
+	],
 	# "daily": [
 	# 	"renewal_module.tasks.daily"
 	# ],

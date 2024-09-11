@@ -17,6 +17,7 @@ frappe.query_reports["Sales Data Based On Invoice"] = {
 			label: __("Timespan"),
 			fieldtype: "Select",
 			options: [
+				{ "value": "last year", "label": __("Last Year") },
 				{ "value": "last 6 months", "label": __("Last 6 Months") },
 				{ "value": "last quarter", "label": __("Last Quarter") },
 				{ "value": "last month", "label": __("Last Month") },

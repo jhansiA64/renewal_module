@@ -1,0 +1,15 @@
+/* Change the background color of the desk */
+body {
+    background-color: #f0f0f0; /* Replace with your desired color */
+}
+
+/* Change the color of the module icons */
+.app-icon {
+    background-color: #3498db; /* Replace with your desired color */
+    border-radius: 10px;
+}
+
+/* Change the text color of the module names */
+.app-label {
+    color: #ffffff; /* Replace with your desired color */
+}

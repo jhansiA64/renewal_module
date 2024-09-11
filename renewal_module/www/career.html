@@ -30,6 +30,17 @@
 
         <!-- Template Stylesheet -->
         <link href="css/style.css" rel="stylesheet">
+
+
+        <!-- Facebook -->
+        <meta property="og:url" content="https://dev.64network.com/carrer_job?job_id={{jobname}}" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Job Opportunity" />
+        <meta property="og:description" content="Check out this job opportunity!" />
+        <meta property="og:image" content="https://st2.depositphotos.com/3643473/6206/i/450/depositphotos_62060317-stock-illustration-person-with-megaphone-and-word.jpg" />
+    
+
+
     </head>
 
     <body>
@@ -49,7 +60,7 @@
                 <div class="row gx-0 align-items-center" style="height: 45px;">
                     <div class="col-lg-2 text-center text-lg-start mb-lg-0">
                         <div class="d-flex flex-wrap">
-                            <a href="#" class="text-muted me-4"><i class="fas fa-calendar-alt text-primary me-2"></i>Upcomming Events</a>
+                            <a href="#" style="color: #ffffff;" class="text-muted me-4"><i class="fas fa-calendar-alt text-primary me-2"></i>Upcomming Events</a>
                             
                         </div>
                     </div>
@@ -58,23 +69,29 @@
                     
                     <div class="col-lg-10 text-center text-lg-end">
                         <div class="d-flex align-items-center justify-content-end">
-                            <marquee>{% for event in event_list if event_list %}
-                                {% set start_datetime = event.starts_on %}
-                                {% set start_date = start_datetime.strftime("%d-%m-%Y")  %}
-                                {% set start_time = start_datetime.time() %}
-                                {% set end_datetime = event.starts_on %}
-                                {% set end_date = end_datetime.strftime("%d-%m-%Y")  %}
-                                
-                                {% if start_datetime >= today %}                            
+                            <marquee style="color: #ffffff;">
+                         
+                        {% for event in event_list if event_list %}
+                            {% set start_datetime = event.starts_on %}
+                            {% set start_date = start_datetime.strftime("%d-%m-%Y")  %}
+                            {% set start_time = start_datetime.time() %}
+                            {% set end_datetime = event.starts_on %}
+                            {% set end_date = end_datetime.strftime("%d-%m-%Y")  %}
                             
-                                    <i class="fas fa-shield-alt text-primary me-2"></i>
-                                    {{event.subject }} starts on {{ start_date }} at {{start_time}}  and ends on {{end_date}}. &nbsp;
-                                                        <!-- {{event.name}} -->
-                                {% endif %}                        
-                                
-                            {% endfor %}</marquee>
-                        </div>
+                            {% if start_datetime >= today %}                            
+                            <a href="events.html" style="color: #ffffff;"><i class="fas fa-shield-alt text-primary me-2" ></i>
+                                {{event.subject }} starts on {{ start_date }} at {{start_time}}  and ends on {{end_date}}.</a>
+                                 &nbsp;
+                                                    <!-- {{event.name}} -->
+                            {% endif %}                        
+                            
+                        {% endfor %}
+                    </marquee>
+                </div>
+
+                        
                     </div>
+                    
                 </div>
             </div>
         </div>
@@ -101,6 +118,7 @@
                             <a href="solutions.html" class="nav-item nav-link">Solutions</a>
                             <a href="blog1.html" class="nav-item nav-link">Blog</a>
                             <a href="career.html" class="nav-item nav-link active">Career</a>
+                            <a href="events.html" class="nav-item nav-link">Events</a>
                             
                             <a href="contact.html" class="nav-item nav-link ">Contact</a>
                             <a href="/login" class="nav-item nav-link ">Login</a>
@@ -170,13 +188,13 @@
                                             
                                             <a class="btn btn-primary" href="#tab-2">Full Time Jobs</a>
                                         </div>
-                                        {% set job_list = frappe.get_all("Job Opening",filters={'status': 'Open','custom_jop_type':'Full Time'},fields=['name','currency','lower_range','upper_range']) %}
+                                        {% set job_list = frappe.get_all("Job Opening",filters={'status': 'Open','custom_jop_type':'Full Time','publish':1},fields=['name','job_title', 'currency','lower_range','upper_range']) %}
                            {% for job in job_list %}
                           <div class="job-item p-4 mb-4">
                             <div class="row g-4">
                                     <div class="col-sm-12 col-md-8 d-flex align-items-center"> <a href="carrer_job.html"><img class="flex-shrink-0 img-fluid border rounded" src="img/mp.jpg" alt="" style="width: 80px; height: 80px;"></a>
                                         <div class="text-start ps-4">
-                                          <h5 class="mb-3">{{job.name}}</h5>
+                                          <h5 class="mb-3">{{job.job_title}}</h5>
                                             <span class="text-truncate me-3"><i class="fa fa-map-marker-alt text-primary me-2"></i>Hyderabad, Telangana</span>
                                             <span class="text-truncate me-3"><i class="far fa-clock text-primary me-2"></i>Full Time</span>
                                             {% if job.lower_range and job.upper_range %}
@@ -205,7 +223,49 @@
                                                 </a>
                                             </div>
                                              -->
-                                            <a class="btn btn-light btn-md-square me-2" href="https://www.facebook.com/sharer/sharer.php?u=https://dev.64network.com/carrer_job?job_id={{jobname}}" target="_blank" title="Share on Facebook"><i class="fab fa-facebook-f"></i></a>
+                                            <!-- Facebook -->
+                                             <!-- <div id="fb-root"></div>
+                                             <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v10.0"></script>
+                                             <button class="btn btn-light btn-md-square me-2" onclick="shareOnFacebook()"><i class="fab fa-facebook-f"></i></button> -->
+                                             <!-- <script>
+                                                function shareOnFacebook() {
+                                                  const jobUrl = encodeURIComponent('https://dev.64network.com/carrer_job?job_id={{jobname}}'); // Replace with your job URL
+                                                  const imageUrl = encodeURIComponent('https://st2.depositphotos.com/3643473/6206/i/450/depositphotos_62060317-stock-illustration-person-with-megaphone-and-word.jpg'); // Replace with your image URL
+                                                  const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${jobUrl}&picture=${imageUrl}`;
+                                                  window.open(shareUrl, '_blank');
+                                                }
+                                              </script> -->
+
+                                              <!-- <a href="https://www.facebook.com/sharer/sharer.php?u=https://dev.64network.com/carrer_job?job_id={{jobname}}" class="btn btn-light btn-md-square me-2" id="fb-share-link" target="_blank"><i class="fab fa-facebook-f"></i></a>
+
+                                                <script>
+                                                    document.getElementById('fb-share-link').addEventListener('click', function() {
+                                                        const jobId = 'your_job_id'; // dynamically set this based on your job
+                                                        const url = `https://dev.64network.com/carrer_job?job_id=${jobname}`;
+                                                        const text = 'Check out this job opportunity!';
+                                                        const imageUrl = 'https://st2.depositphotos.com/3643473/6206/i/450/depositphotos_62060317-stock-illustration-person-with-megaphone-and-word.jpg';
+                                                        
+                                                        const fbShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}&picture=${encodeURIComponent(imageUrl)}`;
+                                                        
+                                                        window.open(fbShareUrl, '_blank', 'width=600,height=400');
+                                                    });
+                                                </script> -->
+
+                                                <!-- <iframe src="https://www.facebook.com/plugins/share_button.php?href=https%3A%2F%2Fdev.64network.com%2Fcarrer_job%3Fjob_id%3Dnetwork-support-engineer-with-0-1yr-of-ex&layout&size&width=78&height=20&appId"
+                                                 width="78" height="20" style="border:none;overflow:hidden" 
+                                                 scrolling="no" frameborder="0" 
+                                                 allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share">
+                                                </iframe> -->
+
+                                                <iframe src="https://www.facebook.com/plugins/share_button.php?href=https%3A%2F%2Fdev.64network.com%2Fcarrer_job%3Fjob_id%3D{{ jobname | urlencode }}&picture=https://st2.depositphotos.com/3643473/6206/i/450/depositphotos_62060317-stock-illustration-person-with-megaphone-and-word.jpg" 
+                                                    width="78" height="20" 
+                                                    style="border:none; overflow:hidden;" 
+                                                    scrolling="no" frameborder="0" 
+                                                    allowfullscreen="true" 
+                                                    allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share">
+                                            </iframe>
+
+                                            <!-- end facebook -->
                                             <a class="btn btn-light btn-md-square me-2" href="https://twitter.com/intent/tweet?url=https://dev.64network.com/carrer_job?job_id={{jobname}}" target="_blank" title="Share on Twitter"><i class="fab fa-twitter"></i></a>
                                             <a class="btn btn-light btn-md-square me-2" href=""><i class="fa fa-link"></i></a>
                                             <a class="btn btn-light btn-md-square me-0" href="https://www.linkedin.com/shareArticle?url=https://dev.64network.com/carrer_job?job_id={{jobname}}" target="_blank" title="Share on LinkedIn"><i class="fab fa-linkedin-in"></i></a>
@@ -224,13 +284,13 @@
                                             
                                             <a class="btn btn-primary" href="#tab-3">Part Time Jobs</a>
                                         </div>
-                                        {% set job_list = frappe.get_all("Job Opening",filters={'status': 'Open','custom_jop_type':'Part Time'},fields=['name','currency','lower_range','upper_range']) %}
+                                        {% set job_list = frappe.get_all("Job Opening",filters={'status': 'Open','custom_jop_type':'Part Time','publish':1},fields=['name', 'job_title','currency','lower_range','upper_range']) %}
                            {% for job in job_list %}
                           <div class="job-item p-4 mb-4">
                             <div class="row g-4">
                                     <div class="col-sm-12 col-md-8 d-flex align-items-center"> <a href="carrer_job.html"><img class="flex-shrink-0 img-fluid border rounded" src="img/mp.jpg" alt="" style="width: 80px; height: 80px;"></a>
                                         <div class="text-start ps-4">
-                                          <h5 class="mb-3">{{job.name}}</h5>
+                                          <h5 class="mb-3">{{job.job_title}}</h5>
                                             <span class="text-truncate me-3"><i class="fa fa-map-marker-alt text-primary me-2"></i>Hyderabad, Telangana</span>
                                             <span class="text-truncate me-3"><i class="far fa-clock text-primary me-2"></i>Full Time</span>
                                             {% if job.lower_range and job.upper_range %}
@@ -258,6 +318,13 @@
                                             <a class="btn btn-light btn-md-square me-2" href="https://twitter.com/intent/tweet?url=https://dev.64network.com/carrer_job?job_id={{jobname}}" target="_blank" title="Share on Twitter"><i class="fab fa-twitter"></i></a>
                                             <a class="btn btn-light btn-md-square me-2" href=""><i class="fa fa-link"></i></a>
                                             <a class="btn btn-light btn-md-square me-0" href="https://www.linkedin.com/shareArticle?url=https://dev.64network.com/carrer_job?job_id={{jobname}}" target="_blank" title="Share on LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                                            <div class="share-buttons">
+                                                <a href="https://www.facebook.com/sharer/sharer.php?u=https://dev.64network.com/carrer_job?job_id={{jobname}}" class="facebook" onclick="shareOnFacebook()">Share on Facebook</a>
+                                                <a href="#" class="twitter" onclick="shareOnTwitter()">Share on Twitter</a>
+                                                <a href="#" class="linkedin" onclick="shareOnLinkedIn()">Share on LinkedIn</a>
+                                                <a href="#" class="reddit" onclick="shareOnReddit()">Share on Reddit</a>
+                                            </div>
+                                        
                                         </div>
                                         
                                         <!-- <small class="text-truncate"><i class="far fa-calendar-alt text-primary me-2"></i>Date Line: 01 June, 2024</small> -->
@@ -344,7 +411,10 @@
     <script src="lib/counterup/counterup.min.js"></script>
     <script src="lib/owlcarousel/owl.carousel.min.js"></script>
     <script src="lib/lightbox/js/lightbox.min.js"></script>
+
     
+
+
 
     <!-- Template Javascript -->
     <script src="js/main.js">
@@ -356,6 +426,35 @@
     //     }
     
     </script>
+
+<script>
+    function shareOnFacebook() {
+        const url = window.location.href;
+        const facebookUrl = url
+        window.open(facebookUrl, '_blank', 'width=600,height=400');
+    }
+
+    function shareOnTwitter() {
+        const url = window.location.href;
+        const text = document.querySelector('h1').innerText;
+        const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
+        window.open(twitterUrl, '_blank', 'width=600,height=400');
+    }
+
+    function shareOnLinkedIn() {
+        const url = window.location.href;
+        const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+        window.open(linkedInUrl, '_blank', 'width=600,height=400');
+    }
+
+    function shareOnReddit() {
+        const url = window.location.href;
+        const title = document.querySelector('h1').innerText;
+        const redditUrl = `https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`;
+        window.open(redditUrl, '_blank', 'width=600,height=400');
+    }
+</script>
+
     </body>
 
 </html>

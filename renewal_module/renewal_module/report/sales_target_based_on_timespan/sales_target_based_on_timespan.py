@@ -55,6 +55,8 @@ def get_columns(filters):
 		date_range = get_timespan_date_range(filters.get("timespan")) 
 		date1 = datetime.strptime(str(date_range[0]),"%Y-%m-%d").strftime("%d-%m-%Y")
 		date2 = datetime.strptime(str(date_range[1]),"%Y-%m-%d").strftime("%d-%m-%Y")
+		frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date1)))
+		frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date2)))
 	columns = [
 		{
 			"fieldname":"sales_person",
@@ -174,7 +176,7 @@ def prepare_data(filters,sales_users_data,sales_user_wise_item_groups,sales_user
 
     fiscal_year = get_fiscal_year(fiscal_year=filters.get("fiscal_year"), as_dict=1)
     dates = [fiscal_year.year_start_date, fiscal_year.year_end_date]
-    # frappe.msgprint("<pre>{}</pre>".format(frappe.as_json("hello")))
+    frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(fiscal_year)))
     time_span = 0
     if filters.get("timespan") in ("last month","this month","next month"):
 	    time_span = 1

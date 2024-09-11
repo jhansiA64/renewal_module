@@ -9,6 +9,9 @@
         <meta content="" name="keywords">
         <meta content="" name="description">
 
+        <meta name="csrf-token" content="{{ csrf_token }}">
+
+
         <!-- Google Web Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,6 +38,13 @@
         
     <script src="/assets/frappe/js/frappe-web.min.js"></script>
     <script src="/assets/js/website.min.js"></script>
+
+
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    
     
     </head>
 
@@ -55,25 +65,37 @@
                 <div class="row gx-0 align-items-center" style="height: 45px;">
                     <div class="col-lg-2 text-center text-lg-start mb-lg-0">
                         <div class="d-flex flex-wrap">
-                            <a href="#" class="text-muted me-4"><i class="fas fa-calendar-alt text-primary me-2"></i>Upcomming Events</a>
+                            <a href="#" style="color: #ffffff;" class="text-muted me-4"><i class="fas fa-calendar-alt text-primary me-2"></i>Upcomming Events</a>
                             
                         </div>
                     </div>
-                    {% set event_list = frappe.get_all("Event",filters={'status': 'Open'},fields=['name','subject','starts_on','ends_on'],order_by='starts_on asc') %}
+                    {% set event_list = frappe.get_all("Event",filters={'status': 'Open','event_category':'Event'},fields=['name','subject','starts_on','ends_on'],order_by='starts_on asc') %}
                     {% set today = frappe.utils.now_datetime() %}
                     
                     <div class="col-lg-10 text-center text-lg-end">
-                        {% for event in event_list %}
-                            {% set start_date = event.starts_on %}
-                            {% if  start_date >= today %}
-                        
-                        <!-- <div class="d-flex align-items-center justify-content-end"><marquee><i class="fas fa-shield-alt text-primary me-2"></i>GITEX 2023. Dubai. Kaspersky experts to speak about a fundamentally new approach to enhancing safety and security.</marquee>
-                        </div> -->
-                        <div class="d-flex align-items-center justify-content-end"><marquee><i class="fas fa-shield-alt text-primary me-2"></i>{{event.subject }} starts on {{ event.starts_on }} and ends on {{event.ends_on}}.</marquee>
-                        </div>
-                        <!-- {{event.name}} -->
-                            {% endif %}
+                        <div class="d-flex align-items-center justify-content-end">
+                            <marquee style="color: #ffffff;">
+                         
+                        {% for event in event_list if event_list %}
+                            {% set start_datetime = event.starts_on %}
+                            {% set start_date = start_datetime.strftime("%d-%m-%Y")  %}
+                            {% set start_time = start_datetime.time() %}
+                            {% set end_datetime = event.starts_on %}
+                            {% set end_date = end_datetime.strftime("%d-%m-%Y")  %}
+                            
+                            {% if start_datetime >= today %}                            
+                            <a href="events.html" style="color: #ffffff;"><i class="fas fa-shield-alt text-primary me-2" ></i>
+                                {{event.subject }} starts on {{ start_date }} at {{start_time}}  and ends on {{end_date}}.</a>
+                                 &nbsp;
+                                                    <!-- {{event.name}} -->
+                            {% endif %}                        
+                            
                         {% endfor %}
+                    </marquee>
+                </div>
+
+                        
+                    </div>
                     
                 </div>
             </div>
@@ -97,10 +119,11 @@
                     <div class="collapse navbar-collapse" id="navbarCollapse">
                         <div class="navbar-nav ms-auto py-0">
                             <a href="index.html" class="nav-item nav-link ">Home</a>
-                            <a href="#" class="nav-item nav-link">About</a>
+                            <a href="aboutus.html" class="nav-item nav-link">About</a>
                             <a href="solutions.html" class="nav-item nav-link">Solutions</a>
                             <a href="blog1.html" class="nav-item nav-link">Blog</a>
                             <a href="career.html" class="nav-item nav-link">Career</a>
+                            <a href="events.html" class="nav-item nav-link">Events</a>
                             
                             <a href="contact.html" class="nav-item nav-link active">Contact</a>
                             <a href="/login" class="nav-item nav-link ">Login</a>
@@ -125,7 +148,7 @@
                     </div>
                     <div class="modal-body d-flex align-items-center">
                         <div class="input-group w-75 mx-auto d-flex">
-                            <input type="search" class="form-control p-3" placeholder="keywords" aria-describedby="search-icon-1">
+                            <input type="search" class="form-control p-3" placeholder="keywords" autocomplete="off" aria-describedby="search-icon-1">
                             <span id="search-icon-1" class="input-group-text p-3"><i class="fa fa-search"></i></span>
                         </div>
                     </div>
@@ -162,7 +185,7 @@
                                 <div class="bg-primary btn-lg-square rounded-circle p-4"><i class="fa fa-map-marker-alt text-white"></i></div>
                                 <div class="ms-4">
                                     <h4>Branches</h4>
-                                    <p class="mb-0">Hyderabad | Bangalore | Chennai | Indore</p>
+                                    <p class="mb-0">Hyderabad | Bengaluru | Chennai | Indore | Kolkata</p>
 
                                 </div>
                             </div>
@@ -183,51 +206,80 @@
                         </div>
                     </div>
                     <div class="col-lg-6 wow fadeInRight" data-wow-delay="0.3s">
-                        <form id="contact-form">
+                        <form id="contactForm" action="/api/method/renewal_module.www.contact.handle_contact_form" method="POST" autocomplete="off">    
                             <div class="row g-3">
                                 <div class="col-lg-12 col-xl-6">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" id="name" placeholder="Your Name">
+                                        <input type="text" class="form-control" id="name" name="name" placeholder="Your Name" autocomplete="off">
                                         <label for="name">Your Name</label>
                                     </div>
                                 </div>
                                 <div class="col-lg-12 col-xl-6">
                                     <div class="form-floating">
-                                        <input type="email" class="form-control" id="email" placeholder="Your Email">
+                                        <input type="email" class="form-control" name="email" id="email" placeholder="Your Email" autocomplete="off">
                                         <label for="email">Your Email</label>
                                     </div>
                                 </div>
                                 <div class="col-lg-12 col-xl-6">
                                     <div class="form-floating">
-                                        <input type="phone" class="form-control" id="phone" placeholder="Phone">
+                                        <input type="phone" class="form-control" name="phone_no" id="phone" placeholder="Phone" autocomplete="off">
                                         <label for="phone">Your Phone</label>
                                     </div>
                                 </div>
                                 <div class="col-lg-12 col-xl-6">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" id="project" placeholder="Project">
-                                        <label for="project">Your Project</label>
+                                        <!-- <input type="text" class="form-control" name="project" id="project" placeholder="Project"> -->
+                                        
+                                        <select name="service_name" id="service" class="form-control" placeholder="Solution" style="background-color: #ffffff;">
+                                            {%  set solutions=frappe.get_all("Solutions",filters={'status': 'Enable','is_published': 1},fields=['service_name','defination' ,'name','route','solution_order']) %}
+                                            {% set sorted_solutions = solutions | sort(attribute='solution_order', reverse=false) %}
+                                            {% for solution in sorted_solutions %} 
+                                                <option value=""> </option>
+                                                <option value="{{solution.service_name}}">{{solution.service_name}}</option>
+                                            {%endfor%}
+                                        </select>
+                                        <label for="project" style="color:black;"> Solution</label>
                                     </div>
                                 </div>
                                 <div class="col-12">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" id="subject" placeholder="Subject">
+                                        <input type="text" class="form-control" name="subject" id="subject" placeholder="Subject" autocomplete="off">
                                         <label for="subject">Subject</label>
                                     </div>
                                 </div>
                                 <div class="col-12">
                                     <div class="form-floating">
-                                        <textarea class="form-control" placeholder="Leave a message here" id="message" style="height: 160px"></textarea>
+                                        <textarea class="form-control" name="message" placeholder="Leave a message here" id="message" style="height: 160px"></textarea>
                                         <label for="message">Message</label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12 mt-3" >
+                                        <div class="captcha">
+                                            <div class="spinner">
+                                                <label>
+                                                    <input type="checkbox" id="notRobot" onclick="$(this).attr('disabled','disabled');">
+                                                    <span class="checkmark"><span>&nbsp;</span></span>
+                                                </label>
+                                            </div>
+                                            <div class="text">
+                                                I'm not a Robot
+                                            </div>
+                                            <div class="logo">
+                                                <img src="/img/recaptcha.png">
+                                                <!--<p>reCAPTCHA</p>
+                                                <small>Privacy - Terms</small>-->
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="col-12">
                                     <button type="submit" class="btn btn-primary w-100 py-3">Send Message</button>
                                 </div>
                             </div>
-                        </form>
+                        </form> 
                     </div>
-                    <div class="col-12 wow fadeInUp" data-wow-delay="0.1s">
+                    <div class="col-12 wow fadeInUp" data-wow-delay="0.1s">                                                     
                         <div class="rounded h-100">
                             <iframe class="rounded-top w-100" 
                             style="height: 300px; margin-bottom: -6px;" src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d15226.077686389774!2d78.43881!3d17.434836!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bcb90dae9db9cb9%3A0xe1711766ff5ea84e!2s64%20Network%20Security%20Private%20Limited!5e0!3m2!1sen!2sin!4v1715082804007!5m2!1sen!2sin" 
@@ -316,6 +368,73 @@
 
     <!-- Template Javascript -->
     <script src="js/main.js"></script>
+
+    <script>
+        
+        function validateForm(event) {
+            const checkbox = document.getElementById('notRobot');
+            if (!checkbox.checked) {
+                alert('Please confirm that you are not a robot.');
+                event.preventDefault(); // Prevents the form from being submitted
+                return false; // Stops further execution if checkbox is not checked
+            }
+            return true; // Allow form submission if validation passes
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('contactForm');
+            form.addEventListener('submit', function(event) {
+                event.preventDefault(); // Prevent default form submission
+
+                // Perform checkbox validation first
+                if (!validateForm(event)) {
+                    return; // Exit if validation fails
+                }
+    
+                const formData = new FormData(this);
+                const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+                const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
+
+                if (!csrfToken) {
+                    console.error('CSRF token not found');
+                    alert('CSRF token not found. Please reload the page and try again.');
+                    return;
+                }
+
+                fetch('/api/method/renewal_module.www.contact.handle_contact_form', {
+                    method: 'POST',
+                    headers: {
+                        'X-Frappe-CSRF-Token': csrfToken
+                    },
+                    body: formData
+                })
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            console.error('Response body:', data);
+                            throw new Error(data.message || 'Network response was not ok');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(data);
+                    if (data.status === 'success') {  // Corrected 'succcess' to 'success'
+                        alert(data.message);
+                        window.location.reload();
+                    } else {
+                        alert('There was an issue submitting the form. Please try again.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert(`There was an error submitting the form: ${error.message}`);  // Fixed template literal syntax
+                });
+            });
+        });
+    </script>
+
+
 
 
     

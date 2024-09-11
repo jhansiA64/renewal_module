@@ -161,7 +161,94 @@ frappe.query_reports["Sales Person Opportunity Status"] = {
 		frappe.db.get_value("Opportunity", name, "custom_comment").then((a) => {
 			console.log(a)
 		})
-	}
+	},
+	onload: function(report) {
+        const reportName = "Sales Person Opportunity Status";
+        
+        // Add "List Settings" button to the report toolbar
+        report.page.add_inner_button('List Settings', function() {
+            open_list_settings_dialog(report, reportName);
+        });
+
+        // Initialize hidden columns from localStorage
+        const savedHiddenColumns = JSON.parse(localStorage.getItem(`${reportName}_hidden_columns`)) || [];
+        report.hidden_columns = savedHiddenColumns;
+
+        // Ensure columns visibility is applied on load
+        apply_column_visibility(report, savedHiddenColumns);
+    }
 };
 
+// Function to open the List Settings dialog
+function open_list_settings_dialog(report, reportName) {
+    // Retrieve saved hidden columns from localStorage
+    const savedHiddenColumns = JSON.parse(localStorage.getItem(`${reportName}_hidden_columns`)) || [];
 
+    // Create dialog content with checkboxes for each column
+    let dialog_html = '<div class="modal-body">';
+    
+    // Ensure the columns are listed from the table
+    $('.table thead th').each(function() {
+        let fieldname = $(this).data('fieldname');
+        if (fieldname) {
+            let isChecked = savedHiddenColumns.indexOf(fieldname) === -1;
+            dialog_html += `
+                <div class="form-group">
+                    <input type="checkbox" id="toggle_${fieldname}" ${isChecked ? 'checked' : ''}>
+                    <label for="toggle_${fieldname}">${fieldname}</label>
+                </div>`;
+        }
+    });
+
+    dialog_html += '</div>';
+
+    // Open a dialog with the column visibility settings
+    frappe.msgprint({
+        title: __("List Settings"),
+        message: dialog_html,
+        buttons: [
+            {
+                label: __("Apply"),
+                cssClass: 'btn-primary',
+                click: function() {
+                    let hiddenColumns = [];
+
+                    // Collect checked/unchecked states
+                    $('.modal-body input[type="checkbox"]').each(function() {
+                        let fieldname = $(this).attr('id').replace('toggle_', '');
+                        if (!$(this).is(':checked')) {
+                            hiddenColumns.push(fieldname);
+                        }
+                    });
+
+                    // Save hidden columns to localStorage
+                    localStorage.setItem(`${reportName}_hidden_columns`, JSON.stringify(hiddenColumns));
+
+                    // Apply column visibility settings
+                    apply_column_visibility(report, hiddenColumns);
+
+                    frappe.msgprint(__('Column settings applied'));
+                }
+            },
+            {
+                label: __("Close"),
+                click: function() {
+                    frappe.msgprint(__('List Settings closed'));
+                }
+            }
+        ]
+    });
+}
+
+// Function to apply column visibility based on hidden columns
+function apply_column_visibility(report, hiddenColumns) {
+    // Show or hide columns based on saved settings
+    $('.table thead th').each(function() {
+        let fieldname = $(this).data('fieldname');
+        if (fieldname) {
+            let isVisible = hiddenColumns.indexOf(fieldname) === -1;
+            $(this).toggle(isVisible);
+            $(`td[data-fieldname="${fieldname}"]`).toggle(isVisible);
+        }
+    });
+}

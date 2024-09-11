@@ -49,16 +49,16 @@
                 <div class="row gx-0 align-items-center" style="height: 45px;">
                     <div class="col-lg-2 text-center text-lg-start mb-lg-0">
                         <div class="d-flex flex-wrap">
-                            <a href="#" class="text-muted me-4"><i class="fas fa-calendar-alt text-primary me-2"></i>Upcomming Events</a>
+                            <a href="#" style="color: #ffffff;" class="text-muted me-4"><i class="fas fa-calendar-alt text-primary me-2"></i>Upcomming Events</a>
                             
                         </div>
                     </div>
-                    {% set event_list = frappe.get_all("Event",filters={'status': 'Open'},fields=['name','subject','starts_on','ends_on'],order_by='starts_on asc') %}
+                    {% set event_list = frappe.get_all("Event",filters={'status': 'Open','event_category':'Event'},fields=['name','subject','starts_on','ends_on'],order_by='starts_on asc') %}
                     {% set today = frappe.utils.now_datetime() %}
                     
                     <div class="col-lg-10 text-center text-lg-end">
                         <div class="d-flex align-items-center justify-content-end">
-                            <marquee>
+                            <marquee style="color: #ffffff;">
                          
                         {% for event in event_list if event_list %}
                             {% set start_datetime = event.starts_on %}
@@ -68,16 +68,19 @@
                             {% set end_date = end_datetime.strftime("%d-%m-%Y")  %}
                             
                             {% if start_datetime >= today %}                            
-                        
-                                <i class="fas fa-shield-alt text-primary me-2"></i>
-                                {{event.subject }} starts on {{ start_date }} at {{start_time}}  and ends on {{end_date}}. &nbsp;
+                            <a href="events.html" style="color: #ffffff;"><i class="fas fa-shield-alt text-primary me-2" ></i>
+                                {{event.subject }} starts on {{ start_date }} at {{start_time}}  and ends on {{end_date}}.</a>
+                                 &nbsp;
                                                     <!-- {{event.name}} -->
                             {% endif %}                        
                             
                         {% endfor %}
-                        </marquee>
-                        </div>
+                    </marquee>
+                </div>
+
                         
+                    </div>
+                    
                 </div>
             </div>
         </div>
@@ -102,8 +105,9 @@
                             <a href="index.html" class="nav-item nav-link ">Home</a>
                             <a href="#" class="nav-item nav-link">About</a>
                             <a href="solutions.html" class="nav-item nav-link">Solutions</a>
-                            <a href="#" class="nav-item nav-link">Blog</a>
+                            <a href="blog1.html" class="nav-item nav-link">Blog</a>
                             <a href="career.html" class="nav-item nav-link active">Career</a>
+                            <a href="events.html" class="nav-item nav-link ">Events</a>
                             
                             <a href="contact.html" class="nav-item nav-link ">Contact</a>
                             <a href="/login" class="nav-item nav-link ">Login</a>

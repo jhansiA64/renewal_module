@@ -1,0 +1,135 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:{event_name}-{####}",
+ "creation": "2024-07-12 10:22:53.357758",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "event_name",
+  "column_break_gbxyp",
+  "status",
+  "section_break_faats",
+  "person_name",
+  "email",
+  "phone_number",
+  "column_break_jl6bh",
+  "company_name",
+  "sales_user",
+  "address",
+  "section_break_9ynxh",
+  "link",
+  "section_break_impir",
+  "sales_team_details"
+ ],
+ "fields": [
+  {
+   "fieldname": "event_name",
+   "fieldtype": "Link",
+   "label": "Event Name",
+   "options": "Event"
+  },
+  {
+   "fieldname": "person_name",
+   "fieldtype": "Data",
+   "label": "Person Name"
+  },
+  {
+   "fieldname": "company_name",
+   "fieldtype": "Link",
+   "label": "Company Name",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Email",
+   "options": "Email"
+  },
+  {
+   "fieldname": "phone_number",
+   "fieldtype": "Data",
+   "label": "Phone Number",
+   "options": "Phone"
+  },
+  {
+   "fieldname": "address",
+   "fieldtype": "Small Text",
+   "label": "Address"
+  },
+  {
+   "fieldname": "column_break_gbxyp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "\nDraft\nSubmit"
+  },
+  {
+   "fieldname": "section_break_9ynxh",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "link",
+   "fieldtype": "Data",
+   "label": "Link"
+  },
+  {
+   "fieldname": "section_break_faats",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_jl6bh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "company_name.account_manager",
+   "fieldname": "sales_user",
+   "fieldtype": "Link",
+   "label": "Sales User",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_impir",
+   "fieldtype": "Section Break"
+  },
+  {
+   "depends_on": "company_name",
+   "fieldname": "sales_team_details",
+   "fieldtype": "Table",
+   "label": "Sales Team",
+   "options": "Sales Team"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-07-19 17:02:02.877119",
+ "modified_by": "Administrator",
+ "module": "Custom Website",
+ "name": "Event Registration",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

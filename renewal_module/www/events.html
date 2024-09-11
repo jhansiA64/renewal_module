@@ -49,7 +49,7 @@
                 <div class="row gx-0 align-items-center" style="height: 45px;">
                     <div class="col-lg-2 text-center text-lg-start mb-lg-0">
                         <div class="d-flex flex-wrap">
-                            <a href="#" class="text-muted me-4"><i class="fas fa-calendar-alt text-primary me-2"></i>Upcomming Events</a>
+                            <a href="#" style="color: #ffffff;" class="text-muted me-4"><i class="fas fa-calendar-alt text-primary me-2"></i>Upcomming Events</a>
                             
                         </div>
                     </div>
@@ -58,7 +58,7 @@
                     
                     <div class="col-lg-10 text-center text-lg-end">
                         <div class="d-flex align-items-center justify-content-end">
-                            <marquee>
+                            <marquee style="color: #ffffff;">
                          
                         {% for event in event_list if event_list %}
                             {% set start_datetime = event.starts_on %}
@@ -68,9 +68,9 @@
                             {% set end_date = end_datetime.strftime("%d-%m-%Y")  %}
                             
                             {% if start_datetime >= today %}                            
-                        
-                                <i class="fas fa-shield-alt text-primary me-2"></i>
-                                {{event.subject }} starts on {{ start_date }} at {{start_time}}  and ends on {{end_date}}. &nbsp;
+                            <a href="events.html" style="color: #ffffff;"><i class="fas fa-shield-alt text-primary me-2" ></i>
+                                {{event.subject }} starts on {{ start_date }} at {{start_time}}  and ends on {{end_date}}.</a>
+                                 &nbsp;
                                                     <!-- {{event.name}} -->
                             {% endif %}                        
                             
@@ -85,22 +85,6 @@
             </div>
         </div>
         
-        <!-- <div class="container-fluid topbar px-0 d-none d-lg-block">
-            <div class="container px-0">
-                <div class="row gx-0 align-items-center" style="height: 45px;">
-                    <div class="col-lg-2 text-center text-lg-start mb-lg-0">
-                        <div class="d-flex flex-wrap">
-                            <a href="#" class="text-muted me-4"><i class="fas fa-calendar-alt text-primary me-2"></i>Upcomming Events</a>
-                            
-                        </div>
-                    </div>
-                    <div class="col-lg-10 text-center text-lg-end">
-                        <div class="d-flex align-items-center justify-content-end"><marquee><i class="fas fa-shield-alt text-primary me-2"></i>GITEX 2023. Dubai. Kaspersky experts to speak about a fundamentally new approach to enhancing safety and security.</marquee>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div> -->
         <!-- Topbar End -->
 
 
@@ -185,7 +169,7 @@
             
             {% if start_datetime >= today %} 
                                                
-            <div class="container">
+            <!-- <div class="container">
                 <div class="row gy-5 gx-4">
                     <div class="col-lg-8">
                         <div class="d-flex align-items-center mb-5">
@@ -223,13 +207,71 @@
                             <p><i class="fa fa-angle-right text-primary me-2"></i>Location: Hyderabad, Telangana</p>
                             <p class="m-0"><i class="fa fa-angle-right text-primary me-2"></i>Date Line: Not Disclosed</p>
                         </div>
-                        <!-- <div class="bg-light rounded p-5 wow slideInUp" data-wow-delay="0.1s">
-                            <h4 class="mb-4">Company Detail</h4>
-                            <p class="m-0">Ipsum dolor ipsum accusam stet et et diam dolores, sed rebum sadipscing elitr vero dolores. Lorem dolore elitr justo et no gubergren sadipscing, ipsum et takimata aliquyam et rebum est ipsum lorem diam. Et lorem magna eirmod est et et sanctus et, kasd clita labore.</p>
-                        </div> -->
+                        
                     </div>
                 </div>
+            </div> -->
+
+
+            <div class="container-fluid contact bg-light py-5">
+                <div class="tab-class text-center wow fadeInUp" data-wow-delay="0.3s">
+                        <!-- <ul class="nav nav-pills d-inline-flex justify-content-center border-bottom mb-5">
+                            
+                            <li class="nav-item">
+                                <a class="d-flex align-items-center text-start mx-3 pb-3" data-bs-toggle="pill" href="#tab-2">
+                                    <h6 class="job-link">Full Time</h6>
+                                </a>
+                            </li>
+                            
+                        </ul> -->
+                        <div class="tab-content">
+                            
+                          <div id="tab-2" class="tab-pane fade show p-0 active">
+                                 <!-- <div class="col-md-12">
+                                                
+                                    <a class="btn btn-primary" href="#tab-2">Full Time Jobs</a>
+                                </div> -->
+                                            
+                              <div class="job-item p-4 mb-4">
+                                <div class="row g-4">
+                                        <div class="col-sm-12 col-md-8 d-flex align-items-center"> <a href="carrer_job.html"><img class="flex-shrink-0 img-fluid border rounded" src="img/64_logo_events.png" alt="" style="width: 80px; height: 80px;"></a>
+                                            <div class="text-start ps-4">
+                                              <h5 class="mb-3">{{event.subject}}</h5>
+                                                <span class="text-truncate me-3"><i class="fa fa-map-marker-alt text-primary me-2"></i>Hyderabad, Telangana</span>
+                                                <!-- <span class="text-truncate me-3"><i class="far fa-clock text-primary me-2"></i>Full Time</span> -->
+                                                
+                                          </div>
+                                  </div>
+                                        <div class="col-sm-12 col-md-4 d-flex flex-column align-items-start align-items-md-end justify-content-center">
+                                            <div class="d-flex mb-3">
+                                                <!-- <a class="btn btn-light btn-square me-3" href=""><i class="far fa-heart text-primary"></i></a> -->
+                                                {% set eventname = event.name %}
+                                                
+                                        
+                                        <!-- Button to trigger data fetching -->
+                                        <a  class="btn btn-primary" href="/events_details?event_id={{eventname}}">View Details</a>
+                                        
+    
+                                        <!-- Placeholder for job data -->
+                                            </div>
+                                            <div class="d-flex align-items-center">
+                                                
+                                                <a class="btn btn-light btn-md-square me-2" href="https://www.facebook.com/sharer/sharer.php?u=https://dev.64network.com/carrer_job?job_id={{jobname}}" target="_blank" title="Share on Facebook"><i class="fab fa-facebook-f"></i></a>
+                                                <a class="btn btn-light btn-md-square me-2" href="https://twitter.com/intent/tweet?url=https://dev.64network.com/carrer_job?job_id={{jobname}}" target="_blank" title="Share on Twitter"><i class="fab fa-twitter"></i></a>
+                                                <a class="btn btn-light btn-md-square me-2" href=""><i class="fa fa-link"></i></a>
+                                                <a class="btn btn-light btn-md-square me-0" href="https://www.linkedin.com/shareArticle?url=https://dev.64network.com/carrer_job?job_id={{jobname}}" target="_blank" title="Share on LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                                            </div>
+                                            <!-- <small class="text-truncate"><i class="far fa-calendar-alt text-primary me-2"></i>Date Line: 01 June, 2024</small> -->
+                                        </div>
+                                </div>
+                              </div>
+                                
+                            </div>
+                            
+                        </div>
+                    </div>
             </div>
+            
             {% endif %}
             {% endfor %}
                                 

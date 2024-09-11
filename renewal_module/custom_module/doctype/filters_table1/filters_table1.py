@@ -4,5 +4,5 @@
 # import frappe
 from frappe.model.document import Document
 
-class TargetList(Document):
+class FiltersTable1(Document):
 	pass

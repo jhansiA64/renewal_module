@@ -19,6 +19,7 @@ from erpnext.stock.report.stock_ledger.stock_ledger import get_item_group_condit
 from erpnext.stock.utils import get_incoming_rate
 
 
+
 def execute(filters=None):
 	if not filters:
 		filters = frappe._dict()
@@ -186,12 +187,13 @@ def execute(filters=None):
 
 	if filters.group_by == "Opportunity":
 		report_summary = get_report_summary(filters,columns, currency, data)
-		# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(report_summary)))
+		frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(report_summary)))
 
 		chart = get_chart_data(filters, columns, data)
+		# chart1 = get_chart_data1(filters, columns, data)
 		# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(data)))	
 
-		return columns, data, None,chart
+		return columns, data, None, chart, report_summary
 	else:
 		return columns, data, None	
 
@@ -1065,110 +1067,175 @@ class GrossProfitGenerator(object):
 
 
 def get_report_summary(filters,columns, currency, data):
-	sales_amount,purchase_amount,margin, orc, profit = 0.0, 0.0, 0.0, 0.0, 0.0
-	
-	
+	closed_won, closed_lost, prospect = 0.0, 0.0, 0.0
+	won_count,lost_count, prospect_count, total_count = 0,0,0, 0
+
+	opportunity_seen = set()
+
+
+	# Dictionary to store seen opportunities and track sales amounts
+    # opportunity_seen = set()	
 
 	for period in data:
 		if filters.group_by == "Opportunity":
+			
+			frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(period)))
+			if period.opportunity not in opportunity_seen:
+				opportunity_seen.add(period.parent)  # Mark this parent Opportunity as processed
+				total_count += 1
 
-			if period.indent == 1.0:
-				sales_amount += period.selling_amount
-				purchase_amount += period.buying_amount
-				orc += flt(period.orc)
+			if period.sales_stage == "Closed Won":
+				closed_won += period.selling_amount
+				
+			if period.sales_stage == "Closed Lost":
+				closed_lost += period.selling_amount
+			if period.sales_stage == "Prospect":
+				prospect += period.selling_amount		
+				
 		
 			
 		
 
-	sales_label = ("Sales Amount")
-	buying_label = _("Purchase Amount")
-	profit_label = _("Profit")
+	won_label = ("Closed Won")
+	lost_label = _("Closed Lost")
+	prospect_label = _("Open")
 	
 
 	return [
-		{"value": round(sales_amount,2),"indicator": "Blue", "label": sales_label, "datatype": "Data"},
+		{"value": round(closed_won,2),"indicator": "Blue", "label": won_label, "datatype": "Currency"},
 		
-		{"value":round(purchase_amount,2),"indicator": "Red", "label": buying_label, "datatype": "Data"},
-		{"value":round((sales_amount - purchase_amount) - orc,2),"indicator": "Green", "label": profit_label, "datatype": "Data"}
+		{"value":round(closed_lost,2),"indicator": "Red", "label": lost_label, "datatype": "Currency"},
+		{"value":round(prospect,2),"indicator": "Green", "label": prospect_label , "datatype": "Currency"},
+		{"value": total_count, "indicator": "Gray", "label": "total_label", "datatype": "Int"}
 		
 		
 	]
 
+# def get_report_summary(filters, columns, currency, data):
+#     closed_won, closed_lost, prospect = 0.0, 0.0, 0.0
+#     won_count, lost_count, prospect_count, total_count = 0, 0, 0, 0
 
-# def get_chart_data(filters, columns, data):
-#     # date_range = get_timespan_date_range(filters.get("timespan")) 
-#     # date1 = datetime.strptime(str(date_range[0]),"%Y-%m-%d").strftime("%d-%m-%Y")
-#     # date2 = datetime.strptime(str(date_range[1]),"%Y-%m-%d").strftime("%d-%m-%Y")
-#     sales_amount,purchase_amount, orc = 0.0, 0.0, 0.0
-# 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(data)))
-	
-# 	# labels = ["sales_amount" , "purchase_amount"]	
-#     labels = [f"Sales Chart"]
+#     # Dictionary to store seen opportunities and track sales amounts
+#     opportunity_seen = set()
 
-#     for p in data:
-# 	    if filters.group_by == "COF":
-# 		    if p.indent == 1.0:
-# 			    sales_amount += p.selling_amount
-# 			    purchase_amount += p.buying_amount 
-# 				# orc += p.orc   			
-		
+#     for period in data:
+# 	    frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(period)))
+#         # Summing the selling amount based on Opportunity Items
+# 		if period.parent not in opportunity_seen:
+# 			opportunity_seen.add(period.parent)  # Mark this parent Opportunity as processed
+#             total_count += 1  # Count unique parent Opportunity
 
-#     datasets = [{"name":"Sales Amount","values":[0.0]},
-#     {"name":"Purchase Amount", "values":[0.0]}
+#             # Based on Opportunity's `sales_stage`, accumulate the selling amount from Opportunity Item
+#             if period.sales_stage == "Closed Won":
+#                 closed_won += period.selling_amount  # Sum selling_amount from Opportunity Item
+#                 won_count += 1  # Count closed won based on parent Opportunity
+
+#             elif period.sales_stage == "Closed Lost":
+#                 closed_lost += period.selling_amount  # Sum selling_amount from Opportunity Item
+#                 lost_count += 1  # Count closed lost based on parent Opportunity
+
+#             elif period.sales_stage == "Prospect":
+#                 prospect += period.selling_amount  # Sum selling_amount from Opportunity Item
+#                 prospect_count += 1  # Count prospects based on parent Opportunity
+
+#     # Labels with counts
+#     won_label = _("Closed Won") + " (" + str(won_count) + ")"
+#     lost_label = _("Closed Lost") + " (" + str(lost_count) + ")"
+#     prospect_label = _("Open") + " (" + str(prospect_count) + ")"
+#     total_label = _("Total Opportunities") + " (" + str(total_count) + ")"
+
+#     # Return the summary data
+#     return [
+#         {"value": round(closed_won, 2), "indicator": "Blue", "label": won_label, "datatype": "Currency"},
+#         {"value": round(closed_lost, 2), "indicator": "Red", "label": lost_label, "datatype": "Currency"},
+#         {"value": round(prospect, 2), "indicator": "Green", "label": prospect_label, "datatype": "Currency"},
+#         {"value": total_count, "indicator": "Gray", "label": total_label, "datatype": "Int"}  # Total unique opportunities count
 #     ]
-	
-	
-#     datasets[0]["values"] = [sales_amount]
-#     datasets[1]["values"] = [purchase_amount]
-    
-#     return {
-#         'title':"Chart",
-#         'data':{
-#             'labels':labels,
-#             'datasets':datasets
-#         },
-#         'type':'bar',
-#         'height':300,
-# 		'width':1000,
-# 		'fieldtype':'Currency',
-# 		'colors':["#00a9b5","#FBC543", "#82C272", "#9C2162"],
-#     }
 
-def get_chart_data(filters,columns, data):
-	brand_wise_sales_map = {}
-	labels, datapoints_sales = [], []
 
-	for row in data:
-		if filters.group_by == "Opportunity" and row.indent == 1.0:
-			item_key = row.get("sales_stage")
+# def get_chart_data(filters,columns, data):
+# 	brand_wise_sales_map = {}
+# 	labels, datapoints_sales = [], []
+
+# 	for row in data:
+# 		if filters.group_by == "Opportunity" and row.indent == 1.0:
+# 			item_key = row.get("sales_stage")
 			
-			if not item_key in brand_wise_sales_map:
-				brand_wise_sales_map[item_key] = 0.0
-			# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(brand_wise_sales_map)))	
-			brand_wise_sales_map[item_key] = flt(brand_wise_sales_map[item_key]) + flt(row.get("selling_amount"))
+# 			if not item_key in brand_wise_sales_map:
+# 				brand_wise_sales_map[item_key] = 0.0
+# 			# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(brand_wise_sales_map)))	
+# 			brand_wise_sales_map[item_key] = flt(brand_wise_sales_map[item_key]) + flt(row.get("selling_amount"))
 
-	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(brand_wise_sales_map)))	
-	brand_wise_sales_map = {
-		item: value
-		for item, value in (sorted(brand_wise_sales_map.items(), key=lambda i: i[0]))
-	}
-	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(brand_wise_sales_map)))
-	datasets2 = []
+# 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(brand_wise_sales_map)))	
+# 	brand_wise_sales_map = {
+# 		item: value
+# 		for item, value in (sorted(brand_wise_sales_map.items(), key=lambda i: i[0]))
+# 	}
+# 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(brand_wise_sales_map)))
+# 	datasets2 = []
 
-	for key in brand_wise_sales_map:
-		datasets2.append({"name":key,"values":[brand_wise_sales_map[key]]})
-		labels.append(key)
-		datapoints_sales.append(brand_wise_sales_map[key])
+# 	for key in brand_wise_sales_map:
+# 		datasets2.append({"name":key,"values":[brand_wise_sales_map[key]]})
+# 		labels.append(key)
+# 		datapoints_sales.append(brand_wise_sales_map[key])
 
-	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json({"labels":labels,"datasets":[{"values":datapoints_sales}]})))
+# 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json({"labels":labels,"datasets":[{"values":datapoints_sales}]})))
 		
+
+# 	return {
+# 		"data": {
+# 			"labels": ["labels"],  # show max of 30 items in chart
+# 			"datasets": datasets2,
+# 		},
+# 		"type": "bar",
+# 		"colors":["#c80064","#008000","#9C2162","#D03454","#FFCA3E","#772F67", "#00A88F"],
+# 	}
+
+
+def get_chart_data(filters, columns, data):
+	prospecting , closed_lost, closed_won = 0.0, 0.0, 0.0
+	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(data)))
+	
+	# labels = ["prospecting" , "proposal_price_quote", "negotiation_review" , "closed_lost", "closed_won", "dead"]	
+	labels = ["Sales Stage"]
+
+	for p in data:
+		# frappe.msgprint(p)
+		if p.sales_stage == "Prospecting":
+			prospecting += flt(p.selling_amount)
+		
+		if p.sales_stage == "Closed Lost":
+			closed_lost += flt(p.selling_amount)
+		if p.sales_stage == "Closed Won":
+			closed_won += flt(p.selling_amount)
+				
+		
+
+	datasets = [{"name":"Prospecting","values":[0.0]},
+	{"name":"Closed Lost","values":[0.0]},{"name":"Closed Won","values":[0.0]}
+	]
+	
+	if prospecting:
+		datasets[0]["values"] = [prospecting]
+	
+	if closed_lost:
+		datasets[1]["values"]= [closed_lost]
+	if closed_won:
+		datasets[2]["values"] = [closed_won]
+	
+	
+	
 
 	return {
-		"data": {
-			"labels": ["labels"],  # show max of 30 items in chart
-			"datasets": datasets2,
-		},
-		"type": "bar",
-		"colors":["#c80064","#008000","#9C2162","#D03454","#FFCA3E","#772F67", "#00A88F"],
-	}
+        'title':"Chart Based On Sales Stage",
+        'data':{
+            'labels':labels,
+            'datasets':datasets
+        },
+        'type':'bar',
+        'height':300,
+		'fieldtype':'Currency',
+		'colors':["#FBC543",  "#007c01", "#de0a26"],
+    }
+
 

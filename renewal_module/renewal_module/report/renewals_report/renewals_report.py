@@ -4,7 +4,18 @@
 # import frappe
 
 import frappe
-from frappe import _
+from frappe import _, qb, scrub
+from frappe.query_builder import Order
+from frappe.utils import cint, flt, formatdate
+from datetime import datetime
+from renewal_module.renewal_module.report.sales_based_on_timespan.test_timespan import add_to_date, get_timespan_date_range
+from dateutil import relativedelta
+
+from erpnext.controllers.queries import get_match_cond
+from erpnext.stock.report.stock_ledger.stock_ledger import get_item_group_condition
+from erpnext.stock.utils import get_incoming_rate
+
+
 
 def execute(filters=None):
 	columns, data = get_columns(), get_data(filters)
@@ -141,23 +152,42 @@ def get_data(filters):
 
 
 def get_conditions(filters):
-	conditions = []
+	conditions = ""
 
 	if filters.get("renewal_id"):
-		conditions.append(" and `tabRenewal List`.name=%(renewal_id)s")
+		conditions += " and `tabRenewal List`.name=%(renewal_id)s"
 
-	if filters.get("end_date"):
-	 	conditions.append(" and `tabRenewal List`.end_date <= %(end_date)s")
-				
+	# if filters.get("end_date"):
+	#  	conditions.append(" and `tabRenewal List`.end_date <= %(end_date)s")
+	if filters.get("timespan") != "custom":
+		date_range = get_timespan_date_range(filters.timespan) 
+		date1 = datetime.strptime(str(date_range[0]),"%Y-%m-%d").date()
+		date2 = datetime.strptime(str(date_range[1]),"%Y-%m-%d").date()
+		if filters.based_on == "Creation":
+			# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date_range)))
+			conditions += " and `tabRenewal List`.status = ('Active')"
+			conditions += f" and `tabRenewal List`.creation >= '{date1}' and `tabRenewal List`.creation <= '{date2}'"
+		else:
+			conditions += " and `tabRenewal List`.status in ('Active','New Opp')"
+			conditions += f" and `tabRenewal List`.end_date >= '{date1}' and `tabRenewal List`.end_date <= '{date2}'"	
+	if filters.timespan == "custom":
+		if filters.based_on == "Creation":
+			# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date_range)))
+			conditions += " and `tabRenewal List`.status = ('Active')"
+			conditions += " and `tabRenewal List`.creation >= %(from_date)s and `tabRenewal List`.creation <= %(to_date)s"
+		else:
+			conditions += " and `tabRenewal List`.status in ('Active','New Opp')"
+			conditions += " and `tabRenewal List`.end_date >= %(from_date)s and `tabRenewal List`.end_date <= %(to_date)s"	
+					
 
 	if filters.get("customer"):
-		conditions.append(" and `tabRenewal List`.customer_name=%(customer)s")
+		conditions += " and `tabRenewal List`.customer_name=%(customer)s"
 
 	if filters.get("sales_person"):
-		conditions.append(" and `tabRenewal List`.sales_user in %(sales_person)s")	
+		conditions += " and `tabRenewal List`.sales_user in %(sales_person)s"
 
 	if filters.get("status"):
-		conditions.append(" and `tabRenewal List`.status in %(status)s")		
+		conditions += " and `tabRenewal List`.status in %(status)s"		
 
 	return " ".join(conditions) if conditions else ""
 

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Plotly Graph</title>
+    <!-- Ensure you use a correct URL for the Plotly library -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        .graph-container {
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div class="graph-container" id="plotly-graph"></div>
+    <script>
+        // Ensure this script is properly enclosed and formatted
+        var data = [
+            {
+                x: [1, 2, 3, 4, 5],
+                y: [10, 15, 13, 17, 10],
+                mode: 'lines+markers',
+                type: 'scatter'
+            }
+        ];
+
+        var layout = {
+            title: 'Test Plotly Graph',
+            xaxis: { title: 'X Axis' },
+            yaxis: { title: 'Y Axis' }
+        };
+
+        // Ensure the Plotly.newPlot function is correctly used
+        Plotly.newPlot('plotly-graph', data, layout);
+    </script>
+</body>
+</html>
