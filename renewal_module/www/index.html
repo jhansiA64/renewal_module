@@ -199,7 +199,7 @@
                 <div class="row g-5 align-items-center">
                     <div class="col-lg-6 col-xl-5 wow fadeInLeft" data-wow-delay="0.1s">
                         <div class="about-img">
-                          <img src="img/about-2.jpg" class="img-fluid" alt="Image">
+                          <img src="img/about-2_2.jpg" class="img-fluid" alt="Image">
                         </div>
                   </div>
                     <div class="col-lg-6 col-xl-7 wow fadeInRight" data-wow-delay="0.3s">
@@ -265,21 +265,7 @@
         </div>
         <!-- About End -->
 
-<div class="ncontainer" style="text-align:center;">
-  <h4 class="text-primary">Our Partner</h4>
 
-  {%  set partner_logos =frappe.get_all("Brand",filters={'custom_status': 'Enable'},fields=['name','image'],order_by='name asc') %}  
-                
-  <div class="lides">
-    {% for logo in partner_logos %}
-    {%if logo.image %}
-
-    <!-- <img src={{logo.logo}} width="120" height="120" alt="Logo"> -->
-    <img src="{{logo.image}}" >
-    {% endif %}
-    {% endfor %}
-  </div>
-</div>
         <!-- Services Start -->
         <div class="container-fluid testimonial bg-light py-5">
             <div class="container py-5">
@@ -376,6 +362,25 @@
             </div>
         </div>
         <!-- Services End -->
+         
+
+        <!-- Partners start -->
+        <div class="ncontainer" style="text-align:center;">
+            <h4 class="text-primary">Our Partner</h4>
+          
+            {%  set partner_logos =frappe.get_all("Brand",filters={'custom_status': 'Enable'},fields=['name','image'],order_by='name asc') %}  
+                          
+            <div class="lides">
+              {% for logo in partner_logos %}
+              {%if logo.image %}
+          
+              <!-- <img src={{logo.logo}} width="120" height="120" alt="Logo"> -->
+              <img src="{{logo.image}}" >
+              {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+         <!-- Partners End -->
 
 
         <!-- Project Start -->
@@ -384,7 +389,7 @@
 
 
         <!-- Blog Start -->
-        <div class="container-fluid blog pb-5">
+        <!-- <div class="container-fluid blog pb-5">
             <div class="container pb-5">
                 <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 800px;">
                     <h4 class="text-primary">Our Blogs</h4>
@@ -456,7 +461,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </div> -->
         <!-- Blog End -->
 
 

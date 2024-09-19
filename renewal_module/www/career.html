@@ -170,7 +170,7 @@
                                             
                                             <a class="btn btn-primary" href="#tab-2">Full Time Jobs</a>
                                         </div>
-                                        {% set job_list = frappe.get_all("Job Opening",filters={'status': 'Open','custom_job_type':'Full Time'},fields=['name','currency','lower_range','upper_range']) %}
+                                        {% set job_list = frappe.get_all("Job Opening",filters={'status': 'Open','custom_job_type':'Full Time','publish':1},fields=['name','currency','lower_range','upper_range']) %}
                            {% for job in job_list %}
                           <div class="job-item p-4 mb-4">
                             <div class="row g-4">
@@ -216,7 +216,7 @@
                                             
                                             <a class="btn btn-primary" href="#tab-3">Part Time Jobs</a>
                                         </div>
-                                        {% set job_list = frappe.get_all("Job Opening",filters={'status': 'Open','custom_job_type':'Part Time'},fields=['name','currency','lower_range','upper_range']) %}
+                                        {% set job_list = frappe.get_all("Job Opening",filters={'status': 'Open','custom_job_type':'Part Time','publish':1},fields=['name','currency','lower_range','upper_range']) %}
                            {% for job in job_list %}
                           <div class="job-item p-4 mb-4">
                             <div class="row g-4">

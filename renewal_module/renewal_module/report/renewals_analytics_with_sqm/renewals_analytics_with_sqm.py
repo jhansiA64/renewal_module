@@ -458,6 +458,9 @@ class GrossProfitGenerator(object):
 		if self.filters.item_group:
 			conditions += " and {0}".format(get_item_group_condition(self.filters.item_group))
 
+		if self.filters.get("brand"):
+			conditions += "and `tabRenewal Item`.brand = %(brand)s"
+		
 		if self.filters.get("sales_person"):
 			conditions += "and `tabRenewal List`.sales_user = %(sales_person)s"
 

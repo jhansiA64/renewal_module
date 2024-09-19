@@ -33,6 +33,14 @@
 
         <!-- Template Stylesheet -->
         <link href="css/style.css" rel="stylesheet">
+
+        <!-- For Captch -->
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+        <meta http-equiv="Pragma" content="no-cache">
+        <meta http-equiv="Expires" content="0">
+    
+
+
     </head>
 
     <body>
@@ -52,14 +60,38 @@
                 <div class="row gx-0 align-items-center" style="height: 45px;">
                     <div class="col-lg-2 text-center text-lg-start mb-lg-0">
                         <div class="d-flex flex-wrap">
-                            <a href="#" class="text-muted me-4"><i class="fas fa-calendar-alt text-primary me-2"></i>Upcomming Events</a>
+                            <a href="#" style="color: #ffffff;" class="text-muted me-4"><i class="fas fa-calendar-alt text-primary me-2"></i>Upcomming Events</a>
                             
                         </div>
                     </div>
+                    {% set event_list = frappe.get_all("Event",filters={'status': 'Open','event_category':'Event'},fields=['name','subject','starts_on','ends_on'],order_by='starts_on asc') %}
+                    {% set today = frappe.utils.now_datetime() %}
+                    
                     <div class="col-lg-10 text-center text-lg-end">
-                        <div class="d-flex align-items-center justify-content-end"><marquee><i class="fas fa-shield-alt text-primary me-2"></i>GITEX 2023. Dubai. Kaspersky experts to speak about a fundamentally new approach to enhancing safety and security.</marquee>
-                        </div>
+                        <div class="d-flex align-items-center justify-content-end">
+                            <marquee style="color: #ffffff;">
+                         
+                        {% for event in event_list if event_list %}
+                            {% set start_datetime = event.starts_on %}
+                            {% set start_date = start_datetime.strftime("%d-%m-%Y")  %}
+                            {% set start_time = start_datetime.time() %}
+                            {% set end_datetime = event.starts_on %}
+                            {% set end_date = end_datetime.strftime("%d-%m-%Y")  %}
+                            
+                            {% if start_datetime >= today %}                            
+                            <a href="events.html" style="color: #ffffff;"><i class="fas fa-shield-alt text-primary me-2" ></i>
+                                {{event.subject }} starts on {{ start_date }} at {{start_time}}  and ends on {{end_date}}.</a>
+                                 &nbsp;
+                                                    <!-- {{event.name}} -->
+                            {% endif %}                        
+                            
+                        {% endfor %}
+                    </marquee>
+                </div>
+
+                        
                     </div>
+                    
                 </div>
             </div>
         </div>
@@ -260,23 +292,23 @@
                         </div>
                     </div>
                     <div class="col-lg-6 wow fadeInRight" data-wow-delay="0.3s">
-                        <form id="contactForm" action="/api/method/renewal_module.www.contact.handle_contact_form" method="POST">    
+                        <form id="contactForm" action="/api/method/renewal_module.www.contact.handle_contact_form" method="POST" autocomplete="off">    
                             <div class="row g-3">
                                 <div class="col-lg-12 col-xl-6">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" id="name" name="name" placeholder="Your Name">
+                                        <input type="text" class="form-control" id="name" name="name" placeholder="Your Name" autocomplete="off">
                                         <label for="name">Your Name</label>
                                     </div>
                                 </div>
                                 <div class="col-lg-12 col-xl-6">
                                     <div class="form-floating">
-                                        <input type="email" class="form-control" name="email" id="email" placeholder="Your Email">
+                                        <input type="email" class="form-control" name="email" id="email" placeholder="Your Email" autocomplete="off">
                                         <label for="email">Your Email</label>
                                     </div>
                                 </div>
                                 <div class="col-lg-12 col-xl-6">
                                     <div class="form-floating">
-                                        <input type="phone" class="form-control" name="phone_no" id="phone" placeholder="Phone">
+                                        <input type="phone" class="form-control" name="phone_no" id="phone" placeholder="Phone" autocomplete="off">
                                         <label for="phone">Your Phone</label>
                                     </div>
                                 </div>
@@ -297,7 +329,7 @@
                                 </div>
                                 <div class="col-12">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" name="subject" id="subject" placeholder="Subject">
+                                        <input type="text" class="form-control" name="subject" id="subject" placeholder="Subject" autocomplete="off">
                                         <label for="subject">Subject</label>
                                     </div>
                                 </div>
@@ -305,6 +337,26 @@
                                     <div class="form-floating">
                                         <textarea class="form-control" name="message" placeholder="Leave a message here" id="message" style="height: 160px"></textarea>
                                         <label for="message">Message</label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12 mt-3" >
+                                        <div class="captcha">
+                                            <div class="spinner">
+                                                <label>
+                                                    <input type="checkbox" id="notRobot" onclick="$(this).attr('disabled','disabled');">
+                                                    <span class="checkmark"><span>&nbsp;</span></span>
+                                                </label>
+                                            </div>
+                                            <div class="text">
+                                                I'm not a Robot
+                                            </div>
+                                            <div class="logo">
+                                                <img src="/img/recaptcha.png">
+                                                <!--<p>reCAPTCHA</p>
+                                                <small>Privacy - Terms</small>-->
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="col-12">
@@ -401,10 +453,25 @@
 
     <script>
         
+        function validateForm(event) {
+            const checkbox = document.getElementById('notRobot');
+            if (!checkbox.checked) {
+                alert('Please confirm that you are not a robot.');
+                event.preventDefault(); // Prevents the form from being submitted
+                return false; // Stops further execution if checkbox is not checked
+            }
+            return true; // Allow form submission if validation passes
+        }
         document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('contactForm').addEventListener('submit', function(event) {
-                event.preventDefault();
+            const form = document.getElementById('contactForm');
+            form.addEventListener('submit', function(event) {
+                event.preventDefault(); // Prevent default form submission
 
+                // Perform checkbox validation first
+                if (!validateForm(event)) {
+                    return; // Exit if validation fails
+                }
+    
                 const formData = new FormData(this);
                 const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
                 const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';

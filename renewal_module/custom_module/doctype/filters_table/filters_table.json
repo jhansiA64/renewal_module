@@ -1,0 +1,63 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-08-06 16:38:28.961324",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "doctypes",
+  "field_name",
+  "condition",
+  "value",
+  "and_or_condition"
+ ],
+ "fields": [
+  {
+   "fieldname": "doctypes",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Doctypes",
+   "options": "\nCustomer\nOpportunity\nCustomer Order Form\nSales Order\nSales Invoice\nRenewal List\nItem\nIndustry Type\nBrand\nTerritory\nSales Person"
+  },
+  {
+   "fieldname": "field_name",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Field name"
+  },
+  {
+   "fieldname": "condition",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Condition",
+   "options": "\nIN\nNOT IN"
+  },
+  {
+   "fieldname": "value",
+   "fieldtype": "Text",
+   "in_list_view": 1,
+   "label": "Value"
+  },
+  {
+   "default": "AND",
+   "fieldname": "and_or_condition",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "And OR Condition",
+   "options": "\nAND\nOR"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-09-04 11:04:10.655766",
+ "modified_by": "Administrator",
+ "module": "Custom Module",
+ "name": "Filters Table",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
