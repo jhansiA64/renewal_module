@@ -12,17 +12,19 @@
   "renewal_summary_section",
   "naming_series",
   "customer_name",
-  "total_quantity",
   "invoice_no",
+  "brand",
   "column_break_5",
   "company",
-  "total_amount",
+  "end_customer",
   "status",
   "product_details_section",
   "product_name",
+  "total_quantity",
   "start_date",
   "column_break_twie",
   "domain_name",
+  "total_amount",
   "end_date",
   "item_details_section",
   "items",
@@ -60,7 +62,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "label": "Customer",
+   "label": "Partner Name",
    "options": "Customer"
   },
   {
@@ -85,6 +87,7 @@
    "read_only": 1
   },
   {
+   "default": "0",
    "fieldname": "total_quantity",
    "fieldtype": "Data",
    "label": "Total Quantity",
@@ -219,11 +222,23 @@
   {
    "fieldname": "column_break_xefp",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "brand",
+   "fieldtype": "Link",
+   "label": "Brand",
+   "options": "Brand"
+  },
+  {
+   "fieldname": "end_customer",
+   "fieldtype": "Link",
+   "label": "End Customer",
+   "options": "End Customer"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-01-08 10:29:07.969573",
+ "modified": "2024-08-20 17:06:12.352644",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Renewal List",

@@ -1,7 +1,7 @@
 {
- "add_total_row": 0,
+ "add_total_row": 1,
  "columns": [],
- "creation": "2024-02-23 18:14:59.132923",
+ "creation": "2024-08-20 21:02:17.078156",
  "disabled": 0,
  "docstatus": 0,
  "doctype": "Report",
@@ -10,14 +10,14 @@
  "is_standard": "Yes",
  "letter_head": "quotation-footer",
  "letterhead": null,
- "modified": "2024-03-07 16:53:24.042836",
+ "modified": "2024-08-20 21:08:50.462235",
  "modified_by": "Administrator",
- "module": "Renewal Module",
- "name": "Opportunity Status Based On Creation",
+ "module": "Custom Module",
+ "name": "Opportunity Analytics",
  "owner": "Administrator",
  "prepared_report": 0,
  "ref_doctype": "Opportunity",
- "report_name": "Opportunity Status Based On Creation",
+ "report_name": "Opportunity Analytics",
  "report_type": "Script Report",
  "roles": [
   {

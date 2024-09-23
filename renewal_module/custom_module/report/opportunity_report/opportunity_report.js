@@ -1,10 +1,9 @@
-// Copyright (c) 2023, Aravind Mandala and contributors
+// Copyright (c) 2024, Aravind Mandala and contributors
 // For license information, please see license.txt
-/* eslint-disable */
 
-frappe.query_reports["Renewals Report"] = {
+frappe.query_reports["Opportunity Report"] = {
 	"filters": [
-           {
+		{
 			"fieldname":"company",
 			"label": __("Company"),
 			"fieldtype": "Link",
@@ -13,10 +12,34 @@ frappe.query_reports["Renewals Report"] = {
 			"reqd": 1
 		},
 		{
+			fieldname: "timespan",
+			label: __("Timespan"),
+			fieldtype: "Select",
+			options: [
+				{ "value": "last year", "label": __("Last Year") },
+				{ "value": "last 6 months", "label": __("Last 6 Months") },
+				{ "value": "last quarter", "label": __("Last Quarter") },
+				{ "value": "last month", "label": __("Last Month") },
+				{ "value": "last week", "label": __("Last Week") },
+				{ "value": "this week", "label": __("This Week") },
+				{ "value": "this month", "label": __("This Month") },
+				{ "value": "this quarter", "label": __("This Quarter") },
+				{ "value": "this year", "label": __("This Year") },
+				{ "value": "next week", "label": __("Next Week") },
+				{ "value": "next month", "label": __("Next Month") },
+				{ "value": "next quarter", "label": __("Next Quarter") },
+				{ "value": "next 6 months", "label": __("Next 6 Months") },
+				{ "value": "custom", "label": __("Custom") },
+			],
+			default: "this year",
+			reqd: 1
+		},
+		{
 			"fieldname":"from_date",
 			"label": __("From Date"),
 			"fieldtype": "Date",
 			"default": frappe.datetime.add_days(frappe.datetime.get_today(), -7),
+			"depends_on": "eval:doc.timespan == 'custom'",
 			"reqd": 1
 		},
 		{
@@ -24,19 +47,56 @@ frappe.query_reports["Renewals Report"] = {
 			"label": __("To Date"),
 			"fieldtype": "Date",
 			"default": frappe.datetime.get_today(),
+			"depends_on": "eval:doc.timespan == 'custom'",
 			"reqd": 1
 		},
-				
+		// {
+		// 	fieldname: "Based ON",
+		// 	label: __("based_on"),
+		// 	fieldtype: "Select",
+		// 	options: ["Posting Date","Expected Date"],
+		// 	default: "Posting Date",
+		// 	reqd: 1
+		// },
+		
 		{
-			"fieldname":"renewal_id",
-			"label": __("Renewal ID"),
+			"fieldname":"item_code",
+			"label": __("Item Code"),
 			"fieldtype": "Link",
-			"options": "Renewal List"
+			"options": "Item"
+		},
+		{
+			"fieldname":"item_group",
+			"label": __("Item Group"),
+			"fieldtype": "MultiSelectList",
+			"options": "Item Group",
+			get_data: function(txt) {
+				return frappe.db.get_link_options('Item Group', txt);
+			},	
+			
+			
+		},
+		{
+			"fieldname":"brand",
+			"label": __("Brand"),
+			"fieldtype": "MultiSelectList",
+			"options": "Brand",
+			get_data: function(txt) {
+				return frappe.db.get_link_options('Brand', txt);
+			},	
+			
+			
+		},
+		{
+			"fieldname":"opportunity_id",
+			"label": __("Opportunity ID"),
+			"fieldtype": "Link",
+			"options": "Opportunity"
 		},
 		
 		{
-			"fieldname":"customer",
-			"label": __("Customer"),
+			"fieldname":"party_name",
+			"label": __("Party"),
 			"fieldtype": "MultiSelectList",
 			"options": "Customer",
                         get_data: function(txt) {
@@ -44,34 +104,6 @@ frappe.query_reports["Renewals Report"] = {
 			},	 
 
 		},
-		{
-			"fieldname":"end_customer",
-			"label": __("End Customer"),
-			"fieldtype": "MultiSelectList",
-			"options": "End Customer",
-                        get_data: function(txt) {
-				return frappe.db.get_link_options('End Customer', txt);
-			},	 
-
-		},
-		{
-			"fieldname":"brand",
-			"label": __("Brand"),
-			"fieldtype": "MultiSelectList",
-			"options": "Brand",
-                        get_data: function(txt) {
-				return frappe.db.get_link_options('Brand', txt);
-			},	 
-
-		},
-		// {
-		// 	"label": _("Brand"),
-		// 	"fieldname": "brand",
-		// 	"fieldtype": "Link",
-		// 	"options": "Brand",
-		// 	"width": 130,
-		// },
-		
 		{
 			"fieldname":"sales_person",
 			"label": __("Sales Person"),
@@ -82,24 +114,36 @@ frappe.query_reports["Renewals Report"] = {
 			},
 		},
 		{
-			"fieldname":"status",
-			"label": __("Status"),
+			"fieldname":"opportunity_type",
+			"label": __("Opportunity Type"),
 			"fieldtype": "MultiSelectList",
 			get_data: function() {
 				return [
-					{ "value": "Active", "description": "Status" },
-					{ "value": "Cofed", "description": "Status" },
-					{ "value": "Renewed", "description": "Status" },
-					{ "value": "Lost", "description": "Status" }
+					{ "value": "New", "description": "Opportunity Type" },
+					{ "value": "Renewal", "description": "Opportunity Type" },
+					{ "value": "Additional", "description": "Opportunity Type" }
 					
 				]
+			}
+		},
+		{	"fieldname":"sales_stage",
+			"label": __("Sales Stage"),
+			"fieldtype": "MultiSelectList",
+			"options": "Sales Stage",
+			get_data: function(txt) {
+				return frappe.db.get_link_options('Sales Stage', txt);
 			},
-		}
+			
+		},
 
-
+		// {
+		// 	"fieldname":"forecast",
+		// 	"label": __("Forecast"),
+		// 	"fieldtype": "Select",
+		// 	"options": "\nInclude\nExclude",
+		// },
 
 	],
-
 	onload: function(report) {
         // Initialize hidden columns
         const savedHiddenColumns = JSON.parse(localStorage.getItem('hidden_columns')) || [];

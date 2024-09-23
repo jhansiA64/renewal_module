@@ -137,7 +137,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Series",
-   "options": "\nCOF-.YYYY.-.####\nCOD-.YY.-.####",
+   "options": "COF-.FY.-.####",
    "reqd": 1
   },
   {
@@ -162,7 +162,7 @@
    "fieldtype": "Select",
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "\nDraft\nWaiting For Approval\nApproved\nRejected\nPending Sales Order\nPending Purchase Order\nPending Client Input\nWaiting For Payment\nPending Inward Material\nPending Customer Invoice\nDuplicate\nClosed"
+   "options": "\nDraft\nWaiting For Approval\nApproved\nRejected\nPending Sales Order\nOrdered\nPending Purchase Order\nPending Client Input\nWaiting For Payment\nPending Inward Material\nPending Customer Invoice\nDuplicate\nClosed"
   },
   {
    "fieldname": "amended_from",
@@ -708,7 +708,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-02-26 12:46:04.185418",
+ "modified": "2024-09-16 00:32:18.261142",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Customer Order Form",
@@ -736,6 +736,18 @@
    "read": 1,
    "report": 1,
    "role": "Sales Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales User",
    "share": 1,
    "write": 1
   }

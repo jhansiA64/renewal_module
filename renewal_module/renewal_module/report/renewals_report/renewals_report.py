@@ -35,24 +35,33 @@ def get_columns():
 		},
 		
 		{
-			"label": _("Customer name"),
+			"label": _("Partner"),
 			"fieldname": "customer_name",
 			"fieldtype": "Link",
 			"options": "Customer",
 			"width": 200,
 		},
 		{
-			"label": _("Product Name"),
+			"label": _("End Customer"),
+			"fieldname": "end_customer",
+			"fieldtype": "Link",
+			"options": "End Customer",
+			"width": 200,
+		},
+		{
+			"label": _("Brand"),
+			"fieldname": "brand",
+			"fieldtype": "Link",
+			"options": "Brand",
+			"width": 130,
+		},
+		
+		{
+			"label": _("Item Name"),
 			"fieldname": "product_name",
 			"fieldtype": "Data",
 			
 			"width": 180,
-		},
-		{
-			"label":_("Status"),
-			"fieldname":"status",
-			"fieldtype":"Data",
-			"width":80,
 		},
 		{
 			"label": _("End Date"),
@@ -61,7 +70,14 @@ def get_columns():
 			"width": 150,
 		},
 		{
-			"label": _("Item Code"),
+			"label":_("Status"),
+			"fieldname":"status",
+			"fieldtype":"Data",
+			"width":80,
+		},
+		
+		{
+			"label": _("Part Code"),
 			"fieldname": "item_code",
 			"fieldtype": "Link",
 			"options": "Item",
@@ -75,6 +91,14 @@ def get_columns():
 		    
 			"width":100
 		},
+		{
+			"fieldname":"total_amount",
+		    "label":_("Amount"),
+		    "fieldtype": "Currency",
+		    
+			"width":100
+		},
+		
 		{
 			"label": _("Invoice No"),
 			"fieldname": "invoice_no",
@@ -102,10 +126,13 @@ def get_data(filters):
 		SELECT
 			`tabRenewal List`.name,
 			`tabRenewal List`.customer_name,
+			`tabRenewal List`.end_customer,
 			`tabRenewal List`.status,
 			`tabRenewal Item`.item_code,
+			`tabRenewal Item`.brand,
 			`tabRenewal List`.product_name,
 			`tabRenewal List`.total_quantity,
+			`tabRenewal List`.total_amount,
 			`tabRenewal List`.invoice_no,
 			`tabRenewal List`.end_date,
 			`tabRenewal List`.sales_user
@@ -143,10 +170,15 @@ def get_conditions(filters):
 				
 
 	if filters.get("customer"):
-		conditions.append(" and `tabRenewal List`.customer_name=%(customer)s")
+		conditions.append(" and `tabRenewal List`.customer_name in %(customer)s")
+	if filters.get("end_customer"):
+		conditions.append(" and `tabRenewal List`.end_customer in %(end_customer)s")
+	
 
 	if filters.get("sales_person"):
 		conditions.append(" and `tabRenewal List`.sales_user in %(sales_person)s")	
+	if filters.get("brand"):
+		conditions.append(" and `tabRenewal Item`.brand in %(brand)s")	
 
 	if filters.get("status"):
 		conditions.append(" and `tabRenewal List`.status in %(status)s")		
