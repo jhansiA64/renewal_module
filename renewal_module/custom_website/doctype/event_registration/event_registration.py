@@ -5,6 +5,8 @@
 from frappe.model.document import Document
 import frappe
 import pytz
+import datetime
+import textwrap
 
 class EventRegistration(Document):
 	pass
@@ -12,10 +14,14 @@ class EventRegistration(Document):
 
 
 def email_on_approval(doc, method):
+    frappe.msgprint("approval function trigger")
+    frappe.msgprint(f"current workflow state:'{doc.workflow_state}'")
+	
     if doc.workflow_state == "Approved by sales user":
         send_approval_email(doc)
 
 def send_approval_email(doc):
+    frappe.msgprint("email sending start")
     event_doc = frappe.get_doc("Event", doc.event_name)
     event_subject = event_doc.subject
     
@@ -24,13 +30,24 @@ def send_approval_email(doc):
 
     # Convert to your desired timezone, if necessary
     # Assuming the date is in UTC and you want to convert to IST (UTC+5:30)
-    ist_timezone = pytz.timezone('Asia/Kolkata')
-    starts_on_ist = starts_on.astimezone(ist_timezone)
+    #ist_timezone = pytz.timezone('Asia/Kolkata')
+    #starts_on_ist = starts_on.astimezone(ist_timezone)
 
     # Format the date
-    formatted_date = starts_on_ist.strftime('%A, %B %d, %Y %I:%M %p IST')
+    #formatted_date = starts_on_ist.strftime('%A, %B %d, %Y %I:%M %p IST')
+    formatted_date= starts_on.strftime('%A, %B %d, %Y')
     recipients = [doc.email]  # Add the recipient email addresses here
     subject = f"Event Approved: {event_subject}"
+
+    ics_content= create_ics_event(event_subject,starts_on)
+
+    frappe.msgprint(f"ICS content:\n{ics_content}")
+
+    ics_file_name = f"{event_subject.replace(' ','_')}.ics"
+    ics_file_path = f"/tmp/{ics_file_name}"
+
+    with open(ics_file_path,"w") as ics_file:
+        ics_file.write(ics_content)
 
 
     message = f"""
@@ -66,5 +83,31 @@ def send_approval_email(doc):
     frappe.sendmail(
         recipients=recipients,
         subject=subject,
-        message=message
+        message=message,
+        attachment=[{
+            'fname':ics_file_name,
+            'fcontent':ics_content,
+        }]
     )
+    
+# def create_ics_event(subject,start):
+#     """
+#     create Ics File content for calender event
+#     """
+#     start_utc = start.astimezone(pytz.UTC)
+#     end_utc = end.astimezone(pytz.UTC)
+
+#     ics_template = f""" BEGIN:VCALENDAR
+#     VERSION:2.0
+#     PRODID:-//64network security pvt ltd//Event Calendar //EN
+#     CALSCALE:GREGORIAN
+#     METHOD:PUBLISH  
+#     SUMMARY:{subject}
+#     DESCRIPTION:join us for the event {SUBJECT}.
+#     DSTART:{start_utc.strftime('%Y%m%dT%H%M%SZ')}
+#     END:VEVENT
+#     END:VCALENDAR
+#     """
+#     return textwrap.dedent(ics_template)
+
+

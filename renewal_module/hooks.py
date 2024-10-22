@@ -163,6 +163,15 @@ doc_events = {
 	"Customer Order Form":{
 		"onload":"renewal_module.api.show_error"
 	},
+	# "Event Registration": {
+	# 	"on_update":"renewal_module.api.email_on_approval"
+	# },
+	"Event Registration" : {
+		"on_update":"renewal_module.custom_website.doctype.event_registration.event_registration.email_on_approval"
+	},
+	"Customer Order Form":{
+		"on_update":"renewal_module.api.update_margin_table"
+	}
 	
 }
 

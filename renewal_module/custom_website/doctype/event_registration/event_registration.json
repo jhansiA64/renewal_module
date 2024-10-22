@@ -22,7 +22,8 @@
   "section_break_9ynxh",
   "link",
   "section_break_impir",
-  "sales_team_details"
+  "sales_team_details",
+  "captcha"
  ],
  "fields": [
   {
@@ -105,11 +106,16 @@
    "fieldtype": "Table",
    "label": "Sales Team",
    "options": "Sales Team"
+  },
+  {
+   "fieldname": "captcha",
+   "fieldtype": "Data",
+   "label": "Captcha"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-07-19 17:02:02.877119",
+ "modified": "2024-10-11 11:33:08.350719",
  "modified_by": "Administrator",
  "module": "Custom Website",
  "name": "Event Registration",

@@ -1,5 +1,6 @@
 import frappe
 from frappe import auth
+from frappe import _
 
 def get_renewals(doc,event):
     
@@ -82,3 +83,92 @@ def generate_keys(user):
     user_details.save()
 
     return api_secret
+
+
+@frappe.whitelist()
+def get_renewals_for_custom_ids(renewal_ids):
+    #if not renewal_ids:
+    #    return []
+    #renewal_list = frappe.get_all('Renewal List',filters={'name':['in',renewal_ids]},
+    #                fields=['name as renewal list'])
+    #return renewal_list 
+                          
+    if isinstance(renewal_ids,str):
+        try:
+            renewal_ids = frappe.parse_json(renewal_ids)
+        except Exception as e:
+            frappe.throw(_('renewal_ids must be a list.'))
+    if not isinstance(renewal_ids,list):
+        frappe.throw(_("renewal_ids must be a list."))
+
+    try:
+        renewal_list = frappe.get_all('Renewal List',
+        filters={'name':['in',renewal_ids]},
+        fields=['name']
+        )              
+        return renewal_list
+    except Exception as e:
+        frappe.log_error(message=str(e),title="Error in fetching renewals")
+        frappe.throw(_("there was an isssue fetching the renewal data."))    
+
+
+##cof margin table code
+import json 
+import frappe
+
+@frappe.whitelist()
+def update_margin_table(custom_order_form,method=None):
+    try:
+        doc=frappe.get_doc("Customer Order Form",customer_order_form)
+        frappe.msgprint(f"loaded cof number:{doc.name}")
+
+        margin_updated = Flase
+
+        for item in doc.items:
+            actual_item_code = item.actual_item_code
+            frappe.msgprint(f"processing item:{actual_item_code},rate:{item.rate},amount:{item.amount}")
+            existing_margin_entry = None
+
+            for margin_entry in doc.custom_magin_table:
+                if margin_entry.item_code == actual_item_code:
+                    existing_margin_entry = margin_entry
+                    break
+
+            if existing_margin_entry :
+                if existing_margin_entry.selleing_rate != item.rate or existing_margin_entry.selleing_amount !=item.amount
+                   or existing_margin_entry.buying_rate != item.purchase_rate:
+                   frappe.msgprint(f"updating margin entry for item:{actual_item_code}")
+                   existing_margin_entry.selleing_rate = item.rate
+                   existing_margin_entry.selleing_amount = item.amount
+                   existing_margin_entry.buying_rate = item.purchase_rate
+
+                   margin_updated = True
+
+
+            else:
+                frappe.msgprint(f"creating new marginentry for item:{actual_item_code}")
+                margin_entry = {
+                    'item_code':actual_item_code,
+                    'selleing_rate':item.rate,
+                    'selleing_amount':item.amount,
+                    'buying_rate':item.purchase_rate
+                }            
+                doc.append('custom_magin_table',margin_entry)
+                margin_updated = True
+
+        if margin_updated:
+            frappe.msgprint("changes detected.saving document")
+            doc.save(ignore_permissions=True)
+
+            frappe.db.commit()
+            frappe.msgprint("margin table updated successfully") 
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(),"updated margin table error")   
+        frappe.msgprint(f"An Error occcured:{str(e)}")     
+
+
+
+
+
+
