@@ -8,11 +8,11 @@
   "doctype": "Server Script",
   "doctype_event": "After Save",
   "event_frequency": "All",
-  "modified": "2024-05-24 13:36:39.258314",
+  "modified": "2024-10-15 10:56:01.633851",
   "module": null,
   "name": "COF and Supplier Quote",
   "reference_doctype": "Customer Order Form",
-  "script": "\nfor d in doc.items:\n    # frappe.msgprint(\"hello\")\n    \n    quote_data = frappe.db.sql(f\"\"\"SELECT \n    top.sq_name as name ,\n    (case when top.p_rate IS NOT NULL THEN top.p_rate\n    else 0 END) as purchase_rate,\n    (case when top.p_amount IS NOT NULL THEN top.p_amount\n    else 0 END) as purchase_amount,\n    top.supplier as supplier\n    FROM `tabQuotation Item` tqi\n    LEFT JOIN (SELECT toi.parent as opportunity,toi.name , toi.item_code as s_item_code ,tpq.name as sq_name, tpq.item_code as sq_item_code,\n        toi.rate as s_rate , tpq.rate as p_rate ,tpq.qty as p_qty, tpq.amount as p_amount, tpq.supplier as supplier\n        from \n        `tabOpportunity Item` toi\n        left join (SELECT tsq.name as name , tsq.Supplier as supplier , tsqi.item_code as item_code , tsqi.rate as rate , tsqi.qty as qty, tsqi.amount as amount, tsq.opportunity as opportunity\n        from `tabSupplier Quotation` tsq  \n        left join (SELECT parent , item_code , rate, qty, amount   FROM `tabSupplier Quotation Item`  WHERE recommended_ =1) as tsqi on tsqi.parent = tsq.name \n        ) as tpq on tpq.opportunity = toi.parent and toi.item_code = tpq.item_code) as top on top.opportunity = tqi.prevdoc_docname and top.s_item_code = tqi.item_code \n    WHERE tqi.parent = '{doc.quotation_id}' and tqi.item_code= '{d.item_code}' and tqi.qty ='{d.qty}' ;\"\"\",as_dict =1 )\n    \n    #to get orc amount\n    orc_data = frappe.db.sql(f\"\"\"SELECT torc.commission_amount as orc_amount,\n            torc.orc_id as orc, toi.orc as orc_value\n            FROM `tabQuotation Item` tqi\n            left join `tabOpportunity Item` toi on tqi.prevdoc_docname = toi.parent and tqi.qty = toi.qty  and toi.rate = tqi.rate and tqi.description = toi.description\n\t\t\tLEFT JOIN \n\t\t\t\t(SELECT toi2.commission_amount as commission_amount, tol.name as orc_id,\n\t\t\t\ttol.opportunity_id as opportunity_id,\n\t\t\t\ttoi2.item_code as item_code , toi2.qty as qty ,\n\t\t\t\ttoi2.rate as rate , toi2.description as description \n\t\t\t\tFROM `tabORC Item` toi2 \n\t\t\t    left join `tabORC List` tol on toi2.parent = tol.name\tWHERE tol.docstatus  = 1 and tol.status != \"Duplicate\"\n\t\t\t    ) as torc on  torc.opportunity_id = toi.parent and toi.item_code = torc.item_code \n\t\t\t\tand toi.qty = torc.qty and toi.rate = torc.rate and toi.description = torc.description\n\t\t\tWHERE tqi.parent = '{doc.quotation_id}' and tqi.item_code= '{d.item_code}' and tqi.qty ='{d.qty}' ;\"\"\",as_dict =1\t\n\t\t\t)\n    \n    \n    \n\n    \n    # frappe.msgprint(quote_data[])\n    # frappe.msgprint(quote_data[0].name)\n    # frappe.msgprint(quote_data[0].purchase_rate)\n    # frappe.msgprint(quote_data[0].purchase_amount)\n    # frappe.msgprint(\"<pre>{}</pre>\".format(frappe.as_json(quote_data)))\n    # frappe.msgprint(\"hi\")\n    old_data = frappe.get_doc('Customer Order Form Item',d.name)\n    old_data.purchase_rate = quote_data[0].purchase_rate\n    old_data.purchase_amount = quote_data[0].purchase_amount\n    old_data.supplier_quotation = quote_data[0].name\n    old_data.supplier = quote_data[0].supplier\n    margin = 0\n    \n    if quote_data[0].name != \" \":\n        margin = margin +round(float(d.amount) - float(quote_data[0].purchase_amount),2)\n        \n        date = frappe.utils.nowdate()\n        current_datetime = frappe.utils.today()\n        new_datetime = frappe.utils.add_to_date(current_datetime, days=10, as_string=True)\n        # frappe.msgprint(new_datetime)\n        \n        sq_data = frappe.get_doc('Supplier Quotation',quote_data[0].name)\n        sq_data.cof_id = doc.name\n        sq_data.valid_till = new_datetime\n        sq_data.status = \"Draft\"\n        sq_data.save()\n        \n    else:\n        frappe.throw(f\"Please check Supplier Quotation\")\n    frappe.msgprint(margin)    \n    \n    if orc_data[0].orc_value == 1 and orc_data[0].orc != \" \":\n        # frappe.msgprint(\"ORC\")\n        margin = margin - round(float(orc_data[0].orc_amount),2)\n        old_data.orc = 1\n        old_data.orc_id = orc_data[0].orc\n        old_data.orc_amount = orc_data[0].orc_amount\n        # frappe.msgprint(orc_data[0].orc)\n        \n        orc_list = frappe.get_doc('ORC List',orc_data[0].orc)\n        orc_list.cof_id = doc.name\n        # orc_list.valid_till = new_datetime\n        # orc_list.status = \"Draft\"\n        orc_list.save()\n    elif orc_data[0].orc_value == 1 and orc_data[0].orc == \" \": \n        frappe.throw(f\"Please Create the ORC\")\n    frappe.msgprint(margin)    \n    \n    old_data.margin_amount = margin    \n    \n    \n    \n    old_data.save()\n    \n    \ndoc.reload()    \n    \n    \n    ",
+  "script": "\nfor d in doc.items:\n    # frappe.msgprint(\"hello\")\n    \n    quote_data = frappe.db.sql(f\"\"\"SELECT \n    top.sq_name as name ,\n    (case when top.p_rate IS NOT NULL THEN top.p_rate\n    else 0 END) as purchase_rate,\n    (case when top.p_amount IS NOT NULL THEN top.p_amount\n    else 0 END) as purchase_amount,\n    top.supplier as supplier\n    FROM `tabQuotation Item` tqi\n    LEFT JOIN (SELECT toi.parent as opportunity,toi.name , toi.item_code as s_item_code ,tpq.name as sq_name, tpq.item_code as sq_item_code,\n        toi.rate as s_rate , tpq.rate as p_rate ,tpq.qty as p_qty, tpq.amount as p_amount, tpq.supplier as supplier\n        from \n        `tabOpportunity Item` toi\n        left join (SELECT tsq.name as name , tsq.Supplier as supplier , tsqi.item_code as item_code , tsqi.rate as rate , tsqi.qty as qty, tsqi.amount as amount, tsq.opportunity as opportunity\n        from `tabSupplier Quotation` tsq  \n        left join (SELECT parent , item_code , rate, qty, amount   FROM `tabSupplier Quotation Item`  WHERE recommended_ =1) as tsqi on tsqi.parent = tsq.name \n        ) as tpq on tpq.opportunity = toi.parent and toi.item_code = tpq.item_code) as top on top.opportunity = tqi.prevdoc_docname and top.s_item_code = tqi.item_code \n    WHERE tqi.parent = '{doc.quotation_id}' and tqi.item_code= '{d.item_code}' and tqi.qty ='{d.qty}' ;\"\"\",as_dict =1 )\n    \n    #to get orc amount\n    orc_data = frappe.db.sql(f\"\"\"SELECT torc.commission_amount as orc_amount,\n            torc.orc_id as orc, toi.orc as orc_value\n            FROM `tabQuotation Item` tqi\n            left join `tabOpportunity Item` toi on tqi.prevdoc_docname = toi.parent and tqi.qty = toi.qty  and toi.rate = tqi.rate and tqi.description = toi.description\n\t\t\tLEFT JOIN \n\t\t\t\t(SELECT toi2.commission_amount as commission_amount, tol.name as orc_id,\n\t\t\t\ttol.opportunity_id as opportunity_id,\n\t\t\t\ttoi2.item_code as item_code , toi2.qty as qty ,\n\t\t\t\ttoi2.rate as rate , toi2.description as description \n\t\t\t\tFROM `tabORC Item` toi2 \n\t\t\t    left join `tabORC List` tol on toi2.parent = tol.name\tWHERE tol.docstatus  = 1 and tol.status != \"Duplicate\"\n\t\t\t    ) as torc on  torc.opportunity_id = toi.parent and toi.item_code = torc.item_code \n\t\t\t\tand toi.qty = torc.qty and toi.rate = torc.rate and toi.description = torc.description\n\t\t\tWHERE tqi.parent = '{doc.quotation_id}' and tqi.item_code= '{d.item_code}' and tqi.qty ='{d.qty}' ;\"\"\",as_dict =1\t\n\t\t\t)\n    \n    \n    \n\n    \n    # frappe.msgprint(quote_data[])\n    # frappe.msgprint(quote_data[0].name)\n    # frappe.msgprint(quote_data[0].purchase_rate)\n    # frappe.msgprint(quote_data[0].purchase_amount)\n    # frappe.msgprint(\"<pre>{}</pre>\".format(frappe.as_json(quote_data)))\n    # frappe.msgprint(\"hi\")\n    old_data = frappe.get_doc('Customer Order Form Item',d.name)\n    old_data.purchase_rate = quote_data[0].purchase_rate\n    old_data.purchase_amount = quote_data[0].purchase_amount\n    old_data.supplier_quotation = quote_data[0].name\n    old_data.supplier = quote_data[0].supplier\n    margin = 0\n    \n    if quote_data[0].name != \" \":\n        margin = margin +round(float(d.amount) - float(quote_data[0].purchase_amount),2)\n        \n        date = frappe.utils.nowdate()\n        current_datetime = frappe.utils.today()\n        new_datetime = frappe.utils.add_to_date(current_datetime, days=10, as_string=True)\n        # frappe.msgprint(new_datetime)\n        \n        sq_data = frappe.get_doc('Supplier Quotation',quote_data[0].name)\n        sq_data.cof_id = doc.name\n        sq_data.valid_till = new_datetime\n        sq_data.status = \"Draft\"\n        sq_data.save()\n        \n    else:\n        frappe.throw(f\"Please check Supplier Quotation\")\n    frappe.msgprint(margin)    \n    \n    if orc_data[0].orc_value == 1 and orc_data[0].orc != \" \":\n        # frappe.msgprint(\"ORC\")\n        margin = margin - round(float(orc_data[0].orc_amount),2)\n        old_data.orc = 1\n        old_data.orc_id = orc_data[0].orc\n        old_data.orc_amount = orc_data[0].orc_amount\n        # frappe.msgprint(orc_data[0].orc)\n        \n        orc_list = frappe.get_doc('ORC List',orc_data[0].orc)\n        orc_list.cof_id = doc.name\n        # orc_list.valid_till = new_datetime\n        # orc_list.status = \"Draft\"\n        orc_list.save()\n    elif orc_data[0].orc_value == 1 and orc_data[0].orc == \" \": \n        frappe.throw(f\"Please Create the ORC\")\n    frappe.msgprint(margin)    \n    \n    old_data.margin_amount = margin    \n    \n    old_data.save()\n    \n    \ndoc.reload()    \n    \n    \n    ",
   "script_type": "DocType Event"
  },
  {
@@ -72,11 +72,11 @@
   "doctype": "Server Script",
   "doctype_event": "Before Submit",
   "event_frequency": "All",
-  "modified": "2023-04-12 11:55:18.691002",
+  "modified": "2024-09-16 11:34:06.361734",
   "module": "Renewal Module",
   "name": "cof to renewal status",
   "reference_doctype": "Customer Order Form",
-  "script": "for d in doc.items:\n    if d.opportunity_type == \"Renewal\":\n        if d.renewal_id != \" \":\n            old_data = frappe.get_doc('Renewal List',d.renewal_id)\n            old_data.status = \"Cofed\"\n            old_data.save()\n        else:\n            frappe.throw(f\"Please check Renewal ID\")    \n        \n     ",
+  "script": "for d in doc.items:\n    if d.opportunity_type == \"Renewal\":\n        if d.renewal_id != \" \":\n            old_data = frappe.get_doc('Renewal List',d.renewal_id)\n            old_data.status = \"Cofed\"\n            old_data.save()\n        else:\n            frappe.throw(f\"Please check Renewal ID\")  \nif doc.quotation_id:\n    quote_data = frappe.get_doc('Quotation',d.quotation_id)\n    quote_data.status = \"Cofed\"\n    quote_data.save()\n        \n     ",
   "script_type": "DocType Event"
  },
  {
@@ -270,5 +270,53 @@
   "reference_doctype": "Opportunity",
   "script": "def get_permission_query_conditions(user):\r\n    if not user: user = frappe.session.user\r\n    \r\n    # Customize this for your Sales Managers\r\n    allowed_sales_persons = []\r\n    if user == \"geetha.p@64network.com\":  # Replace with User A's email/username\r\n        allowed_sales_persons = [\"Sowrya Saragadda Baby\"]\r\n    elif user == \"user_d@example.com\":  # Replace with another user's email/username\r\n        allowed_sales_persons = [\"E\", \"F\"]\r\n    else:\r\n        return \"\"\r\n    \r\n    if allowed_sales_persons:\r\n        condition = \"\"\"(`tabOpportunity`.sales_person IN ({persons}))\"\"\".format(\r\n            persons=\",\".join([\"'{0}'\".format(p) for p in allowed_sales_persons])\r\n        )\r\n        print(f\"Condition: {condition}\")  # Add print statements to debug\r\n        return condition\r\n    return \"\"\r\n\r\n\r\n\r\n# Server Script (Python) - Validate user access based on sales person\r\n# frappe.db.add_custom_fields('Opportunity', {\r\n#     'is_visible': frappe.get_all('Opportunity', filters={\r\n#         'sales_person': ['in', ['Sowrya Saragadda Baby']],\r\n#         'owner': frappe.session.user\r\n#     }, fields=['name'])\r\n# })\r\n",
   "script_type": "Permission Query"
+ },
+ {
+  "allow_guest": 0,
+  "api_method": null,
+  "cron_format": null,
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Server Script",
+  "doctype_event": "After Save",
+  "event_frequency": "All",
+  "modified": "2024-09-17 11:32:48.660733",
+  "module": null,
+  "name": "Cof Status Update",
+  "reference_doctype": "Customer Order Form",
+  "script": "\r\nquotation_id = frappe.db.get_value('Customer Order Form', {'name': doc.name}, 'quotation_id')\r\n\r\nif quotation_id:\r\n    if frappe.db.exists('Quotation', quotation_id):\r\n        frappe.db.set_value('Quotation', quotation_id, 'status', 'COF')\r\n        #frappe.msgprint(f\"Quotation {quotation_id} status updated to COF.\")\r\n    else:\r\n        frappe.throw(f\"Quotation with ID {quotation_id} not found.\")\r\nelse:\r\n    frappe.throw(\"No Quotation ID linked with this Customer Order Form.\")\r\n\r\n\r\n\r\n",
+  "script_type": "DocType Event"
+ },
+ {
+  "allow_guest": 0,
+  "api_method": null,
+  "cron_format": null,
+  "disabled": 1,
+  "docstatus": 0,
+  "doctype": "Server Script",
+  "doctype_event": "Before Save",
+  "event_frequency": "All",
+  "modified": "2024-09-18 18:28:43.542438",
+  "module": "Renewal Module",
+  "name": "Quote to Renewal Status",
+  "reference_doctype": "Quotation",
+  "script": "if doc.items:\n    for d in doc.items:\n        if d.opportunity_type in [\"Renewal\",\"Upgrade\"]:\n            if d.renewal_id != \" \":\n                old_data = frappe.get_doc('Renewal List',d.renewal_id)\n                old_data.status = \"Quoted\"\n                old_data.save()\n            else:\n                frappe.throw(f\"Please check Renewal ID\") \n            # if d.custom_renewal_list:\n            #     for each in d.custom_renewal_list:\n                    \n        \n     ",
+  "script_type": "DocType Event"
+ },
+ {
+  "allow_guest": 0,
+  "api_method": null,
+  "cron_format": null,
+  "disabled": 1,
+  "docstatus": 0,
+  "doctype": "Server Script",
+  "doctype_event": "After Cancel",
+  "event_frequency": "All",
+  "modified": "2024-09-18 17:18:42.284921",
+  "module": "Renewal Module",
+  "name": "Quote Cancel - Renewal Status",
+  "reference_doctype": "Quotation",
+  "script": "if doc.items:\n    for d in doc.items:\n        if d.opportunity_type in [\"Renewal\",\"Upgrade\"]:\n            if d.renewal_id != \" \":\n                old_data = frappe.get_doc('Renewal List',d.renewal_id)\n                old_data.status = \"Active\"\n                old_data.save()\n            else:\n                frappe.throw(f\"Please check Renewal ID\") \n        \n     ",
+  "script_type": "DocType Event"
  }
 ]
