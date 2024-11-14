@@ -148,19 +148,19 @@
    "fieldname": "old_parent",
    "fieldtype": "Link",
    "label": "Old Parent",
-   "options": "Target List"
+   "options": "Sales Target"
   },
   {
    "fieldname": "parent_target_list",
    "fieldtype": "Link",
    "label": "Parent Target List",
-   "options": "Target List"
+   "options": "Sales Target"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_tree": 1,
  "links": [],
- "modified": "2024-07-19 12:31:20.692060",
+ "modified": "2024-11-07 11:37:29.624407",
  "modified_by": "Administrator",
  "module": "Custom Module",
  "name": "Sales Target",

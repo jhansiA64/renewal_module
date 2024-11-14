@@ -581,5 +581,16 @@
   "name": "COF Margin Table",
   "script": "\n\n// frappe.ui.form.on('Customer Order Form', {\n\t\n// \tafter_save: function(frm) {\n//         // Clear existing Margin Table\n//         frm.clear_table(\"custom_magin_table\");\n\n//         // Populate Margin Table based on Quotation Items\n//         frm.doc.items.forEach(function(item) {\n//             frm.add_child('custom_magin_table', {\n//                 'item_code': item.item_code,\n//                 'qty':item.qty,\n//                 'selleing_rate': item.rate,\n//                 'selleing_amount': item.amount, \n//                 'buying_rate':item.purchase_rate,\n//                 'buying_amount':item.purchase_amount,\n//                 'margin':item.margin_amount,\n//                 'orc_amount':item.orc_amount\n                \n//             });\n//         });\n\n//         // Refresh the field to reflect changes\n//         frm.refresh_field(\"custom_magin_table\");\n//         //frm.save(); \n//     }\n// });\n\nfrappe.ui.form.on('Customer Order Form', {\n    after_save: function(frm) {\n        // After save, reload the form to reflect margin table updates\n        frm.reload_doc();\n    }\n});\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n",
   "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Sales Invoice",
+  "enabled": 1,
+  "modified": "2024-10-24 10:54:32.180415",
+  "module": null,
+  "name": "Credit Note",
+  "script": "frappe.ui.form.on('Sales Invoice', {\n\trefresh(frm) {\n\t\t// your code here\n\t\t\n\t},\n\ton_submit: function(frm) {\n        // Check if it is a return and return_against is defined\n        if (frm.doc.is_return === 1 && frm.doc.return_against !== undefined) {\n            \n            update_status_of_related_document(frm.doc.return_against, 'Credit Note Issued');\n        } \n        frm.save();\n    },\n    on_cancel: function(frm) {\n        // Check if it is a return and return_against is defined\n        if (frm.doc.is_return === 1 && frm.doc.return_against !== undefined) {\n            update_status_of_related_document(frm.doc.return_against, 'Overdue');\n        }\n        frm.save();\n    }\n})\n\n\nfunction update_status_of_related_document(docname, new_status) {\n    frappe.call({\n        method: 'frappe.client.set_value',\n        args: {\n            doctype: 'Sales Invoice',  // Replace with the actual DocType\n            name: docname,\n            fieldname: { 'status': new_status }\n        },\n        callback: function(response) {\n            if (response.message) {\n                console.log('Status updated successfully');\n            } else {\n                console.log('Failed to update status');\n            }\n        }\n    });\n}",
+  "view": "Form"
  }
 ]

@@ -10,6 +10,7 @@ from frappe.utils import cint, flt, formatdate
 
 
 def execute(filters=None):
+	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(filters)))
 	columns, data = get_columns(), get_data(filters)
 
 	currency = filters.presentation_currency or frappe.get_cached_value(
@@ -20,7 +21,7 @@ def execute(filters=None):
 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(report_summary)))
 
 	chart = get_chart_data(filters, columns, data)
-	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(chart)))
+	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(chart)))
 	
 	
 	return columns, data, None, chart, report_summary
@@ -271,7 +272,7 @@ def get_report_summary(filters,columns, currency, data):
 	for period in data:
 		# if filters.group_by == "Opportunity":
 			
-		frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(period)))
+		# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(period)))
 		if period.name not in opportunity_seen:
 			opportunity_seen.add(period.name)  # Mark this parent Opportunity as processed
 			total_count += 1

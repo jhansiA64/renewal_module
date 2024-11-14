@@ -135,8 +135,8 @@ def update_margin_table(custom_order_form,method=None):
                     break
 
             if existing_margin_entry :
-                if existing_margin_entry.selleing_rate != item.rate or existing_margin_entry.selleing_amount !=item.amount
-                   or existing_margin_entry.buying_rate != item.purchase_rate:
+                if (existing_margin_entry.selleing_rate != item.rate or existing_margin_entry.selleing_amount !=item.amount
+                   or existing_margin_entry.buying_rate != item.purchase_rate):
                    frappe.msgprint(f"updating margin entry for item:{actual_item_code}")
                    existing_margin_entry.selleing_rate = item.rate
                    existing_margin_entry.selleing_amount = item.amount

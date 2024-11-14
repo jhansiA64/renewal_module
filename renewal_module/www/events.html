@@ -237,7 +237,12 @@
                                         <div class="col-sm-12 col-md-8 d-flex align-items-center"> <a href="carrer_job.html"><img class="flex-shrink-0 img-fluid border rounded" src="img/64_logo_events.png" alt="" style="width: 80px; height: 80px;"></a>
                                             <div class="text-start ps-4">
                                               <h5 class="mb-3">{{event.subject}}</h5>
-                                                <span class="text-truncate me-3"><i class="fa fa-map-marker-alt text-primary me-2"></i>Hyderabad, Telangana</span>
+                                              {% if event.custom_event_mode == "Offline" %}
+                                <span class="text-truncate me-3"><i class="fa fa-map-marker-alt text-primary me-2"></i> Hyderabad, Telangana</span>
+                                {% else %}
+                                <span class="text-truncate me-3"><i class="fa fa-map-marker-alt text-primary me-2"></i> {{event.custom_event_mode}} | {{start_date}} | {{start_time }}</span>
+                                {% endif %}
+                                                <!-- <span class="text-truncate me-3"><i class="fa fa-map-marker-alt text-primary me-2"></i>Hyderabad, Telangana</span> -->
                                                 <!-- <span class="text-truncate me-3"><i class="far fa-clock text-primary me-2"></i>Full Time</span> -->
                                                 
                                           </div>
