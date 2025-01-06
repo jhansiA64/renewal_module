@@ -54,6 +54,80 @@ def get_margin(doc,event):
             
         })
 
+##cof margin table code
+import json 
+import frappe
+
+@frappe.whitelist()
+def update_margin_table(doc,method=None):
+    try:
+        # frappe.msgprint(customer_order_form)
+        # doc=frappe.get_doc("Customer Order Form",customer_order_form)
+        # frappe.msgprint(f"loaded cof number:{doc.name}")
+
+        margin_updated = False
+
+        for item in doc.items:
+            actual_item_code = item.item_code
+            # frappe.msgprint(f"processing item:{actual_item_code},rate:{item.rate},amount:{item.amount}")
+            existing_margin_entry = None
+
+            for margin_entry in doc.margin_table:
+                # frappe.msgprint(f"margin entry item:{margin_entry.item_code}")
+                if margin_entry.cof_item_id == item.name:
+                    # frappe.msgprint(f"margin entry item:{margin_entry.item_code}")
+                    existing_margin_entry = margin_entry
+                    break
+
+            if existing_margin_entry :
+                if (existing_margin_entry.selling_rate != item.rate or 
+                existing_margin_entry.selling_amount !=item.amount or 
+                existing_margin_entry.buying_rate != item.purchase_rate or 
+                existing_margin_entry.buying_amount != item.purchase_amount or 
+                existing_margin_entry.orc_amount != item.orc_amount or 
+                existing_margin_entry.margin != item.margin_amount or 
+                existing_margin_entry.qty != item.qty or 
+                existing_margin_entry.cof_item_id != item.name):
+                #    frappe.msgprint(f"updating margin entry for item:{actual_item_code}")
+                   existing_margin_entry.selling_rate = item.rate
+                   existing_margin_entry.selling_amount = item.amount
+                   existing_margin_entry.buying_rate = item.purchase_rate
+                   existing_margin_entry.buying_amount = item.purchase_amount
+                   existing_margin_entry.orc_amount = item.orc_amount
+                   existing_margin_entry.margin = item.margin_amount
+                   existing_margin_entry.cof_item_id = item.name
+                   existing_margin_entry.qty = item.qty
+
+                   margin_updated = True
+
+
+            else:
+                # frappe.msgprint(f"creating new marginentry for item:{actual_item_code}")
+                margin_entry = {
+                    'item_code':actual_item_code,
+                    'selling_rate':item.rate,
+                    'selling_amount':item.amount,
+                    'buying_rate':item.purchase_rate,
+                    'buying_amount':item.purchase_amount,
+                    'orc_amount':item.orc_amount,
+                    'margin':item.margin_amount,
+                    'cof_item_id':item.name
+                }            
+                doc.append('margin_table',margin_entry)
+                margin_updated = True
+
+        if margin_updated:
+            # frappe.msgprint("changes detected.saving document")
+            doc.save(ignore_permissions=True)
+
+            frappe.db.commit()
+            # frappe.msgprint("margin table updated successfully") 
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(),"updated margin table error")   
+        # frappe.msgprint(f"An Error occcured:{str(e)}")     
+
+
 
 def get_transactions(doc,event):
     doc.set("custom_invoice_details", [])
@@ -161,3 +235,105 @@ def get_orc_details(doc,event):
         doc.custom_total_orc_amount = total_amount
         doc.custom_total_orc_paid_amount = total_amount - total_outstanding
         doc.custom_total_orc_outstanding = total_outstanding   
+
+
+
+from frappe.model.document import Document
+import frappe
+import pytz
+
+# class EventRegistration(Document):
+# 	pass
+
+
+def email_on_approval(doc,method):
+	frappe.msgprint("approval function trigger")
+	frappe.msgprint(f"Current Workflow State: '{doc.workflow_state}'")
+
+	if doc.workflow_state == 'Approved':
+		frappe.msgprint("approved sales user")
+		send_approval_email(doc)
+
+
+def send_approval_email(doc):
+	frappe.msgprint("sending email")
+	event_doc = frappe.get_doc("Event", doc.event_name)
+	event_link = event_doc.custom_event_link
+	event_venue = event_doc.custom_venue
+	event_subject = event_doc.subject
+	starts_on = event_doc.starts_on
+	ist_timezone = pytz.timezone('Asia/Kolkata')
+	starts_on_ist = starts_on.astimezone(ist_timezone)
+	formatted_date = starts_on_ist.strftime('%A, %B %d,%Y')
+	formatted_date1 = starts_on_ist.strftime('%I:%M %p IST')
+	recipients = [doc.email]
+	subject = f"Event Approved: {event_subject}"
+
+	if event_link is not None:
+		message = f"""
+			<div style="font-family:Arial,sans-serif;margin:0;padding:0;background-color:#f4f4f4;">
+				<div style="width:100%;max-width:600px;margin:10px auto;background-color:#ffffff;padding:20px;border-radius:8px;box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+					<div style="background-color:#EA8300;padding:5px;color:#ffffff;justify-content:space-between;">
+						<h2 style="text-align:center">64Network Security Pvt Ltd </h2>
+						<h2 style="text-align:center">{event_subject}</h2>
+					</div>
+
+					<div style="margin:20px 0;">
+						<h3 style="color:#333333;">Thank you for registering! </h3>
+						<p style="color:#666666;line-height:1.5;">Save this email for details on the webcast </p>
+						<p style="color:#666666;line-height:1.5;">creating a dynamic inbox with Embedded video in Email </p> 	
+						<p style="color:#666666;line-height:1.5;"><strong>Live Webcast Date:</strong>{formatted_date} </p>
+						<p style="color:#666666;line-height:1.5;"><strong>Live Webcast Time:</strong>{formatted_date1}</p>
+						<p style="color:#666666;line-height:1.5;">use the link below to enter the webcast up to 15 minutes before the start </p>
+						<p style="color:#666666;line-height:1.5;"><strong>Webcast Link:</strong><a href="{doc.link}" style="color:#1a73e8;text-decoration:none;">{event_link}</a></p>
+						<p style="color:#666666;line-height:1.5;"><strong>System Test:</strong> Test your computer to make sure you meet the minimum technical requirements. Test your system</p>
+						<br>
+						<p style="color:#666666;line-height:1.5;">Thank you and enjoy the Webcast! </p>
+					</div>
+
+					<div style="padding:10px 20px; background-color:#f4f4f4;border-bottom-left-radius:8px;border-bottom-right-radius:8px;text-align:center;color:#888888;font-size:12px;">
+						<p style="margin:0;">&copy;2024 64 Network Pvt Ltd. All rights reserved.</p>
+					</div>
+				</div>
+			</div>
+		"""
+	elif event_venue is not None:
+		message = f"""
+			<div style="font-family:Arial,sans-serif;margin:0;padding:0;background-color:#f4f4f4;">
+				<div style="width:100%;max-width:600px;margin:10px auto;background-color:#ffffff;padding:20px;border-radius:8px;box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+					<div style="background-color:#EA8300;padding:5px;color:#ffffff;justify-content:space-between;">
+						<h2 style="text-align:center">64Network Security Pvt Ltd </h2>
+						<h2 style="text-align:center">{event_subject}</h2>
+					</div>
+
+					<div style="margin:20px 0;">
+						<h3 style="color:#333333;">Thank you for registering! </h3>
+						<p style="color:#666666;line-height:1.5;">Please save this email for important event details: </p> 	
+						<p style="color:#666666;line-height:1.5;"><strong>Event Date:</strong>{formatted_date} </p>
+						<p style="color:#666666;line-height:1.5;"><strong>Event Time:</strong>{formatted_date1}</p>
+						<div style="display:flex">
+							<div style="font-weight: bold; margin-right: 5px;color:#666666;">Venue:</div>
+							<div style="max-width:300px;color:#666666;">{event_venue}</div>
+						</div>
+					</div>
+					
+					<div>
+						<p style="color:#666666;line-height:1.5;">Thank you, and we hope you enjoy the event! </p>
+					</div>
+
+					<div style="padding:10px 20px; background-color:#f4f4f4;border-bottom-left-radius:8px;border-bottom-right-radius:8px;text-align:center;color:#888888;font-size:12px;">
+						<p style="margin:0;">&copy;2024 64 Network Pvt Ltd. All rights reserved.</p>
+					</div>
+				</div>
+			</div>
+		"""
+	else : 
+		message = f"Thank you are registration"	
+
+	frappe.sendmail(
+		recipients=recipients,
+		subject=subject,
+		message=message
+	)
+
+

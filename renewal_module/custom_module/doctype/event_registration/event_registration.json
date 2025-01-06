@@ -1,0 +1,248 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2024-10-03 11:43:26.487757",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "event",
+  "event_name",
+  "column_break_cpkr",
+  "status",
+  "section_break_rhxq",
+  "first_name",
+  "designation",
+  "email",
+  "location",
+  "column_break_atto",
+  "last_name",
+  "company_name",
+  "phone_number",
+  "address",
+  "section_break_e2l2",
+  "customer",
+  "column_break_yihh",
+  "sales_user",
+  "section_break_shlc",
+  "sales_team",
+  "captcha_html",
+  "section_break_pg5e",
+  "naming_series",
+  "event_start_date",
+  "event_start_time",
+  "event_end_date",
+  "event_end_time",
+  "column_break_qitl",
+  "event_mode",
+  "event_link",
+  "event_venue",
+  "email_sent"
+ ],
+ "fields": [
+  {
+   "depends_on": "eval:doc.event_name",
+   "fetch_from": "event.subject",
+   "fieldname": "event_name",
+   "fieldtype": "Data",
+   "label": "Event Name"
+  },
+  {
+   "fieldname": "column_break_cpkr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "\nDraft\nApproved\nCancelled"
+  },
+  {
+   "fieldname": "section_break_rhxq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Email",
+   "options": "Email"
+  },
+  {
+   "fieldname": "phone_number",
+   "fieldtype": "Data",
+   "label": "Phone Number",
+   "options": "Phone"
+  },
+  {
+   "fieldname": "column_break_atto",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company_name",
+   "fieldtype": "Data",
+   "label": "Company Name"
+  },
+  {
+   "fetch_from": "customer.account_manager",
+   "fieldname": "sales_user",
+   "fieldtype": "Link",
+   "label": "Sales User",
+   "options": "User"
+  },
+  {
+   "fieldname": "address",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Address"
+  },
+  {
+   "fieldname": "section_break_e2l2",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_shlc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "depends_on": "company_name",
+   "fieldname": "sales_team",
+   "fieldtype": "Table",
+   "label": "Sales Team",
+   "options": "Sales Team"
+  },
+  {
+   "fieldname": "first_name",
+   "fieldtype": "Data",
+   "label": "First Name"
+  },
+  {
+   "fieldname": "last_name",
+   "fieldtype": "Data",
+   "label": "Last Name"
+  },
+  {
+   "fieldname": "captcha_html",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Captcha ",
+   "print_hide": 1
+  },
+  {
+   "fieldname": "event",
+   "fieldtype": "Link",
+   "label": "Event",
+   "options": "Event"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_pg5e",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "{event}.-.####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Naming Series",
+   "options": "{event}.-.####"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Data",
+   "label": "Designation"
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "label": "Location"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "column_break_yihh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.event_mode == \"Online\"",
+   "fetch_from": "event.custom_event_link",
+   "fieldname": "event_link",
+   "fieldtype": "Small Text",
+   "label": "Event link"
+  },
+  {
+   "fetch_from": "event.starts_on",
+   "fieldname": "event_start_date",
+   "fieldtype": "Date",
+   "label": "Event Start Date"
+  },
+  {
+   "fieldname": "event_start_time",
+   "fieldtype": "Time",
+   "label": "Event Start Time"
+  },
+  {
+   "fetch_from": "event.ends_on",
+   "fieldname": "event_end_date",
+   "fieldtype": "Date",
+   "label": "Event End Date"
+  },
+  {
+   "fieldname": "event_end_time",
+   "fieldtype": "Time",
+   "label": "Event End Time"
+  },
+  {
+   "fieldname": "column_break_qitl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "event.custom_event_mode",
+   "fieldname": "event_mode",
+   "fieldtype": "Data",
+   "label": "Event Mode"
+  },
+  {
+   "depends_on": "eval:doc.event_mode ==\"Offline\"",
+   "fetch_from": "event.custom_venue",
+   "fieldname": "event_venue",
+   "fieldtype": "Small Text",
+   "label": "Event Venue"
+  },
+  {
+   "default": "0",
+   "fieldname": "email_sent",
+   "fieldtype": "Check",
+   "label": "Email Sent"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-10-28 12:16:39.313270",
+ "modified_by": "Administrator",
+ "module": "Custom Module",
+ "name": "Event Registration",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

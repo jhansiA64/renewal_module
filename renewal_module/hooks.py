@@ -130,11 +130,18 @@ doc_events = {
 	"Customer":{
 		"onload":"renewal_module.api.get_renewals"
 	},
-	#"Customer Order Form":{
-	#	"onload":"renewal_module.api.get_margin"
-	#},
+	"Customer Order Form":{
+		"on_update":"renewal_module.api.update_margin_table"
+	},
 	"Sales Partner":{
 		"onload":"renewal_module.api.get_transactions"
+	},
+	# "Event Registration": {
+        
+    #     "on_update":"renewal_module.custom_module.doctype.event_registration.event_registration.email_on_approval"
+    # }
+	"Event Registration":{
+		"before_save":"renewal_module.custom_module.doctype.event_registration.event_registration.set_event_times"
 	}
 }
 

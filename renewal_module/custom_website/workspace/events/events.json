@@ -1,0 +1,46 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"uL3BAZmMXF\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Events</span>\",\"col\":12}},{\"id\":\"rQ6p4QJW8u\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Shortcuts</b></span>\",\"col\":12}},{\"id\":\"MGvSzMP6S3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Event\",\"col\":3}},{\"id\":\"epL0-CQD5e\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Event Registration\",\"col\":3}}]",
+ "creation": "2024-10-22 10:57:05.288226",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "calendar",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "Events",
+ "links": [],
+ "modified": "2024-10-22 11:01:43.286885",
+ "modified_by": "Administrator",
+ "module": "Custom Website",
+ "name": "Events",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 33.0,
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Event",
+   "link_to": "Event",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Event Registration",
+   "link_to": "Event Registration",
+   "stats_filter": "[]",
+   "type": "DocType"
+  }
+ ],
+ "title": "Events"
+}

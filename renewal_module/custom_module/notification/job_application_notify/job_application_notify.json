@@ -1,0 +1,32 @@
+{
+ "attach_print": 1,
+ "channel": "Email",
+ "condition": "doc.status == \"Open\"",
+ "creation": "2024-12-31 17:13:30.867197",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Job Applicant",
+ "enabled": 1,
+ "event": "New",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "\n\n\n\n\n\n\n\n\n\n<title>Job Applicant</title>\n    <meta charset=\"utf-8\">\n\t  <meta name=\"viewport\" content=\"width=device-width\">\n\t  <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n\t  <meta name=\"x-apple-disable-message-reformatting\">\n\t  <meta name=\"format-detection\" content=\"telephone=no,address=no,email=no,date=no,url=no\">\n\t  <meta name=\"color-scheme\" content=\"light dark\">\n    <meta name=\"supported-color-schemes\" content=\"light dark\">\n\n    <!-- Google Fonts API link -->\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin=\"\">\n    <link href=\"https://fonts.googleapis.com/css2?family=Montserrat:wght@200;400&amp;family=Roboto:wght@100&amp;display=swap\" rel=\"stylesheet\">\n    <!-- CSS for elements of the page -->\n    <style>\n      body {\n        color: black;\n        font-family: 'Montserrat';\n      }\n      .main {\n        border-bottom: 1px solid #a09d9d;\n        color: black;\n        background-color: grey;\n      }\n      .outer-table {\n        border: 1px solid #a09d9d;  \n        color: black;\n        background-color: white-smoke;\n        box-shadow: 2px 2px 20px grey;\n      }\n      .parent {\n        position: relative;\n        top: 0;\n        left: 0;\n\n      }\n    </style>\n \n  <!-- Email Body -->\n  <body bgcolor=\"#ffffff\">\n    <table align=\"center\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"95%%\">\n      <tbody><tr>\n        </tr></tbody></table><table class=\"outer-table\" align=\"center\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"800\">\n          <!-- Header -->\n          <tbody><tr>\n            <td bgcolor=\"#ffffff\">\n              <a href=\"www.64network.co.in\">\n                <div class=\"parent\">\n                  <img src=\"/files/blue-header.png\" width=\"100%\" height=\"120px\">\n                </div>\n              </a>\n            </td>\n          </tr>\n          <!-- Heading -->\n          <tr>\n            <td bgcolor=\"#ffffff\" style=\"padding: 0 25px\">\n                <h5 style=\"margin-bottom: -3px; font-family: Arial;\">Job Applicant Details</h5>\n                <hr>\n            </td>\n          </tr>\n          <!-- Main body content -->\n          <tr>\n            <td bgcolor=\"#ffffff\" style=\"padding: 0 30px;\">\n              <table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%%\">\n                <tbody><tr>\n                  <td style=\"padding:0 0 30px 0; font-weight: 500; line-height: 2\">\n                    \n                    <div style=\"padding-left: 30px\">\n                        <p>Applicant Name : <b>{{ doc.applicant_name }}</b></p>\n                        <p>Job Title :\n                            {% set job = frappe.get_all(\"Job Opening\", filters={\"name\": doc.job_title}, fields=[\"job_title\"]) %}\n                            {% if job and job[0].job_title %}\n                                <b>{{ job[0].job_title }}</b>\n                            {% else %}\n                                No job title found.\n                            {% endif %}\n                        </p>\n                        <p>Email Id: <b>{{doc.email_id}}</b></p>\n                        <p>Phone Number: <b>{{ doc.phone_number }}</b></p>\n                        <p>\n                            {% if doc.resume_attachment %}\n                                Resume Attachment:\n                                <a href=\"{{ frappe.utils.get_url(doc.resume_attachment) }}\" target=\"_blank\">View Resume</a>\n                            {% else %}\n                                <strong>Resume Attachment:</strong> No resume uploaded.\n                            {% endif %}\n                        </p>\n                        <p>\n                            {% if doc.custom_aadhar_attachment %}\n                                Aadhar Attachment:\n                                <a href=\"{{ frappe.utils.get_url(doc.custom_aadhar_attachment) }}\" target=\"_blank\">View Aadhar</a>\n                            {% else %}\n                                <strong>Aadhar Attachment:</strong> No aadhar uploaded.\n                            {% endif %}\n                        </p>\n                      \n                    </div>\n                    <p>You can view the detailed  of  job applicant here: <a href=\"{{frappe.utils.get_url_to_form(doc.doctype,doc.name)}}\">{{ doc.name }}</a></p>\n                    \n                  </td>\n                </tr>\n                <!-- Notice -->\n                <tr>\n                  <td style=\"background-color: #f1f1f1; padding: 10px 20px; font-family: 'Montserrat'; font-size: 15px; text-align: center\">\n                    <p>This is a system generated email, replies to this email will not be received. If you have questions or comments, feel free to contact us anytime at <a href=\"#\">support@64network.com</a></p>\n                    <p>\u00a9 2023 64Network Security</p>\n                  </td>\n                </tr>\n              </tbody></table>\n            </td>\n          </tr>\n          <!-- Footer -->\n          <tr>\n            <td bgcolor=\"#ffffff\">\n              <div class=\"parent\">\n                <img src=\"/files/blue-footer.png\" width=\"100%%\" height=\"70\">\n              </div>\n            </td>\n          </tr>\n        </tbody></table>\n      \n</body>\n\n\n\n\n\n\n\n\n\n\n",
+ "message_type": "HTML",
+ "modified": "2025-01-02 10:27:54.122230",
+ "modified_by": "Administrator",
+ "module": "Custom Module",
+ "name": "Job Application Notify",
+ "owner": "Administrator",
+ "print_format": "Job Applicant Pdf",
+ "recipients": [
+  {
+   "receiver_by_role": "HR Support"
+  }
+ ],
+ "send_system_notification": 0,
+ "send_to_all_assignees": 0,
+ "sender": "ERP Notify - 64 Network Security",
+ "sender_email": "ERP@64network.biz",
+ "subject": "Job Applicant Details"
+}
