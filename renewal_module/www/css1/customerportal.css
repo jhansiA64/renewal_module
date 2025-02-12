@@ -1,0 +1,533 @@
+/* * {
+    font-weight: 600 !important;
+} */
+
+@media (min-width: 992px) {
+    .navbar {
+        display: none !important;
+    }
+
+    .web-footer {
+        display: none !important;
+    }
+
+    /* body[data-path="login"] .navbar {
+        display: block !important;
+    } */
+}
+
+@media (min-width:300px) {
+    .web-footer {
+        display: none !important;
+    }
+
+}
+
+
+
+main.my-4 {
+    margin-top: 0rem !important;
+    margin-bottom: 1rem !important;
+}
+
+body[data-path="renewal_list"],
+body[data-path="renewal_lists"],
+body[data-path="sales_order"],
+body[data-path="sales_orders"],
+body[data-path="sales_invoice"],
+body[data-path="sales_invoices"],
+body[data-path="issue"],
+body[data-path="ticket"],
+body[data-path="tickets"],
+body[data-path="addresss"],
+body[data-path="address_create"] {
+    background-color: #F9FAFA !important;
+}
+
+.container {
+    width: 100% !important;
+    height: 100% !important;
+    padding-right: 5px !important;
+    padding-left: 5px !important;
+    margin-right: 0px !important;
+    margin-left: 0px !important;
+    font-size: 12px !important;
+    /* background-color: whitesmoke !important; */
+}
+
+.row {
+    height: 100% !important;
+    width: 100% !important;
+}
+
+
+@media (min-width: 992px) {
+    .sidebar-column {
+        display: block;
+        height: 100% !important;
+        background-color: whitesmoke !important;
+        border-right: 1px solid #e0e0e0 !important;
+        width: 16% !important;
+        position: fixed !important;
+        height: 100vh !important;
+    }
+
+    .main-column {
+        width: 84% !important;
+        height: 100vh !important;
+        padding: 0rem !important;
+        margin-left: 19% !important;
+        flex-grow: 1 !important;
+    }
+}
+
+
+
+/* .btn-group .btn.active {
+    background-color: gray !important;
+    color: white !important;
+} */
+
+
+
+[data-doctype="Web Form"] .page-content-wrapper .container .page_content .web-list-container {
+    min-height: 90vh !important;
+    border: 1px solid var(--dark-border-color);
+    border-radius: var(--border-radius-md);
+    padding: 2rem;
+}
+
+.web-sidebar {
+    padding: 5px !important;
+    margin: 0rem !important;
+}
+
+li .sidebar-item {
+    border-radius: 2px !important;
+}
+
+.sidebar-item a.active {
+    color: black !important;
+    background-color: white !important;
+    border-radius: 10px !important;
+}
+
+.sidebar-item:hover {
+    /* background-color: white !important; */
+    background-color: white !important;
+    border-radius: 10px !important;
+}
+
+.main-column .page-content-wrapper {
+    margin: 0rem !important;
+}
+
+.sidebar-item .material-symbols-outlined {
+    font-size: 18px !important;
+    font-weight: 0 !important;
+    color: blue !important;
+    font-family: 'Material Symbols Outlined' !important;
+}
+
+.account-info {
+    min-height: 90vh !important;
+}
+
+.account-info .col {
+    flex: 0 !important;
+}
+
+.my-account-container {
+    margin: 1rem !important;
+}
+
+[data-doctype="Web Form"] .page-content-wrapper .container .page_content {
+    max-width: 90vw !important;
+    margin: 0rem !important;
+}
+
+/* Profile Dropdown */
+.profile-container {
+    display: flex;
+    margin-bottom: 2px;
+    width: 100%;
+    border-radius: 10px;
+}
+
+.profile-container:hover {
+    background-color: white;
+}
+
+.profile-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    border-radius: 10px;
+}
+
+.profile-row:hover {
+    background-color: white !important;
+    border-radius: 10px;
+}
+
+.profile-avatar {
+    width: 25%;
+    margin: 1px;
+}
+
+.profile-avatar img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-info {
+    display: flex;
+    flex-direction: column;
+    width: 60%;
+}
+
+.profile-name {
+    font-size: 16px;
+    font-weight: 800;
+    margin: 0;
+    color: #333;
+}
+
+.profile-role {
+    font-size: 12px;
+    color: #777;
+    margin: 0;
+}
+
+.profile-dropdown {
+    margin-left: auto;
+    margin-right: 5px;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+    color: #333;
+    width: 5%;
+}
+
+.relative {
+    position: relative;
+}
+
+.object-cover {
+    object-fit: cover;
+}
+
+.rounded-full {
+    border-radius: 9999px;
+}
+
+.w-full {
+    width: 100%;
+}
+
+.h-full {
+    height: 100%;
+}
+
+
+.dropdown-icon {
+    display: flex;
+    align-items: right;
+    justify-content: right;
+}
+
+.dropdown-card {
+    display: none;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    padding: 5px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    width: 100%;
+}
+
+.dropdown-card ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    color: black;
+}
+
+.dropdown-card .title {
+    padding: 5px 10px;
+    color: black;
+}
+
+.dropdown-card .title a {
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 400;
+    color: black;
+}
+
+/*collapse sidebar*/
+.sidebar-column.collapsed {
+    width: 5% !important;
+}
+
+.sidebar-column.collapsed+.main-column {
+    width: 90% !important;
+    margin-left: 10% !important;
+}
+
+.sidebar-column.collapsed .web-sidebar {
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0px !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+.sidebar-column.collapsed .sidebar-item {
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    width: 25px !important;
+    height: 25px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    overflow: hidden !important;
+    margin: 8px 8px 8px 5px !important;
+}
+
+.sidebar-column.collapsed .sidebar-item:hover {
+    background-color: white !important;
+    border-radius: 50% !important;
+}
+
+.sidebar-column.collapsed .sidebar-item a .material {
+    align-items: center !important;
+    display: inline-block !important;
+    width: 100% !important;
+    height: 100% !important;
+    justify-content: center !important;
+}
+
+.sidebar-column.collapsed .sidebar-item .label {
+    display: none;
+}
+
+.sidebar-column .collapse-toggle {
+    position: fixed;
+    bottom: 2%;
+    text-align: left;
+    cursor: pointer;
+}
+
+.collapse-toggle:hover {
+    background-color: white;
+    border-radius: 10px;
+}
+
+.collapse-toggle .icons {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+.collapse-toggle .start {
+    display: none;
+}
+
+.sidebar-column.collapsed .profile-container {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+    background-color: transparent !important;
+    margin-top: 2px !important;
+    margin-bottom: 10px !important;
+    cursor: pointer !important;
+}
+
+.sidebar-column.collapsed .profile-container:hover {
+    background-color: white !important;
+    border-radius: 50% !important;
+}
+
+.sidebar-column.collapsed .profile-container .profile-avatar {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+}
+
+.sidebar-column.collapsed .profile-container .profile-avatar img {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    display: block !important;
+}
+
+.sidebar-column.collapsed .dropdown-card {
+    width: 150px !important;
+}
+
+.sidebar-column.collapsed .profile-container .profile-info,
+.sidebar-column.collapsed .profile-container .profile-dropdown {
+    display: none;
+}
+
+.sidebar-column.collapsed .sidebar-item .label {
+    display: none;
+}
+
+.sidebar-column.collapsed .collapse-toggle .icons {
+    display: none;
+}
+
+.sidebar-column.collapsed .collapse-toggle .start {
+    display: block;
+}
+
+
+
+
+
+/*ticke comment css*/
+
+.add-comment-button {
+    margin-left: 35px;
+}
+
+.timeline-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    position: absolute;
+    top: 8px;
+    left: 22px;
+    background-color: var(--fg-color);
+    border: 1px solid var(--dark-border-color);
+}
+
+.timeline-dot::before {
+    content: ' ';
+    background: var(--gray-600);
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    border-radius: 50%;
+    height: 4px;
+    width: 4px;
+}
+
+.comment-form-wrapper {
+    display: none;
+}
+
+.login-required {
+    padding: var(--padding-sm);
+    border-radius: var(--border-radius-sm);
+    box-shadow: var(--card-shadow);
+}
+
+.new-comment {
+    display: flex;
+    padding: var(--padding-lg);
+    box-shadow: var(--card-shadow);
+    border-radius: var(--border-radius-md);
+    background-color: var(--fg-color);
+}
+
+.new-comment-fields {
+    flex: 1;
+}
+
+.new-comment .form-label {
+    font-weight: var(--text-bold);
+}
+
+.new-comment .comment-text-area textarea {
+    resize: none;
+}
+
+@media (min-width: 576px) {
+    .comment-by {
+        padding-right: 0px !important;
+        padding-bottom: 0px !important;
+    }
+}
+
+#comment-list {
+    position: relative;
+    padding-left: var(--padding-xl);
+}
+
+#comment-list::before {
+    content: " ";
+    position: absolute;
+    top: var(--comment-timeline-top);
+    bottom: var(--comment-timeline-bottom);
+    border-left: 1px solid var(--dark-border-color);
+}
+
+.comment-row {
+    position: relative;
+    padding: 5px;
+}
+
+.comment-avatar {
+    position: absolute;
+    top: 10px;
+    left: -17px;
+}
+
+.comment-content {
+    box-shadow: var(--card-shadow);
+    background-color: var(--fg-color);
+    border-radius: var(--border-radius-md);
+    padding: var(--padding-md);
+    margin-left: 35px;
+    flex: 1;
+}
+
+.comment-content .content p {
+    margin-bottom: 0px;
+}
+
+
+
+
+
+/*pagination button */
+/* Style for active button */
+.btn-group .btn.active {
+    background-color: gray !important;
+    color: white !important;
+    border: none !important;
+}
+
+.btn:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+
+
+
+
+@media (min-width:992px) {
+    .modal-content {
+        width: 600px !important;
+
+    }
+}

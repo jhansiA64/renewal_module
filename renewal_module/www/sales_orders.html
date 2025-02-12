@@ -1,0 +1,233 @@
+{% extends "templates/web.html" %}
+import frappe
+{% block page_content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<div class="container">
+    <div class="row" id="page-list" data-path="sales_orders">
+        <div class="sidebar-column col-sm-2">
+            <div class="web-sidebar">
+                {% include web_sidebar %}
+            </div>
+        </div>
+        <div class="main-column col-sm-10">
+            <div class="page-content-wrapper pl-2">
+                <div class="page-breadcrumbs">
+                    <div class="breadcrumb-container container" style="margin-top:-1px;">
+                        <nav aria-label="breadcrumb" style="display: flex; align-items: center;">
+                            <ol class="breadcrumb" itemscope itemtype="http://schema.org/BreadcrumbList">
+                                <div class="page-header-icon">
+                                    <i class="fa fa-bars" aria-hidden="true" onclick="toggleSidebar(event)"></i>
+                                </div>
+                                <div id="sidebar1" class="page-header-toggle">
+                                    {% include web_sidebar1 %}
+                                </div>
+                                <li itemprop="itemListElement" itemscope itemtype="http://schema.org/ListItem"
+                                    class="breadcrumb-item">
+                                    <a itemprop="item" href="/sales_order">
+                                        <span itemprop="name">Sales Order</span>
+                                        <meta itemprop="position" content="1" />
+                                    </a>
+                                </li>
+                                <li itemprop="itemListElement" itemscope itemtype="http://schema.org/ListItem"
+                                    class="breadcrumb-item active" aria-current="page">
+                                    <span itemprop="item">
+                                        <span itemprop="name">{{d_name.name}}</span>
+                                        <meta itemprop="position" content="2" />
+                                    </span>
+                                </li>
+                            </ol>
+                        </nav>
+                    </div>
+    
+                </div>
+            </div>
+            
+
+            <main class="container ml-2" style="background-color: white;min-height:90vh;">
+                <div class="page-header-wrapper">
+                    <div class="page-header">
+                        <h3 class="m-0">{{d_name.name}}</h3>
+                        <p>{{frappe.utils.format_date(d_name.transaction_date, "dd-MM-yyyy")}}</p>
+                    </div>
+                    <div class="page-header-actions-block d-s-n">
+                        <a href="/printview?doctype=Sales Order&name={{ d_name.name }}&format=Standard" target="_blank"
+                            rel="noopener noreferrer" class="btn btn-secondary float-right btn-sm"
+                            aria-label="Download sales order" style="border-radius:10px;">
+                            Download
+                        </a>
+                    </div>
+                    <div class="page-header-actions-block d-l-n">
+                        <a href="/printview?doctype=Sales Order&name={{ d_name.name }}&format=Standard" target="_blank"
+                            rel="noopener noreferrer" class="float-right tooltip-btn" aria-label="Download sales order"
+                            style="border-radius:10px;">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">
+                                Download
+                            </span>
+                            <span class="tooltip-text">Download</span>
+                        </a>
+                    </div>
+
+                </div>
+                <div class="page_content">
+                    <div>
+                        <div class="row transaction-subheading  mt-1">
+                            <div class="col-6 text-muted small mt-1">
+                            </div>
+                        </div>
+                        <div class="row indicator-container mt-2">
+                            <div class="col-8">
+                                <span class="indicator-pill red status">
+                                    {{d_name.status}}
+                                </span>
+                            </div>
+                            <div class="text-right col-4 customer">
+                                <b class="customer">{{d_name.customer}}</b>
+                            </div>
+                        </div>
+                        <div class="order-container mt-4 ml-1">
+                            <!-- items -->
+                            <div class="w-100">
+                                <div class="order-items order-item-header mb-1 row ">
+                                    <span class="col-5">
+                                        Item
+                                    </span>
+                                    <span class="d-s-n col-2">
+                                        Quantity
+                                    </span>
+                                    <span class="col-2 pl-10">
+                                        Rate
+                                    </span>
+                                    <span class="col-3 text-right">
+                                        Amount
+                                    </span>
+                                </div>
+                            </div>
+                            {% for item in items %}
+                            <div class="order-items row align-items-center">
+                                <span class="order-item-name col-5 pr-0">
+
+                                    <div class="row item_name_and_description">
+                                        <div class="col-xs-8 col-sm-10">
+                                            {{item.item_name}}
+                                            <div class="text-muted small item-description">
+                                                {{item.item_code}}
+                                            </div>
+                                            <span class="text-muted mt-2 d-l-n order-qty">
+                                                Qty ({{item.qty}})
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                </span>
+
+                                <span class="d-s-n col-2 pl-10 item-qty">
+                                    {{item.qty}}
+                                </span>
+                                <span class="order-rate pl-4 col-2">
+                                    {{item.rate}}
+                                </span>
+                                <span class="col-3 text-right item-amount">
+                                    {{item.amount}}
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                        <div class="row mr-1">
+                            <div class="w-100 mt-5 order-taxes font-weight-bold">
+                                <div class="col-4 col-md-6 d-flex">
+                                    <div class="item-grand-total col-7">
+                                        Grand Total
+                                    </div>
+                                    <div class="item-grand-total col-4 text-right pr-0">
+                                        {{d_name.rounded_total}}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                </div>
+            </main>
+
+        </div>
+    </div>
+
+</div>
+
+
+{% endblock %}
+{% block script %}
+<script>
+    function toggleSidebar(event = null) {
+        if (event) {
+            event.stopPropagation(); // Prevent event bubbling
+        }
+
+        const sidebarMain = document.querySelector('.sidebar-column'); // web_sidebar
+        const sidebar1 = document.getElementById('sidebar1'); // web_sidebar1
+        const screenWidth = window.innerWidth;
+
+        if (screenWidth > 1023) {
+            // Laptop & Desktop logic
+            if (sidebarMain) {
+                sidebarMain.classList.toggle('collapsed');
+                localStorage.setItem('sidebar-collapsed', sidebarMain.classList.contains('collapsed') ? 'true' : 'false');
+            }
+        } else {
+            // Mobile & Tablet logic
+            if (sidebar1) {
+                sidebar1.style.display = (sidebar1.style.display === 'none' || !sidebar1.style.display) ? 'block' : 'none';
+            }
+        }
+    }
+
+    function toggleDropdown(event) {
+        event.stopPropagation(); // Prevent click from bubbling up
+        const dropdownCard = document.getElementById("dropdownCard"); // Desktop/Laptop dropdown
+        const dropdownCard1 = document.getElementById("dropdownCard1"); // Mobile/Tablet dropdown
+        const screenWidth = window.innerWidth;
+
+        if (screenWidth > 1023) {
+            // Desktop/Laptop
+            if (dropdownCard) {
+                dropdownCard.style.display = (dropdownCard.style.display === "none" || !dropdownCard.style.display) ? "block" : "none";
+            }
+        } else {
+            // Mobile/Tablet
+            if (dropdownCard1) {
+                dropdownCard1.style.display = (dropdownCard1.style.display === "none" || !dropdownCard1.style.display) ? "block" : "none";
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const sidebarMain = document.querySelector('.sidebar-column');
+        if (window.innerWidth > 1023 && sidebarMain && localStorage.getItem('sidebar-collapsed') === 'true') {
+            sidebarMain.classList.add('collapsed');
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", function (event) {
+        const dropdownCard = document.getElementById("dropdownCard");
+        const dropdownCard1 = document.getElementById("dropdownCard1");
+        const profileContainer = document.querySelector('.profile-container');
+
+        if (window.innerWidth > 1024) {
+            // Desktop/Laptop
+            if (dropdownCard && dropdownCard.style.display === "block" &&
+                !dropdownCard.contains(event.target) && !profileContainer.contains(event.target)) {
+                dropdownCard.style.display = "none";
+            }
+        } else {
+            // Mobile/Tablet
+            if (dropdownCard1 && dropdownCard1.style.display === "block" &&
+                !dropdownCard1.contains(event.target) && !profileContainer.contains(event.target)) {
+                dropdownCard1.style.display = "none";
+            }
+        }
+    });
+</script>
+
+
+{% endblock %}

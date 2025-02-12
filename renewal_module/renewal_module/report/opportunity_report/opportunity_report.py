@@ -187,7 +187,7 @@ def execute(filters=None):
 
 	if filters.group_by == "Opportunity":
 		report_summary = get_report_summary(filters,columns, currency, data)
-		frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(report_summary)))
+		# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(report_summary)))
 
 		chart = get_chart_data(filters, columns, data)
 		# chart1 = get_chart_data1(filters, columns, data)
@@ -806,6 +806,11 @@ class GrossProfitGenerator(object):
 			conditions += " and `tabOpportunity Item`.brand in %(brand)s"	
 
 		# conditions += " and (is_return = 0 or (is_return=1 and return_against is null))"
+		if self.filters.customer:
+			conditions += " and `tabOpportunity`.party_name in %(customer)s"
+		
+		if self.filters.contact_person:
+			conditions += " and trc.user_name in %(contact_person)s"
 
 		if self.filters.item_group:
 			conditions += " and {0}".format(get_item_group_condition(self.filters.item_group))
@@ -887,6 +892,7 @@ class GrossProfitGenerator(object):
 				WHERE tol.docstatus  = 1 and tol.status != "Duplicate") as torc on  torc.opportunity_id = `tabOpportunity Item`.parent and `tabOpportunity Item`.item_code = torc.item_code 
 				and `tabOpportunity Item`.qty = torc.qty and `tabOpportunity Item`.rate = torc.rate and `tabOpportunity Item`.description = torc.description
 				left join `tabSales Team` on `tabOpportunity`.name = `tabSales Team`.parent
+				LEFT  JOIN `tabRenewal Contacts` trc on trc.parent = `tabOpportunity`.name
 			where
 				{conditions} {match_cond}
 			GROUP BY `tabOpportunity Item`.name
@@ -1079,7 +1085,7 @@ def get_report_summary(filters,columns, currency, data):
 	for period in data:
 		if filters.group_by == "Opportunity":
 			
-			frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(period)))
+			# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(period)))
 			if period.opportunity not in opportunity_seen:
 				opportunity_seen.add(period.parent)  # Mark this parent Opportunity as processed
 				total_count += 1

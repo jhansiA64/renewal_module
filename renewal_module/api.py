@@ -168,7 +168,83 @@ def update_margin_table(custom_order_form,method=None):
         frappe.msgprint(f"An Error occcured:{str(e)}")     
 
 
+#issue
+import frappe
+import base64
+
+@frappe.whitelist(allow_guest=True)
+def create_issue():
+    try:
+        data = frappe.local.form_dict
+        attachment = frappe.request.files.get("attachment")
+
+        # Validate mandatory fields
+        if not data.get("subject") or not data.get("customer"):
+            frappe.throw("Subject and Customer are mandatory fields.")
+
+        # Create the Issue document
+        issue = frappe.get_doc({
+            "doctype": "Issue",
+            "subject": data.get("subject"),
+            "status": data.get("status", "Open"),
+            "customer": data.get("customer"),
+            "description": data.get("description"),
+            "priority":data.get("priority")
+        })
+        issue.insert()
+
+        # Save attachment if provided
+        if attachment:
+            _file = frappe.get_doc({
+                "doctype": "File",
+                "file_name": attachment.filename,
+                "attached_to_doctype": "Issue",
+                "attached_to_name": issue.name,
+                "content": attachment.stream.read(),
+                "is_private": 0,
+            })
+            _file.save()
+
+        frappe.db.commit()
+        return {"message": f"Issue {issue.name} created successfully."}
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Issue Creation Failed")
+        frappe.throw(f"An error occurred: {str(e)}")
+
+@frappe.whitelist()
+def get_profile_data():
+    user = frappe.session.user  # Fetch the current logged-in user
+    if user == "Guest":
+        frappe.throw(_("You need to be logged in to edit your profile."))
+
+    user_doc = frappe.get_doc("User", user)  # Fetch the User document
+    return {
+        "first_name": user_doc.first_name,
+        "middle_name": user_doc.middle_name or "",
+        "last_name": user_doc.last_name,
+        "phone": user_doc.phone or "",
+        "mobile_no": user_doc.mobile_no or "",
+        "user_image": user_doc.user_image or ""  # Add image field
+    }
 
 
+@frappe.whitelist()
+def save_profile_data(first_name, middle_name, last_name, phone, mobile_no,user_image):
+    user = frappe.session.user  # Fetch the current logged-in user
+    if user == "Guest":
+        frappe.throw(_("You need to be logged in to save your profile."))
+
+    user_doc = frappe.get_doc("User", user)
+    user_doc.first_name = first_name
+    user_doc.middle_name = middle_name
+    user_doc.last_name = last_name
+    user_doc.phone = phone
+    user_doc.mobile_no = mobile_no
+    if user_image:
+        user_doc.user_image = user_image  # Save the image file path
+    user_doc.save()
+    frappe.db.commit()
+    return {"message":("Profile updated successfully.")}
 
 

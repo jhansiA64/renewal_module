@@ -29,8 +29,12 @@
         <link href="css/bootstrap.min.css" rel="stylesheet">
 
         <!-- Template Stylesheet -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="css/style.css" rel="stylesheet">
         <link href="css/mar.css" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&display=swap"
+    rel="stylesheet">
         
     </head>
 
@@ -94,13 +98,27 @@
             <div class="position-absolute bg-dark" style="left: 0; top: 0; width: 100%; height: 100%;">
             </div>
             <div class="container px-0">
-                <nav class="navbar navbar-expand-lg navbar-dark bg-white py-3 px-4">
+                <nav class="navbar navbar-expand-lg navbar-dark bg-white py-3 px-4" style="padding:1px !important;">
                     <a href="index.html" class="navbar-brand p-0">
+                        
                         <img src="img/logo.png">
                         <!-- <img src="img/logo.png" alt="Logo"> -->
                     </a>
+                    <div class="navbar-logo1">
+                        <img src="/img/17-years-experience.png" class="navbar-img1">
+                        {% set company = frappe.get_doc("Company", "64 Network Security Pvt Ltd - TG") %}
+                        {% set established_date = company.date_of_establishment %}
+                        {% set today = frappe.utils.now_datetime().date() %}
+                        {% set company_age = frappe.utils.date_diff(today, established_date)//365 %}
+                        <div class="text-block">
+                            <span class=" text-block" data-toggle="counter-up">{{ company_age }}</span>
+                                        <!-- <h4 class="text-block fs-1 mb-0" style="font-weight: 600; font-size: 25px;">+</h4> -->
+                          <!-- {{ company_age }} -->
+                          
+                        </div>
+                    </div>
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
-                        <span class="fa fa-bars"></span>
+                        <span class="fa fa-bars" style="color:whitesmoke;"></span>
                     </button>
                     <div class="collapse navbar-collapse" id="navbarCollapse">
                         <div class="navbar-nav ms-auto py-0">
@@ -110,18 +128,36 @@
                             <a href="blog1.html" class="nav-item nav-link">Blog</a>
                             <a href="career.html" class="nav-item nav-link">Career</a>
                             <a href="events.html" class="nav-item nav-link">Events</a>
-                            
                             <a href="contact.html" class="nav-item nav-link">Contact</a>
                             <a href="/login" class="nav-item nav-link">Login</a>
-                      </div>
-                        <div class="d-flex align-items-center flex-nowrap pt-xl-0">
+                        </div>
+                        <!-- <div class="d-flex align-items-center flex-nowrap pt-xl-0">
                            
                             <a href="#" class="btn btn-primary rounded-pill text-white py-2 px-4 ms-2 flex-wrap flex-sm-shrink-0">16 Years of Excellence</a>
+                        </div> -->
+                    </div>
+
+                    <div class="navbar-logo">
+                        <img src="/img/17-years-experience.png" class="navbar-img">
+                        {% set company = frappe.get_doc("Company", "64 Network Security Pvt Ltd - TG") %}
+                        {% set established_date = company.date_of_establishment %}
+                        {% set today = frappe.utils.now_datetime().date() %}
+                        {% set company_age = frappe.utils.date_diff(today, established_date)//365 %}
+                        <div class="text-block">
+                            <span class=" text-block" data-toggle="counter-up">{{ company_age }}</span>
+                                        <!-- <h4 class="text-block fs-1 mb-0" style="font-weight: 600; font-size: 25px;">+</h4> -->
+                          <!-- {{ company_age }} -->
+                          
                         </div>
                     </div>
+                    
                 </nav>
+                
             </div>
+            
         </div>
+        
+        
         <!-- Navbar & Hero End -->
 
         <!-- Modal Search Start -->

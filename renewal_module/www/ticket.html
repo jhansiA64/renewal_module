@@ -1,0 +1,454 @@
+{% extends "templates/web.html" %}
+{% from "frappe/templates/includes/avatar_macro.html" import avatar %}
+import frappe
+{% block page_content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<div class="container">
+    <div class="row" id="page-list" data-path="ticket">
+        <div class="sidebar-column col-sm-2">
+            <div class="web-sidebar">
+                {% include web_sidebar %}
+            </div>
+        </div>
+        <div class="main-column col-sm-10 ml-1">
+            <div class="page-content-wrapper pl-4">
+                <div class="page-breadcrumbs">
+                    <div class="breadcrumb-container container" style="margin-top:-1px;">
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb" itemscope itemtype="http://schema.org/BreadcrumbList">
+                                <div class="page-header-icon">
+                                    <i class="fa fa-bars" aria-hidden="true"
+                                        onclick="toggleSidebar(event)"></i>
+                                </div>
+                                <div id="sidebar1" class="page-header-toggle">
+                                    {% include web_sidebar1 %}
+                                </div>
+                                <li itemprop="itemListElement" itemscope itemtype="http://schema.org/ListItem"
+                                    class="breadcrumb-item">
+                                    <a itemprop="item" href="/issue" itemprop="url">
+                                        <span itemprop="name">Issue</span>
+                                        <meta itemprop="position" content="1" />
+                                    </a>
+                                </li>
+
+                                <li itemprop="itemListElement" itemscope itemtype="http://schema.org/ListItem"
+                                    class="breadcrumb-item active" aria-current="page">
+                                    <span itemprop="item">
+                                        <span itemprop="name">{{d_name.name or ""}}</span>
+                                        <meta itemprop="position" content="2" />
+                                    </span>
+                                </li>
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+
+                <main class="container" style="background-color: white; min-height: 80vh; padding-left: 5px;">
+                    <div class="page-header-wrapper">
+                        <div class="page-header">
+                            <h3 class="m-1">{{d_name.name or ""}}</h3>
+                        </div>
+                    </div>
+                    <div class="page_content m-1">
+                        <div>
+                            <div class="row transaction-subheading mt-1">
+                                <div class="col-6 text-muted small mt-1"></div>
+                            </div>
+                            <div class="row indicator-container mt-2">
+                                <div class="col-6">
+                                    <span class="indicator-pill red status">{{d_name.status or ""}}</span>
+                                </div>
+                                <div class="col-6 text-right customer">
+                                    <b>{{d_name.customer or ""}}</b>
+                                </div>
+                            </div>
+
+                            <div class="order-container mt-4 ml-1">
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <div class="form-group">
+                                            <div class="clearfix">
+                                                <label class="control-label reqd">Subject</label>
+                                                <span class="help"></span>
+                                            </div>
+                                            <div class="control-input-wrapper">
+                                                <div class="control-value like-disabled-input bold">
+                                                    {{d_name.subject or ""}}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="form-group">
+                                            <div class="clearfix">
+                                                <label class="control-label">Status</label>
+                                                <span class="help"></span>
+                                            </div>
+                                            <div class="control-input-wrapper">
+                                                <div class="control-value like-disabled-input">
+                                                    {{d_name.status or ""}}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group">
+                                            <div class="clearfix">
+                                                <label class="control-label">Attachment</label>
+                                                <span class="help"></span>
+                                            </div>
+                                            <div class="control-input-wrapper">
+                                                <div class="control-value like-disabled-input">
+                                                    {% if file %}
+                                                    <a href="{{file[0].file_url}}">
+                                                        {{file[0].file_url or ""}}
+                                                    </a>
+                                                    {%endif%}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="form-group">
+                                            <div class="clearfix">
+                                                <label class="control-label">Customer</label>
+                                                <span class="help"></span>
+                                            </div>
+                                            <div class="control-input-wrapper">
+                                                <div class="control-value like-disabled-input">
+                                                    {{d_name.customer or ""}}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group">
+                                            <div class="clearfix">
+                                                <label class="control-label reqd">Priority</label>
+                                                <span class="help"></span>
+                                            </div>
+                                            <div class="control-input-wrapper">
+                                                <div class="control-value like-disabled-input bold">
+                                                    {{d_name.priority or ""}}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <div class="form-group">
+                                            <div class="clearfix">
+                                                <label class="control-label">Description</label>
+                                                <span class="help"></span>
+                                            </div>
+                                            <div class="control-input-wrapper">
+                                                <div class="control-value like-disabled-input for-description">
+                                                    <div>
+                                                        {{d_name.description or ""}}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </main>
+
+
+                <div class="mt-2 pl-2 mb-1" style="background-color: white;">
+                    <h3>Comment</h3>
+                    <div class="comment-text-area">
+                        <div class="form-label mb-1">{{ _("Add a comment") }}</div>
+                        <textarea class="form-control" name="comment" row="1"></textarea>
+                        <div class="text-muted small mt-1 mb-4">{{ _("Ctrl+Enter to add comment") }}</div>
+                    </div>
+                    <button class="btn btn-sm small" id="submit-comment">{{ _("Comment") }}</button>
+                </div>
+
+                <div class="comment-list pl-2 mb-2" style="background-color: white;">
+                    {% for comment in comments %}
+                    <div class="comment-row media">
+                        <div class="comment-avatar ml-5">
+                            {{ avatar(user_id=(frappe.utils.strip_html(comment.comment_email or comment.sender or "")),
+                            size='avatar-medium') }}
+                        </div>
+                        <div class="comment-content">
+                            <div class="mb-2 head">
+                                <span class="mr-2 title font-weight-bold commentname">
+                                    {{ frappe.utils.strip_html(comment.sender_full_name or comment.comment_by or "") | e
+                                    }}
+                                </span>
+                                <span class="time small text-muted">
+                                    {{ frappe.utils.pretty_date(comment.creation) }}
+                                </span>
+                            </div>
+                            <!-- <div id="{{ comment.name }}" class="content">{{ frappe.utils.strip_html(comment.content
+                                or"") |markdown }}</div> -->
+                            <div id="{{ comment.name }}" class="content">
+                                {{ comment.content | safe }}
+                            </div>
+
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block script %}
+<script>
+    frappe.ready(function () {
+        // Add click event listener to the submit button
+        $("#submit-comment").click(function () {
+            // Collect input data
+            let comment_by = frappe.get_cookie("full_name"); // Get the logged-in user's full name
+            let comment_email = frappe.get_cookie("user_id"); // Get the logged-in user's email/ID
+            let comment_content = $("[name='comment']").val(); // Get the comment content
+            let reference_doctype = "Issue"; // Static value
+            let reference_name = "{{ d_name.name }}"; // Pass the reference name dynamically
+
+            // Validation
+            if (!comment_content || !comment_content.trim()) {
+                frappe.msgprint(__("Please add a valid comment."));
+                return false;
+            }
+
+            if (!comment_by || !comment_email) {
+                frappe.msgprint(__("You must be logged in to add a comment."));
+                return false;
+            }
+
+            // Prepare data for the Frappe backend
+            let args = {
+                comment_by: comment_by,
+                comment_email: comment_email,
+                content: comment_content.trim(),
+                reference_doctype: reference_doctype,
+                reference_name: reference_name,
+                comment_type: "Comment", // Static value for comment type
+            };
+
+            // Call the Frappe backend to save the comment
+            frappe.call({
+                method: "frappe.client.insert",
+                args: {
+                    doc: {
+                        doctype: "Comment",
+                        ...args,
+                    },
+                },
+                callback: function (response) {
+                    if (response.message) {
+                        frappe.msgprint(__("Comment added successfully!"));
+                        // Clear the comment textarea
+                        $("[name='comment']").val("");
+                    } else {
+                        frappe.msgprint(__("Failed to add comment. Please try again."));
+                    }
+                },
+                error: function (error) {
+                    frappe.msgprint(__("Error: Unable to add comment."));
+                    console.error(error);
+                },
+            });
+
+            return false;
+        });
+    });
+</script>
+
+<script>
+    function toggleSidebar(event = null) {
+        if (event) {
+            event.stopPropagation(); // Prevent event bubbling
+        }
+
+        const sidebarMain = document.querySelector('.sidebar-column'); // web_sidebar
+        const sidebar1 = document.getElementById('sidebar1'); // web_sidebar1
+        const screenWidth = window.innerWidth;
+
+        if (screenWidth > 1023) {
+            // Laptop & Desktop logic
+            if (sidebarMain) {
+                sidebarMain.classList.toggle('collapsed');
+                localStorage.setItem('sidebar-collapsed', sidebarMain.classList.contains('collapsed') ? 'true' : 'false');
+            }
+        } else {
+            // Mobile & Tablet logic
+            if (sidebar1) {
+                sidebar1.style.display = (sidebar1.style.display === 'none' || !sidebar1.style.display) ? 'block' : 'none';
+            }
+        }
+    }
+
+    function toggleDropdown(event) {
+        event.stopPropagation(); // Prevent click from bubbling up
+        const dropdownCard = document.getElementById("dropdownCard"); // Desktop/Laptop dropdown
+        const dropdownCard1 = document.getElementById("dropdownCard1"); // Mobile/Tablet dropdown
+        const screenWidth = window.innerWidth;
+
+        if (screenWidth > 1023) {
+            // Desktop/Laptop
+            if (dropdownCard) {
+                dropdownCard.style.display = (dropdownCard.style.display === "none" || !dropdownCard.style.display) ? "block" : "none";
+            }
+        } else {
+            // Mobile/Tablet
+            if (dropdownCard1) {
+                dropdownCard1.style.display = (dropdownCard1.style.display === "none" || !dropdownCard1.style.display) ? "block" : "none";
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const sidebarMain = document.querySelector('.sidebar-column');
+        if (window.innerWidth > 1023 && sidebarMain && localStorage.getItem('sidebar-collapsed') === 'true') {
+            sidebarMain.classList.add('collapsed');
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", function (event) {
+        const dropdownCard = document.getElementById("dropdownCard");
+        const dropdownCard1 = document.getElementById("dropdownCard1");
+        const profileContainer = document.querySelector('.profile-container');
+
+        if (window.innerWidth > 1023) {
+            // Desktop/Laptop
+            if (dropdownCard && dropdownCard.style.display === "block" &&
+                !dropdownCard.contains(event.target) && !profileContainer.contains(event.target)) {
+                dropdownCard.style.display = "none";
+            }
+        } else {
+            // Mobile/Tablet
+            if (dropdownCard1 && dropdownCard1.style.display === "block" &&
+                !dropdownCard1.contains(event.target) && !profileContainer.contains(event.target)) {
+                dropdownCard1.style.display = "none";
+            }
+        }
+    });
+</script>
+
+
+{% endblock %}
+
+{% block style %}
+<style>
+    .add-comment-button {
+        margin-left: 35px;
+    }
+
+    .timeline-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        position: absolute;
+        top: 8px;
+        left: 22px;
+        background-color: var(--fg-color);
+        border: 1px solid var(--dark-border-color);
+    }
+
+    .timeline-dot::before {
+        content: ' ';
+        background: var(--gray-600);
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        border-radius: 50%;
+        height: 4px;
+        width: 4px;
+    }
+
+    .comment-form-wrapper {
+        display: none;
+    }
+
+    .login-required {
+        padding: var(--padding-sm);
+        border-radius: var(--border-radius-sm);
+        box-shadow: var(--card-shadow);
+    }
+
+    .new-comment {
+        display: flex;
+        padding: var(--padding-lg);
+        box-shadow: var(--card-shadow);
+        border-radius: var(--border-radius-md);
+        background-color: var(--fg-color);
+    }
+
+    .new-comment-fields {
+        flex: 1;
+    }
+
+    .new-comment .form-label {
+        font-weight: var(--text-bold);
+    }
+
+    .new-comment .comment-text-area textarea {
+        resize: none;
+    }
+
+    @media (min-width: 576px) {
+        .comment-by {
+            padding-right: 0px !important;
+            padding-bottom: 0px !important;
+        }
+    }
+
+    #comment-list {
+        position: relative;
+        padding-left: var(--padding-xl);
+    }
+
+    #comment-list::before {
+        content: " ";
+        position: absolute;
+        top: var(--comment-timeline-top);
+        bottom: var(--comment-timeline-bottom);
+        border-left: 1px solid var(--dark-border-color);
+    }
+
+    .comment-row {
+        position: relative;
+        padding: 5px;
+    }
+
+    .comment-avatar {
+        position: absolute;
+        top: 10px;
+        left: -17px;
+    }
+
+    .comment-content {
+        box-shadow: var(--card-shadow);
+        background-color: var(--fg-color);
+        border-radius: var(--border-radius-md);
+        padding: var(--padding-md);
+        margin-left: 35px;
+        flex: 1;
+    }
+
+    .comment-content .content p {
+        margin-bottom: 0px;
+    }
+</style>
+{% endblock %}

@@ -46,14 +46,12 @@
   {
    "fieldname": "email",
    "fieldtype": "Data",
-   "label": "Email",
-   "options": "Email"
+   "label": "Email"
   },
   {
    "fieldname": "phone_number",
    "fieldtype": "Data",
-   "label": "Phone Number",
-   "options": "Phone"
+   "label": "Phone Number"
   },
   {
    "fieldname": "address",
@@ -115,7 +113,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-10-11 11:33:08.350719",
+ "modified": "2024-11-28 11:17:01.779952",
  "modified_by": "Administrator",
  "module": "Custom Website",
  "name": "Event Registration",

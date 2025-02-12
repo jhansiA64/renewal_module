@@ -1,0 +1,257 @@
+{% extends "templates/web.html" %}
+import frappe
+{% block page_content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<div class="container">
+    <div class="row" id="page-list" data-path="renewal_lists">
+        <div class="sidebar-column col-sm-2">
+            <div class="web-sidebar">
+                {% include web_sidebar %}
+            </div>
+        </div>
+        
+            <div class="main-column col-sm-10">
+                <div class="page-content-wrapper pl-3">
+                    <div class="page-breadcrumbs">
+                        <div class="breadcrumb-container container" style="margin-top: -1px;">
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb" itemscope itemtype="http://schema.org/BreadcrumbList">
+                                    <div class="page-header-icon">
+                                        <i class="fa fa-bars" aria-hidden="true" onclick="toggleSidebar(event)"></i>
+                                    </div>
+                                    <div id="sidebar1" class="page-header-toggle">
+                                        {% include web_sidebar1 %}
+                                    </div>
+                                    <li itemprop="itemListElement" itemscope itemtype="http://schema.org/ListItem"
+                                        class="breadcrumb-item">
+                                        <a itemprop="item" href="/renewal_list">
+                                            <span itemprop="name">Renewal List</span>
+                                            <meta itemprop="position" content="1" />
+                                        </a>
+                                    </li>
+    
+                                    <li itemprop="itemListElement" itemscope itemtype="http://schema.org/ListItem"
+                                        class="breadcrumb-item active" aria-current="page">
+                                        <span itemprop="item">
+                                            <span itemprop="name">{{d_name.name}}</span>
+                                            <meta itemprop="position" content="2" />
+                                        </span>
+                                    </li>
+                                </ol>
+                            </nav>
+                        </div>
+                    </div>
+                    <main class="container ml-2" style="background-color: white;">
+                        <div class="page-header-wrapper pl-3 pr-2 pt-1">
+                            <div class="page-header">
+                                <h3 class="m-0">{{d_name.name}}</h3>
+                            </div>
+                            <div class="page-header-actions-block d-s-n">
+                                <a href="/printview?doctype=Renewal List&name={{ d_name.name }}&format=Standard"
+                                    target="_blank" rel="noopener noreferrer"
+                                    class="btn btn-secondary float-right download-button btn-sm"
+                                    aria-label="Download Renewal List" style="border-radius: 10px;">
+                                    Download
+                                </a>
+                            </div>
+                            <div class="page-header-actions-block d-l-n">
+                                <a href="/printview?doctype=Renewal List&name={{ d_name.name }}&format=Standard"
+                                    target="_blank" rel="noopener noreferrer"
+                                    class="float-right download-button tooltip-btn" aria-label="Download Renewal List"
+                                    style="border-radius: 10px;">
+                                    <span class="material-symbols-outlined" style="font-size: 14px;font-weight: bold;">
+                                        Download
+                                    </span>
+                                    <span class="tooltip-text">Download</span>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="page_content">
+                            <div>
+                                <div class="row transaction-subheading  mt-1">
+                                    <div class="col-6 text-muted small mt-1">
+                                    </div>
+                                </div>
+                                <div class="row indicator-container mt-2">
+                                    <div class="col-8">
+                                        <span class="indicator-pill red status">
+                                            {{d_name.status}}
+                                        </span>
+                                    </div>
+                                    <div class="text-right col-4 customer">
+                                        <b>{{d_name.customer_name}}</b>
+    
+    
+                                    </div>
+                                </div>
+                                <div class="order-container mt-4">
+                                    <!-- items -->
+                                    <div class="w-100">
+                                        <div class="order-items order-item-header mb-1 row">
+                                            <span class="col-sm-3">
+                                                Item
+                                            </span>
+                                            <span class="col-sm-1">
+                                                Quantity
+                                            </span>
+                                            <span class="col-sm-2">
+                                                Start Date
+                                            </span>
+                                            <span class="col-sm-1 d-s-n text">
+                                                End Date
+                                            </span>
+                                            <span class="col-sm-1 d-l-n">
+                                                End Date
+                                            </span>
+                                            <span class="col-sm-2">
+                                                Rate
+                                            </span>
+                                            <span class="col-sm-2 text-right">
+                                                Amount
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {% for item in items %}
+                                    <div class="order-items row align-items-center">
+                                        <span class="order-item-name col-sm-3 pr-0">
+    
+                                            <div class="row item_name_and_description">
+                                                <div class="col-xs-8 col-sm-8">
+                                                    {{item.item_name}}
+                                                    <div class="text-muted small item-description">
+                                                        {{item.item_code}}
+                                                    </div>
+                                                    <span class="mt-2 d-l-n order-qty">
+                                                        Qty ({{item.qty}})
+                                                    </span>
+                                                </div>
+                                                <div class="col-xs-4 col-sm-4 text-right">
+                                                    <span class="d-l-n  text-right">
+                                                        {{item.amount}}
+                                                    </span>
+                                                </div>
+                                            </div>
+    
+                                        </span>
+    
+                                        <span class="d-s-n col-sm-1 pl-10">
+                                            {{item.qty}}
+                                        </span>
+                                        <span class="col-sm-2">
+                                            {{frappe.utils.format_date(d_name.start_date, "dd-MM-yyyy")}}
+                                        </span>
+                                        <span class="col-sm-1">
+                                            {{frappe.utils.format_date(d_name.end_date, "dd-MM-yyyy")}}
+                                        </span>
+                                        <span class="col-sm-2">
+                                            {{item.rate}}
+                                        </span>
+                                        <span class="col-sm-2 d-s-n  text-right">
+                                            {{item.amount}}
+                                        </span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="w-100 mt-5 order-taxes font-weight-bold">
+                                    <div class="col-4 col-md-6 d-flex">
+                                        <div class="item-grand-total col-6">
+                                            Grand Total
+                                        </div>
+                                        <div class="item-grand-total col-6 text-right pr-0">
+                                            {{d_name.total_amount}}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </main>
+    
+                </div>
+            </div>
+        
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block script %}
+
+<script>
+    function toggleSidebar(event = null) {
+        if (event) {
+            event.stopPropagation(); // Prevent event bubbling
+        }
+
+        const sidebarMain = document.querySelector('.sidebar-column'); // web_sidebar
+        const sidebar1 = document.getElementById('sidebar1'); // web_sidebar1
+        const screenWidth = window.innerWidth;
+
+        if (screenWidth > 1023) {
+            // Laptop & Desktop logic
+            if (sidebarMain) {
+                sidebarMain.classList.toggle('collapsed');
+                localStorage.setItem('sidebar-collapsed', sidebarMain.classList.contains('collapsed') ? 'true' : 'false');
+            }
+        } else {
+            // Mobile & Tablet logic
+            if (sidebar1) {
+                sidebar1.style.display = (sidebar1.style.display === 'none' || !sidebar1.style.display) ? 'block' : 'none';
+            }
+        }
+    }
+
+    function toggleDropdown(event) {
+        event.stopPropagation(); // Prevent click from bubbling up
+        const dropdownCard = document.getElementById("dropdownCard"); // Desktop/Laptop dropdown
+        const dropdownCard1 = document.getElementById("dropdownCard1"); // Mobile/Tablet dropdown
+        const screenWidth = window.innerWidth;
+
+        if (screenWidth > 1023) {
+            // Desktop/Laptop
+            if (dropdownCard) {
+                dropdownCard.style.display = (dropdownCard.style.display === "none" || !dropdownCard.style.display) ? "block" : "none";
+            }
+        } else {
+            // Mobile/Tablet
+            if (dropdownCard1) {
+                dropdownCard1.style.display = (dropdownCard1.style.display === "none" || !dropdownCard1.style.display) ? "block" : "none";
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const sidebarMain = document.querySelector('.sidebar-column');
+        if (window.innerWidth > 1023 && sidebarMain && localStorage.getItem('sidebar-collapsed') === 'true') {
+            sidebarMain.classList.add('collapsed');
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", function (event) {
+        const dropdownCard = document.getElementById("dropdownCard");
+        const dropdownCard1 = document.getElementById("dropdownCard1");
+        const profileContainer = document.querySelector('.profile-container');
+
+        if (window.innerWidth > 1023) {
+            // Desktop/Laptop
+            if (dropdownCard && dropdownCard.style.display === "block" &&
+                !dropdownCard.contains(event.target) && !profileContainer.contains(event.target)) {
+                dropdownCard.style.display = "none";
+            }
+        } else {
+            // Mobile/Tablet
+            if (dropdownCard1 && dropdownCard1.style.display === "block" &&
+                !dropdownCard1.contains(event.target) && !profileContainer.contains(event.target)) {
+                dropdownCard1.style.display = "none";
+            }
+        }
+    });
+</script>
+
+
+{% endblock %}

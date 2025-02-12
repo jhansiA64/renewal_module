@@ -30,6 +30,10 @@
 
         <!-- Template Stylesheet -->
         <link href="css/style.css" rel="stylesheet">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&display=swap"
+        rel="stylesheet">
     </head>
 
     <body>
@@ -91,14 +95,28 @@
             <div class="position-absolute bg-dark" style="left: 0; top: 0; width: 100%; height: 100%;">
             </div>
             <div class="container px-0">
-              <nav class="navbar navbar-expand-lg navbar-dark bg-white py-3 px-4">
+              <nav class="navbar navbar-expand-lg navbar-dark bg-white py-3 px-4" style="padding:1px !important;">
                     <a href="index.html" class="navbar-brand p-0">
                         <img src="img/logo.png">
                         <!-- <img src="img/logo.png" alt="Logo"> -->
                     </a>
+                    <div class="navbar-logo1">
+                        <img src="/img/17-years-experience.png" class="navbar-img1">
+                        {% set company = frappe.get_doc("Company", "64 Network Security Pvt Ltd - TG") %}
+                        {% set established_date = company.date_of_establishment %}
+                        {% set today = frappe.utils.now_datetime().date() %}
+                        {% set company_age = frappe.utils.date_diff(today, established_date)//365 %}
+                        <div class="text-block">
+                            <span class=" text-block" data-toggle="counter-up">{{ company_age }}</span>
+                                        <!-- <h4 class="text-block fs-1 mb-0" style="font-weight: 600; font-size: 25px;">+</h4> -->
+                          <!-- {{ company_age }} -->
+                          
+                        </div>
+                    </div>
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
-                        <span class="fa fa-bars"></span>
+                        <span class="fa fa-bars" style="color:#ffffff"></span>
                     </button>
+                    
                     <div class="collapse navbar-collapse" id="navbarCollapse">
                         <div class="navbar-nav ms-auto py-0">
                             <a href="index.html" class="nav-item nav-link ">Home</a>
@@ -111,9 +129,21 @@
                             <a href="contact.html" class="nav-item nav-link ">Contact</a>
                             <a href="/login" class="nav-item nav-link ">Login</a>
                       </div>
-                        <div class="d-flex align-items-center flex-nowrap pt-xl-0">
+                        <!-- <div class="d-flex align-items-center flex-nowrap pt-xl-0">
                             
                             <a href="#" class="btn btn-primary rounded-pill text-white py-2 px-4 ms-2 flex-wrap flex-sm-shrink-0">16 Years of Excellence</a>
+                        </div> -->
+                    </div>
+                    <div class="navbar-logo">
+                        <img src="/img/17-years-experience.png" class="navbar-img">
+                        {% set company = frappe.get_doc("Company", "64 Network Security Pvt Ltd - TG") %}
+                        {% set established_date = company.date_of_establishment %}
+                        {% set today = frappe.utils.now_datetime().date() %}
+                        {% set company_age = frappe.utils.date_diff(today, established_date)//365 %}
+                        <div class="text-block">
+                          <!-- {{ company_age }} -->
+                          <span class=" text-block" data-toggle="counter-up">{{ company_age }}</span>
+                            
                         </div>
                     </div>
                 </nav>
@@ -157,43 +187,6 @@
         <!-- Contact Start -->
       <div class="container-fluid about bg-light py-5">
             <div class="container py-5">
-                <div class="row g-5 align-items-center">
-                    <div class="col-lg-6 col-xl-5 wow fadeInLeft" data-wow-delay="0.1s">
-                        <div class="about-img">
-                          <img src="img/about.png" class="img-fluid" alt="Image">
-                        </div>
-                  </div>
-                  {% set company = frappe.get_doc("Company", "64 Network Security Pvt Ltd - TG") %}
-                  {% set established_date = company.date_of_establishment %}
-                  <!-- {% set date1 = frappe.utils.formatdate(frappe.utils.today(), 'dd-MM-YYYY') %}
-                  {% set date2 = frappe.utils.formatdate(established_date, 'dd-MM-YYYY') %}
-                   -->
-                   {% set today = frappe.utils.now_datetime().date() %}
-                   {% set company_age = frappe.utils.date_diff(today, established_date)//365 %}
-
-                    <div class="col-lg-6 col-xl-7 wow fadeInRight" data-wow-delay="0.3s">
-                        <h4 class="text-primary">About 64 Network Security</h4>
-                      <h1 class="display-5 mb-4">With over {{ company_age}} years of experience </h1>
-                        <p class="text ps-4 mb-4">With over {{company_age}} years of experience delivering high performance security across the IT infrastructure of small and medium businesses, enterprises and government agencies in India, our network security and hybrid cloud solutions secure thousands of networks and their emails, applications and data across India.
-                      </p>
-                      <h4 class="text-primary">Enabling the Information Age</h4>
-                       
-                        <p class="text ps-4 mb-4">For more than {{company_age}} years, we have been at the forefront of constant upgradation of knowledge in technology to 
-                            bring to our clients with optimized and best fitted solutions. Every day we strive for better and improved 
-                            solutions. Our Technology consulting and Support continues to make a difference to our client's IT 
-                            infrastructure. 64Network team size is approximately 30 people.
-                      </p>
-                        
-                        
-                  
-                  </div>
-                    
-              </div>
-              <div class="row g-5 align-items-center wow fadeInLeft" data-wow-delay="0.1s">
-                <img src="img/64cm.png" >
-                <!-- <img src="img/64cm (1).png"> -->
-
-            </div><br><br>
                 <div class="row g-5 align-items-center ">
                     
                     <div class="col-lg-6 col-xl-7 wow fadeInRight" data-wow-delay="0.3s">
@@ -228,6 +221,78 @@
                         </div>
                   </div>
                 </div>
+                
+              <div class="row g-5 align-items-center wow fadeInLeft" data-wow-delay="0.1s">
+                <img src="img/64cm.png" >
+                <!-- <img src="img/64cm (1).png"> -->
+
+            </div><br><br>
+            <div class="row g-5 align-items-center">
+                <div class="col-lg-6 col-xl-5 wow fadeInLeft" data-wow-delay="0.1s">
+                    <div class="about-img">
+                      <img src="img/about.png" class="img-fluid" alt="Image">
+                    </div>
+              </div>
+              {% set company = frappe.get_doc("Company", "64 Network Security Pvt Ltd - TG") %}
+              {% set established_date = company.date_of_establishment %}
+              <!-- {% set date1 = frappe.utils.formatdate(frappe.utils.today(), 'dd-MM-YYYY') %}
+              {% set date2 = frappe.utils.formatdate(established_date, 'dd-MM-YYYY') %}
+               -->
+               {% set today = frappe.utils.now_datetime().date() %}
+               {% set company_age = frappe.utils.date_diff(today, established_date)//365 %}
+
+                <div class="col-lg-6 col-xl-7 wow fadeInRight" data-wow-delay="0.3s">
+                    <h4 class="text-primary">About 64 Network Security</h4>
+                  <h1 class="display-5 mb-4">With over {{ company_age}} years of experience </h1>
+                    <p class="text ps-4 mb-4">With over {{company_age}} years of experience delivering high performance security across the IT infrastructure of small and medium businesses, enterprises and government agencies in India, our network security and hybrid cloud solutions secure thousands of networks and their emails, applications and data across India.
+                  </p>
+                  <h4 class="text-primary">Enabling the Information Age</h4>
+                   
+                    <p class="text ps-4 mb-4">For more than {{company_age}} years, we have been at the forefront of constant upgradation of knowledge in technology to 
+                        bring to our clients with optimized and best fitted solutions. Every day we strive for better and improved 
+                        solutions. Our Technology consulting and Support continues to make a difference to our client's IT 
+                        infrastructure. 64Network team size is approximately 30 people.
+                  </p>
+                    
+                    
+              
+              </div>
+                
+          </div>
+                <!-- <div class="row g-5 align-items-center ">
+                    
+                    <div class="col-lg-6 col-xl-7 wow fadeInRight" data-wow-delay="0.3s">
+                        <h4 class="text-primary">Our Core Values</h4>
+                        <h4>Integrity</h4>
+                        <p class="text ps-4 mb-4">We believe integrity is the foundation of our 
+                            individual and Corporate actions that drive 
+                            our organization.
+                      </p>
+                      <h4>Teamwork</h4>
+                        <p class="text ps-4 mb-4">When it comes to the productivity of an 
+                            organization, nothing beats the power of 
+                            Teamwork and co-operation.
+                      </p>
+                      <h4>Performance</h4>
+                        <p class="text ps-4 mb-4">We believe performance excellence will drive 
+                            the results that differentiate us from our 
+                            competitors.
+                      </p>
+                      <h4>Learning</h4>
+                        <p class="text ps-4 mb-4">We believe a learning environment is the 
+                            way to achieve the full potential of each 
+                            individual and the company.
+                      </p>
+                    
+                        
+                  
+                    </div>
+                    <div class="col-lg-6 col-xl-5 wow fadeInLeft" data-wow-delay="0.1s">
+                        <div class="about-img">
+                          <img src="img/om.png" class="img-fluid" alt="Image">
+                        </div>
+                  </div>
+                </div> -->
                 <div class="row g-5 align-items-center wow fadeInRight" data-wow-delay="0.1s">
                     <!-- <h4 >Awards</h4> -->
                     <img src="img/awards.png" >

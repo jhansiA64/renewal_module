@@ -35,7 +35,17 @@ def handle_contact_form():
     """
 
     recipient_email = "jhansi.a@64network.com"
-    sender_email = frappe.session.user if frappe.session.user != "Guest" else email
+    email_account = frappe.get_value("Email Account", {"default_outgoing": 1}, "email_id")
+    if email_account:
+        sender_email = email_account
+            #sender_email = f"support <{email_account}>"
+    # sender_email=frappe.session.user
+    # if sender_email == "Guest":
+    #     email_account = frappe.get_value("Email Account", {"default_outgoing": 1}, "email_id")
+    #     if email_account:
+    #         sender_email = email_account
+    #     else:
+    #         sender_email = frappe.session.user
 
     try:
         frappe.sendmail(

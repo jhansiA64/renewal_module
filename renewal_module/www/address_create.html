@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+{% extends "templates/web.html" %}
+import frappe
+{% block page_content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<div class="container">
+    <div class="row" id="page-list" data-path="address_create">
+        <div class="sidebar-column col-sm-2">
+            <div class="web-sidebar">
+                {% include web_sidebar %}
+            </div>
+        </div>
+        <div class="main-column col-sm-10">
+            <div class="page-content-wrapper">
+                <div class="page-breadcrumbs">
+
+                </div>
+            </div>
+            <main class="container ml-2">
+                <div class="page-content-wrapper">
+                    <div class="page-breadcrumbs">
+                        <div class="breadcrumb-container" style="margin-top:-1px;">
+                            <nav aria-label="breadcrumb" style="display: flex; align-items: center;">
+                                <ol class="breadcrumb" itemscope itemtype="http://schema.org/BreadcrumbList">
+                                    <div class="page-header-icon">
+                                        <i class="fa fa-bars" aria-hidden="true" onclick="toggleSidebar(event)"></i>
+                                    </div>
+                                    <div id="sidebar1" class="page-header-toggle">
+                                        {% include web_sidebar1 %}
+                                    </div>
+                                </ol>
+                                <ol class="breadcrumb">
+                                    <h3 class="my-account-header" style="margin: 0;color:#383838;">Address</h3>
+                                </ol>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+                <div class="page_content mt-1 mb-3" style="background-color: white;margin:2px;padding:2px;">
+
+                    <form id="addressForm">
+                        <div class="row">
+
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label for="address_type">Address Type</label>
+                                    <select class="form-control" id="address_type" name="address_type">
+                                        <option value="Billing">Billing</option>
+                                        <option value="Shipping">Shipping</option>
+                                        <option value="Office">Office</option>
+                                        <option value="Personal">personal</option>
+                                        <option value="Plant">Plant</option>
+                                        <option value="Postal">Postal</option>
+                                        <option value="Shop">Shop</option>
+                                        <option value="Subsidiary">Subsidiary</option>
+                                        <option value="Warehouse">Warehouse</option>
+                                        <option value="Current">Current</option>
+                                        <option value="Permanent">Permanent</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label for="email_id">Email Address</label>
+                                    <input type="email" id="email_id" name="email_id" class="form-control" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label for="address_line1">Address Line 1*</label>
+                                    <input type="text" id="address_line1" name="address_line1" class="form-control"
+                                        required />
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label for="phone">Phone</label>
+                                    <input type="text" id="phone" name="phone" class="form-control" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label for="address_line2">Address Line 2</label>
+                                    <input type="text" id="address_line2" name="address_line2" class="form-control" />
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label for="fax">Fax</label>
+                                    <input type="text" id="fax" name="fax" class="form-control" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label for="city">City/Town*</label>
+                                    <input type="text" id="city" name="city" class="form-control" required />
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <input type="checkbox" id="is_primary_address" name="is_primary_address" />
+                                    <label for="is_primary_address">Is Primary Address</label>
+                                </div>
+
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label for="state">State</label>
+                                    <input type="text" id="state" name="state" class="form-control" />
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <input type="checkbox" id="is_shipping_address" name="is_shipping_address" />
+                                    <label for="is_shipping_address">Is Shipping Address</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label for="county">County *</label>
+                                    <input type="text" id="county" name="county" class="form-control" required />
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <input type="checkbox" id="disabled" name="disabled" />
+                                    <label for="disabled">Disabled</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="form-group">
+                                    <label for="postal_code">Postal Code</label>
+                                    <input type="text" id="postal_code" name="postal_code" class="form-control" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="clear" class="btn btn-secondary btn-sm" id="discard-button">Clear</button>
+                        <button type="submit" class="btn btn-primary btn-sm">Submit</button>
+                    </form>
+                    <div id="responseMessage"></div>
+
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
+{%endblock%}
+
+{% block script %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const form = document.getElementById("addressForm");
+
+        form.addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const formData = new FormData(form);
+            const addressData = {};
+
+            formData.forEach((value, key) => {
+                addressData[key] = value;
+            });
+
+            addressData.is_primary_address = document.getElementById("is_primary_address").checked ? 1 : 0;
+            addressData.is_shipping_address = document.getElementById("is_shipping_address").checked ? 1 : 0;
+            addressData.disabled = document.getElementById("disabled").checked ? 1 : 0;
+
+            try {
+                const user = frappe.session.user; // Get current user
+                if (user === "Administrator") {
+                    // Prompt admin to input customer name manually
+                    const customerName = prompt("No customer is linked to this admin user. Please enter a customer name to link:");
+
+                    if (!customerName) {
+                        document.getElementById("responseMessage").innerHTML =
+                            `<div class="alert alert-danger">Customer name is required to create the address.</div>`;
+                        return;
+                    }
+
+                    addressData.link_document_type = "Customer";
+                    addressData.link_name = customerName;
+
+                    await createAddress(addressData);
+                } else {
+                    // Fetch customer linked to the current user
+                    const customerResponse = await frappe.call({
+                        method: "frappe.client.get_list",
+                        args: {
+                            doctype: "Contact",
+                            filters: { user: user },
+                            fields: ["name", "company_name"],
+                        },
+                    });
+
+                    if (customerResponse.message.length > 0) {
+                        const customer = customerResponse.message[0];
+                        addressData.link_document_type = "Customer";
+                        addressData.link_name = customer.company_name;
+
+                        await createAddress(addressData);
+                    } else {
+                        document.getElementById("responseMessage").innerHTML =
+                            `<div class="alert alert-danger">No customer linked to this user. Unable to create address.</div>`;
+                    }
+                }
+            } catch (error) {
+                document.getElementById("responseMessage").innerHTML =
+                    `<div class="alert alert-danger">An error occurred while processing your request.</div>`;
+            }
+        });
+
+        async function createAddress(addressData) {
+            try {
+                const response = await frappe.call({
+                    method: "frappe.client.insert",
+                    args: {
+                        doc: {
+                            doctype: "Address",
+                            address_type: addressData.address_type,
+                            address_line1: addressData.address_line1,
+                            address_line2: addressData.address_line2,
+                            city: addressData.city,
+                            state: addressData.state,
+                            county: addressData.county,
+                            pincode: addressData.postal_code,
+                            email_id: addressData.email_id,
+                            phone: addressData.phone,
+                            fax: addressData.fax,
+                            is_primary_address: addressData.is_primary_address,
+                            is_shipping_address: addressData.is_shipping_address,
+                            disabled: addressData.disabled,
+                            links: [
+                                {
+                                    link_doctype: "Customer",
+                                    link_name: addressData.link_name,
+                                },
+                            ],
+                        },
+                    },
+                });
+
+                if (response.message) {
+                    document.getElementById("responseMessage").innerHTML =
+                        `<div class="alert alert-success">Address created successfully!</div>`;
+                    form.reset();
+                } else {
+                    document.getElementById("responseMessage").innerHTML =
+                        `<div class="alert alert-danger">Failed to create address.</div>`;
+                }
+            } catch (error) {
+                document.getElementById("responseMessage").innerHTML =
+                    `<div class="alert alert-danger">An error occurred while creating the address.</div>`;
+            }
+        }
+
+        document.getElementById("discard-button").addEventListener("click", () => {
+            document.getElementById("addressForm").reset();
+        });
+    });
+</script>
+
+<script>
+    function toggleSidebar(event = null) {
+        if (event) {
+            event.stopPropagation(); // Prevent event bubbling
+        }
+
+        const sidebarMain = document.querySelector('.sidebar-column'); // web_sidebar
+        const sidebar1 = document.getElementById('sidebar1'); // web_sidebar1
+        const screenWidth = window.innerWidth;
+
+        if (screenWidth > 1023) {
+            // Laptop & Desktop logic
+            if (sidebarMain) {
+                sidebarMain.classList.toggle('collapsed');
+                localStorage.setItem('sidebar-collapsed', sidebarMain.classList.contains('collapsed') ? 'true' : 'false');
+            }
+        } else {
+            // Mobile & Tablet logic
+            if (sidebar1) {
+                sidebar1.style.display = (sidebar1.style.display === 'none' || !sidebar1.style.display) ? 'block' : 'none';
+            }
+        }
+    }
+
+    function toggleDropdown(event) {
+        event.stopPropagation(); // Prevent click from bubbling up
+        const dropdownCard = document.getElementById("dropdownCard"); // Desktop/Laptop dropdown
+        const dropdownCard1 = document.getElementById("dropdownCard1"); // Mobile/Tablet dropdown
+        const screenWidth = window.innerWidth;
+
+        if (screenWidth > 1023) {
+            // Desktop/Laptop
+            if (dropdownCard) {
+                dropdownCard.style.display = (dropdownCard.style.display === "none" || !dropdownCard.style.display) ? "block" : "none";
+            }
+        } else {
+            // Mobile/Tablet
+            if (dropdownCard1) {
+                dropdownCard1.style.display = (dropdownCard1.style.display === "none" || !dropdownCard1.style.display) ? "block" : "none";
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const sidebarMain = document.querySelector('.sidebar-column');
+        if (window.innerWidth > 1023 && sidebarMain && localStorage.getItem('sidebar-collapsed') === 'true') {
+            sidebarMain.classList.add('collapsed');
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", function (event) {
+        const dropdownCard = document.getElementById("dropdownCard");
+        const dropdownCard1 = document.getElementById("dropdownCard1");
+        const profileContainer = document.querySelector('.profile-container');
+
+        if (window.innerWidth > 1023) {
+            // Desktop/Laptop
+            if (dropdownCard && dropdownCard.style.display === "block" &&
+                !dropdownCard.contains(event.target) && !profileContainer.contains(event.target)) {
+                dropdownCard.style.display = "none";
+            }
+        } else {
+            // Mobile/Tablet
+            if (dropdownCard1 && dropdownCard1.style.display === "block" &&
+                !dropdownCard1.contains(event.target) && !profileContainer.contains(event.target)) {
+                dropdownCard1.style.display = "none";
+            }
+        }
+    });
+</script>
+{%endblock%}

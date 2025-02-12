@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+{% extends "templates/web.html" %}
+import frappe
+{% block page_content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<div class="container">
+    <div class="row" id="page-list" data-path="renewal_list">
+        <div class="sidebar-column col-sm-2">
+            <div class="web-sidebar">
+                {% include web_sidebar %}
+            </div>
+        </div>
+        <div class="main-column col-sm-10">
+            <div class="page-content-wrapper pl-3">
+                <div class="page-breadcrumbs">
+                    <div class="breadcrumb-container" style="margin-top:-2px;">
+                        <nav aria-label="breadcrumb" style="display: flex; align-items: center;">
+                            <ol class="breadcrumb" itemscope itemtype="http://schema.org/BreadcrumbList">
+                                <div class="page-header-icon">
+                                    <i class="fa fa-bars" aria-hidden="true" onclick="toggleSidebar(event)"></i>
+                                </div>
+                                <div id="sidebar1" class="page-header-toggle">
+                                    {% include web_sidebar1 %}
+                                </div>
+                            </ol>
+                            <ol class="breadcrumb">
+                                <h3 class="my-account-header" style="margin: 0;color:#383838;">Renewal List</h3>
+                            </ol>
+                            <ol class="breadcrumb" style="margin-left: auto;margin-right:0;">
+                                <input type="text" id="search-bar" class="form-control search" placeholder="Search..."
+                                    onkeyup="filterRows()" style="border-radius: 10px;">
+                            </ol>
+
+                        </nav>
+                    </div>
+                </div>
+                <main class="container ml-2">
+                    
+                    <div class="page_content" style="background-color: white;">
+
+                        <div class="website-list" data-doctype="Renewal List" data-txt="None" style="min-height:90vh;">
+                            <div class="website-list-filters">
+                                <!-- <input type="text" id="search-bar" class="form-control" placeholder="Search..."
+                                    onkeyup="filterRows()"> -->
+                            </div>
+                            <div id="row-container" class="result"
+                                style="background-color: white;box-sizing: border-box;">
+                                {% for d in doc %}
+                                <div class="web-list-item transaction-list-item">
+                                    <div class="row align-items-center">
+                                        <div class="col-sm-2">
+                                            <span class="list-item-name font-weight-bold d-s-n">{{d.name}}</span>
+                                            <a class="transaction-item-link d-s-n"
+                                                href="renewal_lists?d_name={{ d.name }}">Link</a>
+                                            <div class="small text-muted transaction-time d-s-n" title="">
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-6 d-l-n">
+                                                    <span class="list-item-name font-weight-bold">{{d.name}}</span>
+                                                    <a class="transaction-item-link"
+                                                        href="renewal_lists?d_name={{ d.name }}">Link</a>
+                                                    <div class="small text-muted transaction-time" title="">
+                                                    </div>
+                                                </div>
+                                                <div class="col-6 d-l-n text-right">
+                                                    <div class="text-right font-weight-bold item-total">
+                                                        {{d.total_amount}}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-2">
+                                            <span class="indicator-pill red list-item-status status">{{d.status}}</span>
+                                        </div>
+                                        <div class="col-sm-2">
+                                            <div class="ellipsis ellipsis-width items-startdate d-s-n">
+                                                {{frappe.utils.format_date(d.start_date, "dd-MM-yyyy")}}
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-6 d-l-n">
+                                                    <div class="ellipsis ellipsis-width items-startdate">
+                                                        {{frappe.utils.format_date(d.start_date, "dd-MM-yyyy")}}
+                                                    </div>
+                                                </div>
+                                                <div class="col-6 d-l-n text-right">
+                                                    <div class="ellipsis ellipsis-width items-enddate">
+                                                        {{frappe.utils.format_date(d.end_date, "dd-MM-yyyy")}}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-2 d-s-n">
+                                            <div class="ellipsis ellipsis-width items-enddate">
+                                                {{frappe.utils.format_date(d.end_date, "dd-MM-yyyy")}}
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-2">
+                                            <div class="ellipsis ellipsis-width items-name">
+                                                {{ d.item_name }}
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-2 d-s-n text-right font-weight-bold item-total">
+                                            {{d.total_amount}}
+                                        </div>
+                                    </div>
+
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="list-paging-area level mb-2" style="padding:5px">
+                            <div class="level-left">
+                                <div class="btn-group">
+                                    <button class="btn btn-sm b1 mr-2" onclick="showRows(20, this)">20
+                                    </button>
+                                    <button class="btn btn-sm bl mr-2" onclick="showRows(100, this)">100
+                                    </button>
+                                    <button class="btn btn-sm b1 mr-2" onclick="showRows(500, this)">500
+                                    </button>
+                                    <button class="btn btn-sm b1" onclick="showRows(1500, this)">1500
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="level-right">
+                                <button class="btn btn-sm" onclick="loadMoreRows()">
+                                    Load More
+                                </button>
+                            </div>
+                        </div>
+
+                        
+
+                    </div>
+                </main>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block script %}
+<script>
+    function toggleSidebar(event = null) {
+        if (event) {
+            event.stopPropagation(); // Prevent event bubbling
+        }
+
+        const sidebarMain = document.querySelector('.sidebar-column'); // web_sidebar
+        const sidebar1 = document.getElementById('sidebar1'); // web_sidebar1
+        const screenWidth = window.innerWidth;
+
+        if (screenWidth > 1023) {
+            // Laptop & Desktop logic
+            if (sidebarMain) {
+                sidebarMain.classList.toggle('collapsed');
+                localStorage.setItem('sidebar-collapsed', sidebarMain.classList.contains('collapsed') ? 'true' : 'false');
+            }
+        } else {
+            // Mobile & Tablet logic
+            if (sidebar1) {
+                sidebar1.style.display = (sidebar1.style.display === 'none' || !sidebar1.style.display) ? 'block' : 'none';
+            }
+        }
+    }
+
+    function toggleDropdown(event) {
+        event.stopPropagation(); // Prevent click from bubbling up
+        const dropdownCard = document.getElementById("dropdownCard"); // Desktop/Laptop dropdown
+        const dropdownCard1 = document.getElementById("dropdownCard1"); // Mobile/Tablet dropdown
+        const screenWidth = window.innerWidth;
+
+        if (screenWidth > 1023) {
+            // Desktop/Laptop
+            if (dropdownCard) {
+                dropdownCard.style.display = (dropdownCard.style.display === "none" || !dropdownCard.style.display) ? "block" : "none";
+            }
+        } else {
+            // Mobile/Tablet
+            if (dropdownCard1) {
+                dropdownCard1.style.display = (dropdownCard1.style.display === "none" || !dropdownCard1.style.display) ? "block" : "none";
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const sidebarMain = document.querySelector('.sidebar-column');
+        if (window.innerWidth > 1023 && sidebarMain && localStorage.getItem('sidebar-collapsed') === 'true') {
+            sidebarMain.classList.add('collapsed');
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", function (event) {
+        const dropdownCard = document.getElementById("dropdownCard");
+        const dropdownCard1 = document.getElementById("dropdownCard1");
+        const profileContainer = document.querySelector('.profile-container');
+
+        if (window.innerWidth > 1023) {
+            // Desktop/Laptop
+            if (dropdownCard && dropdownCard.style.display === "block" &&
+                !dropdownCard.contains(event.target) && !profileContainer.contains(event.target)) {
+                dropdownCard.style.display = "none";
+            }
+        } else {
+            // Mobile/Tablet
+            if (dropdownCard1 && dropdownCard1.style.display === "block" &&
+                !dropdownCard1.contains(event.target) && !profileContainer.contains(event.target)) {
+                dropdownCard1.style.display = "none";
+            }
+        }
+    });
+</script>
+
+
+<script>
+    let rowsPerPage = 20; // Default number of rows to show
+    let currentlyVisibleRows = rowsPerPage; // Track visible rows count
+    let searchQuery = ""; // Store the current search query
+
+    function showRows(count, button = null) {
+        rowsPerPage = count; // Update rows per page
+        currentlyVisibleRows = count; // Update visible row count
+        filterRows(); // Reapply search and pagination
+
+        // Highlight the active button
+        if (button) {
+            const buttons = document.querySelectorAll(".btn-group .btn");
+            buttons.forEach(btn => btn.classList.remove("active"));
+            button.classList.add("active");
+        }
+    }
+
+    function filterRows() {
+        const searchInput = document.getElementById("search-bar").value.toLowerCase();
+        const rows = document.querySelectorAll("#row-container .web-list-item");
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const name = row.querySelector(".list-item-name").textContent.toLowerCase();
+            const status = row.querySelector(".list-item-status").textContent.toLowerCase();
+            const startDate = row.querySelector(".items-startdate").textContent.toLowerCase();
+            const endDate = row.querySelector(".items-enddate").textContent.toLowerCase();
+            const itemName = row.querySelector(".items-name").textContent.toLowerCase();
+            let totalAmount = row.querySelector(".item-total").textContent.toLowerCase();
+            totalAmount = totalAmount.replace(/,/g, "").replace(/\s+/g, "");
+
+            const matches =
+                name.includes(searchInput) ||
+                status.includes(searchInput) ||
+                startDate.includes(searchInput) ||
+                endDate.includes(searchInput) ||
+                itemName.includes(searchInput) ||
+                totalAmount.includes(searchInput);
+
+            if (matches && visibleCount < currentlyVisibleRows) {
+                row.style.display = "block"; // Show matching row
+                visibleCount++;
+            } else {
+                row.style.display = "none"; // Hide row
+            }
+        });
+    }
+
+    function loadMoreRows() {
+        currentlyVisibleRows += rowsPerPage; // Increase the number of visible rows
+        filterRows(); // Reapply filtering with increased row count
+    }
+
+    // Initialize the page with default rows
+    document.addEventListener("DOMContentLoaded", () => {
+        const defaultButton = document.querySelector(".btn-group .btn");
+        showRows(rowsPerPage, defaultButton);
+    });
+</script>
+{% endblock %}

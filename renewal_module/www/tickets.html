@@ -1,0 +1,296 @@
+{% extends "templates/web.html" %}
+{% from "frappe/templates/includes/avatar_macro.html" import avatar %}
+import frappe
+{% block page_content %}
+<div class="container">
+    <div class="row" id="page-list" data-path="tickets">
+        <div class="sidebar-column col-sm-2">
+            <div class="web-sidebar">
+                {% include web_sidebar %}
+            </div>
+        </div>
+        <div class="main-column col-sm-10">
+            <div class="page-content-wrapper pl-3">
+                <!-- breadcrumbs -->
+                <div class="page-breadcrumbs">
+                    <div class="breadcrumb-container" style="margin-top:-1px;">
+                        <nav aria-label="breadcrumb" style="display: flex; align-items: center;">
+                            <ol class="breadcrumb" itemscope itemtype="http://schema.org/BreadcrumbList">
+                                <div class="page-header-icon">
+                                    <i class="fa fa-bars" aria-hidden="true" onclick="toggleSidebar(event)"></i>
+                                </div>
+                                <div id="sidebar1" class="page-header-toggle">
+                                    {% include web_sidebar1 %}
+                                </div>
+                            </ol>
+                            <ol class="breadcrumb">
+                                <h3 class="my-account-header" style="margin: 0;color:#383838;">Issue</h3>
+                            </ol>
+
+                        </nav>
+                    </div>
+                </div>
+                <main class="container my-4">
+                    <div class="page-header-wrapper">
+                    </div>
+
+                    <div class="page_content ml-3" style="background-color: white;">
+                        <!-- web form container -->
+                        <div class="web-form-container ml-2 pl-2">
+                            <!-- breadcrumb -->
+                            <div class="breadcrumb-container container">
+                            </div>
+
+                            <form role="form" class="web-form" id="ticket-form">
+                                <div class="web-form-body">
+                                    <div class="web-form-wrapper">
+                                        <div class="form-layout">
+                                            <div class="form-page">
+                                                <div class="row form-section">
+                                                    <div class="section-body">
+                                                        <div class="form-column col-sm-12">
+                                                            <div class="form-group">
+                                                                <label for="subject">Subject</label>
+                                                                <textarea id="subject" name="subject"
+                                                                    class="form-control" rows="1"
+                                                                    placeholder="Enter subject"></textarea>
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <label for="status">Status</label>
+                                                                <input type="text" id="status" name="status"
+                                                                    value="Open" class="form-control" readonly>
+                                                            </div>
+                                                            <div class="form-group">
+                                                                {% set current_user=frappe.get_doc("User",
+                                                                frappe.session.user) %}
+                                                                {% if current_user.full_name not in ["Guest",
+                                                                "Administrator"] %}
+                                                                {% set contact = frappe.get_doc("Contact", {"user":
+                                                                current_user.email}) %}
+                                                                <label for="customer">Customer</label>
+                                                                <input type="text" id="customer" name="customer"
+                                                                    class="form-control" {% if contact and
+                                                                    contact.company_name %}
+                                                                    value="{{ contact.company_name }}" {% endif %}>
+                                                                {% else %}
+                                                                <label for="customer">Customer</label>
+                                                                <input type="text" id="customer" name="customer"
+                                                                    class="form-control" placeholder="Enter customer">
+                                                                {% endif %}
+                                                            </div>
+
+                                                            <div class="form-group">
+                                                                <label for="description">Description</label>
+                                                                <textarea id="description" name="description"
+                                                                    class="form-control" rows="5"
+                                                                    placeholder="Enter description"></textarea>
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <label for="attachment">Attachment</label>
+                                                                <input type="file" id="attachment" name="attachment"
+                                                                    class="form-control-file">
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <label for="priority">Priority</label>
+                                                                <select id="priority" name="priority"
+                                                                    class="form-control" required>
+                                                                    <option value="Medium" selected>Medium</option>
+                                                                    <option value="Low">Low</option>
+                                                                    <option value="High">High</option>
+                                                                </select>
+                                                            </div>
+
+                                                            <button type="button" class="btn btn-warm btn-sm"
+                                                                id="discard-button">Discard</button>
+                                                            <button type="submit"
+                                                                class="btn btn-primary btn-sm">Submit</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+
+                            
+                            <div style="height: 3rem"></div>
+                        </div>
+
+                        <!-- success page -->
+                        <div class="success-page hide">
+                            <div class="success-header">
+                                <svg class="success-icon icon">
+                                    <use href="#icon-solid-success"></use>
+                                </svg>
+                                <h2 class="success-title">Submitted</h2>
+                            </div>
+
+                            <div class="success-body">
+                                <p class="success-message">Thank you for spending your valuable time to fill this form
+                                </p>
+                            </div>
+
+                            <div class="success-footer">
+
+                                <div class="success_url_message">
+                                    <p>
+                                        <a href="/issue">Click here</a> if you are not redirected within <span
+                                            class="time">5</span> seconds
+                                    </p>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+                </main>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+{%endblock%}
+
+{% block script %}
+
+<script>
+    function toggleSidebar(event = null) {
+        if (event) {
+            event.stopPropagation(); // Prevent event bubbling
+        }
+
+        const sidebarMain = document.querySelector('.sidebar-column'); // web_sidebar
+        const sidebar1 = document.getElementById('sidebar1'); // web_sidebar1
+        const screenWidth = window.innerWidth;
+
+        if (screenWidth > 1023) {
+            // Laptop & Desktop logic
+            if (sidebarMain) {
+                sidebarMain.classList.toggle('collapsed');
+                localStorage.setItem('sidebar-collapsed', sidebarMain.classList.contains('collapsed') ? 'true' : 'false');
+            }
+        } else {
+            // Mobile & Tablet logic
+            if (sidebar1) {
+                sidebar1.style.display = (sidebar1.style.display === 'none' || !sidebar1.style.display) ? 'block' : 'none';
+            }
+        }
+    }
+
+    function toggleDropdown(event) {
+        event.stopPropagation(); // Prevent click from bubbling up
+        const dropdownCard = document.getElementById("dropdownCard"); // Desktop/Laptop dropdown
+        const dropdownCard1 = document.getElementById("dropdownCard1"); // Mobile/Tablet dropdown
+        const screenWidth = window.innerWidth;
+
+        if (screenWidth > 1023) {
+            // Desktop/Laptop
+            if (dropdownCard) {
+                dropdownCard.style.display = (dropdownCard.style.display === "none" || !dropdownCard.style.display) ? "block" : "none";
+            }
+        } else {
+            // Mobile/Tablet
+            if (dropdownCard1) {
+                dropdownCard1.style.display = (dropdownCard1.style.display === "none" || !dropdownCard1.style.display) ? "block" : "none";
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const sidebarMain = document.querySelector('.sidebar-column');
+        if (window.innerWidth > 1023 && sidebarMain && localStorage.getItem('sidebar-collapsed') === 'true') {
+            sidebarMain.classList.add('collapsed');
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", function (event) {
+        const dropdownCard = document.getElementById("dropdownCard");
+        const dropdownCard1 = document.getElementById("dropdownCard1");
+        const profileContainer = document.querySelector('.profile-container');
+
+        if (window.innerWidth > 1023) {
+            // Desktop/Laptop
+            if (dropdownCard && dropdownCard.style.display === "block" &&
+                !dropdownCard.contains(event.target) && !profileContainer.contains(event.target)) {
+                dropdownCard.style.display = "none";
+            }
+        } else {
+            // Mobile/Tablet
+            if (dropdownCard1 && dropdownCard1.style.display === "block" &&
+                !dropdownCard1.contains(event.target) && !profileContainer.contains(event.target)) {
+                dropdownCard1.style.display = "none";
+            }
+        }
+    });
+</script>
+
+<script>
+
+    document.getElementById("ticket-form").addEventListener("submit", async function (e) {
+        e.preventDefault(); // Prevent default form submission
+
+        const formData = new FormData(this); // Collect form data
+        const payload = {
+            subject: formData.get("subject"),
+            status: formData.get("status"),
+            customer: formData.get("customer"),
+            description: formData.get("description"),
+            priority: formData.get("priority"),
+        };
+
+        if (!payload.subject || !payload.customer || !payload.priority) {
+            alert("Subject, Customer, and Priority are mandatory fields.");
+            return;
+        }
+
+        const attachment = formData.get("attachment");
+        if (attachment && attachment.size > 0) {
+            formData.append("attachment", attachment); // Include the file in FormData
+        }
+
+        await submitIssue(formData); // Send FormData instead of a JSON object
+    });
+
+    async function submitIssue(formData) {
+        try {
+            const csrfToken = frappe.csrf_token || document.querySelector("meta[name='csrf-token']").content;
+
+            const response = await fetch("/api/method/renewal_module.api.create_issue", {
+                method: "POST",
+                headers: {
+                    "X-Frappe-CSRF-Token": csrfToken, // Include CSRF token
+                },
+                body: formData, // Send FormData directly
+            });
+
+            if (!response.ok) {
+                const error = await response.text();
+                console.error("API Error Response:", error);
+                alert("Failed to create Issue: " + response.statusText);
+                return;
+            }
+
+            const result = await response.json();
+            if (result.message) {
+                alert("Issue created successfully: " + result.message);
+                //window.location.reload(); // Reload after successful submission
+                window.location.href = "/issue";
+            } else {
+                alert("Failed to create Issue: " + (result.message || "Unknown error"));
+            }
+        } catch (error) {
+            console.error("Submission Error:", error);
+            alert("An error occurred while submitting the form.");
+        }
+    }
+
+    // Discard button functionality
+    document.getElementById("discard-button").addEventListener("click", () => {
+        document.getElementById("ticket-form").reset();
+    });
+
+</script>
+{% endblock %}

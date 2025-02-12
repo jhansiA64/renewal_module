@@ -308,9 +308,101 @@
     color: var(--bs-dark);
     background: var(--bs-primary);
 }
-
+.navbar-logo{
+    width:100px;
+    position: relative;
+    padding: 0;
+    margin: 0;
+}
+.navbar-logo1{
+    display:none;
+}
+.navbar-img {
+    width: 100px;
+    height: 80px;
+    object-fit: fill;
+}
+.navbar-logo .text-block {
+    position: absolute;
+    top: 27%; 
+    left: 50%; 
+    transform: translate(-50%, -50%);
+    color:#AE1817;
+    font-family: 'Old Standard TT',serif; 
+    font-size: 30px; font-weight: bold;
+}
 #searchModal .modal-content {
     background: rgba(250, 250, 250, .6);
+}
+@media (max-width:426px){
+    .navbar-brand img {
+        max-width: 100px !important;
+        max-height: 80px !important;
+        object-fit: fill !important;
+    }
+    .navbar-logo{
+        display:none;
+    }
+    .navbar-logo1 {
+        width: 50px;
+        position: relative;
+        padding: 0;
+        margin-left: auto;
+        margin-right: 5px;
+        display: block;
+    }
+    .navbar-logo1 .navbar-img1 {
+        width: 50px;
+        height: 40px;
+        object-fit: fill;
+    }
+    .navbar-logo1 .text-block {
+        position: absolute;
+        top: 35%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #AE1817 !important;
+        font-family: 'Old Standard TT', serif;
+        font-size: 14px;
+        font-weight: bold;
+    }
+    .navbar-toggler {
+        width:40px !important;
+        height:30px !important;
+        padding:0px !important;
+    }
+    .navbar-toggler-icon {
+        font-size: 14px !important;
+    }
+}
+@media only screen and (min-device-width:426px) and (max-device-width:768px) {
+/* @media(max-width:769px){ */
+    .navbar-logo {
+        display:none;
+    }
+    .navbar-logo1 {
+        display:block;
+        width: 80px;
+        position: relative;
+        padding: 0;
+        margin-left: auto;
+        margin-right: 0;
+    }
+    .navbar-logo1 .navbar-img1 {
+        width: 70px;
+        height: 50px;
+        object-fit: fill;
+    }
+    .navbar-logo1 .text-block {
+        position: absolute;
+        top: 32%;
+        left: 45%;
+        transform: translate(-50%, -50%);
+        color: #AE1817 !important;
+        font-family: 'Old Standard TT', serif;
+        font-size: 18px;
+        font-weight: bold;
+    }
 }
 /*** Navbar End ***/
 

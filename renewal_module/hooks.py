@@ -25,7 +25,7 @@ app_include_css = "/assets/renewal_module/css/desk_custom.css"
 # include js, css files in header of web template
 # web_include_css = "/assets/renewal_module/css/renewal_module.css"
 # web_include_js = "/assets/renewal_module/js/renewal_module.js"
-
+web_include_css = "assets/renewal_module/css/renewal_module_website.css"
 # include custom scss in every website theme (without file extension ".scss")
 # website_theme_scss = "renewal_module/public/scss/website"
 
@@ -81,9 +81,101 @@ fixtures = [{"dt": "Custom Field", "filters": [["name", "in", [
 #	"Role": "home_page"
 # }
 
+role_home_page = {
+    "Customer": "/me"
+      # Redirect users with the "Customer" role to the /me page
+}
+
+
+# website_route_rules = [
+#     {"from_route": "/job-opening/<name>", "to_route": "job_opening"}
+# ]
+
 website_route_rules = [
-    {"from_route": "/job-opening/<name>", "to_route": "job_opening"}
+    {"from_route": "/job-opening/<name>", "to_route": "job_opening"},
+    { "from_route":"/renewal_list","to_route":"renewal_list" },
+    {
+        "from_route":"/renewal_list/<path:name>",
+        "to_route":"/renewal_list",
+        "defaults":{
+            "doctype":"Renewal List",
+            "parents":[{"label":"Renewal List","route":"renewal_list"}]
+        }
+    },
+    {
+        "from_route": "/sales_order", "to_route": "sales_order"
+    },
+    {
+        "from_route": "/sales_order/<path:name>",
+        "to_route": "sales_order",
+        "defaults": {
+            "doctype": "Sales Order",
+            "parents": [
+                {
+                    "label": "Sales Order",
+                    "route": "sales_order"
+                }
+            ]
+        }
+    },
+    {
+        "from_route": "/sales_invoice", "to_route": "sales_invoice"
+    },
+    {
+        "from_route": "/sales_invoice/<path:name>",
+        "to_route": "sales_invoice",
+        "defaults": {
+            "doctype": "Sales Invoice",
+            "parents": [
+                {
+                    "label": "Sales Invoice",
+                    "route": "sales_invoice"
+                }
+            ]
+        }
+    },
+    {
+        "from_route": "/issue", "to_route": "issue"
+    },
+    {
+        "from_route": "/isssue/<path:name>",
+        "to_route": "issue",
+        "defaults": {
+            "doctype": "Issue",
+            "parents": [
+                {
+                    "label": "Issue",
+                    "route": "issue"
+                }
+            ]
+        }
+    },
+    {
+        "from_route": "/address_list", "to_route": "address_list"
+    },
+    {
+        "from_route": "/address_list/<path:name>",
+        "to_route": "address_list",
+        "defaults": {
+            "doctype": "Address",
+            "parents": [
+                {
+                    "label": "Address",
+                    "route": "address_list"
+                }
+            ]
+        }
+    },
+    
 ]
+website_context = {
+    "web_sidebar": "renewal_module/templates/includes/web_sidebar.html",
+    "web_sidebar1": "renewal_module/templates/includes/web_sidebar1.html",
+    "override_doctype_templates": {
+        "me": "renewal_module/www/me.html",
+    },
+}
+
 
 # Generators
 # ----------

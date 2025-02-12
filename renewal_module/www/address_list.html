@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+<div class="container">
+    <div class="row" id="page-list" data-path="address_list">
+        <div class="sidebar-column col-sm-2">
+            <div class="web-sidebar">
+                {% include web_sidebar %}
+            </div>
+        </div>
+        <div class="main-column col-sm-10">
+            <div class="page-content-wrapper">
+                <div class="page-breadcrumbs">
+                    <div class="breadcrumb-container" style="margin-top:-1px;">
+                        <nav aria-label="breadcrumb" style="display: flex; align-items: center;">
+                            <ol class="breadcrumb" itemscope itemtype="http://schema.org/BreadcrumbList">
+                                <div class="page-header-icon">
+                                    <i class="fa fa-bars" aria-hidden="true" onclick="toggleSidebar(event)"></i>
+                                </div>
+                                <div id="sidebar1" class="page-header-toggle">
+                                    {% include web_sidebar1 %}
+                                </div>
+                            </ol>
+                            <ol class="breadcrumb">
+                                <h3 class="my-account-header" style="margin: 0;color:#383838;">Address</h3>
+                            </ol>
+                            <ol class="breadcrumb" style="margin-left: auto;margin-right:0;display:flex;">
+                                <input type="text" id="search-bar" class="form-control search" placeholder="Search..."
+                                    onkeyup="filterRows()" style="border-radius: 10px;">
+
+                            </ol>
+                            <ol class="breadcrumb">
+                                <a class="btn btn-primary btn-sm button-new" href="/address_create"
+                                    style="border-radius:10px;">create</a>
+                            </ol>
+
+                        </nav>
+                    </div>
+                </div>
+                <main class="container ml-2">
+                    <div class="page-header-wrapper">
+                        
+                    </div>
+
+                    <div class="page_content" style="background-color: white;">
+                        <div class="website-list" data-doctype="Issue" data-txt="None" style="min-height:90vh;">
+                            <div class="website-list-filters pt-2">
+
+                            </div>
+
+                            <div id="row-container" class="result"
+                                style="background-color: white;box-sizing: border-box;">
+                                {% for d in doc %}
+                                <div class="web-list-item transaction-list-item ml-5">
+                                    <div class="row">
+                                        <div class="col-10">
+                                            <b class="address-title font-weight-bold">{{ d.name }}</b><br>
+                                            {{ d.address_line1 }}<br>{% if d.address_line2 %}{{ d.address_line2 }}<br>{%
+                                            endif -%}{{ d.city }}<br>
+                                            {% if d.state %}{{ d.state }}<br>{% endif -%}
+                                            {% if d.pincode %}{{ d.pincode }}<br>{% endif -%}
+                                            {{ d.country }}<br>
+                                            {% if d.phone %}Phone: {{ d.phone }}<br>{% endif -%}
+                                            {% if d.fax %}Fax: {{ d.fax }}<br>{% endif -%}
+                                            {% if d.email_id %}Email: {{ d.email_id }}<br>{% endif -%}
+                                        </div>
+                                        <div class="col-2">
+                                            <div class="d-s-n">
+                                                <button class="btn btn-secondary edit-button float-right btn-sm"
+                                                    style="border-radius: 10px;">Edit
+                                                </button>
+                                            </div>
+                                            <div class="d-l-n">
+                                                <a class="edit-button float-right tooltip-btn" style="border:none;">
+                                                    <span class="material-symbols-outlined" style="font-size: 14px;">
+                                                        Edit
+                                                    </span>
+                                                    <span class="tooltip-text">Edit</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="list-paging-area level mb-2" style="padding:5px">
+                            <div class="level-left">
+                                <div class="btn-group">
+                                    <button class="btn btn-sm b1 mr-2" onclick="showRows(20, this)">20</button>
+                                    <button class="btn btn-sm bl mr-2" onclick="showRows(100, this)">100</button>
+                                    <button class="btn btn-sm b1 mr-2" onclick="showRows(500, this)">500</button>
+                                    <button class="btn btn-sm b1" onclick="showRows(1500, this)">1500</button>
+                                </div>
+                            </div>
+                            <div class="level-right">
+                                <button class="btn btn-sm" onclick="loadMoreRows()">Load More</button>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="modal" id="editAddressModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Address</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editAddressForm">
+                    <input type="hidden" id="addressName">
+                    <div class="form-group">
+                        <label for="addressType">Address Type *</label>
+                        <select class="form-control" id="addressType" name="address_type" required>
+                            <option value="Billing">Billing</option>
+                            <option value="Shipping">Shipping</option>
+                            <option value="Office">Office</option>
+                            <option value="Personal">Personal</option>
+                            <option value="Plant">Plant</option>
+                            <option value="Postal">Postal</option>
+                            <option value="Shop">Shop</option>
+                            <option value="Subsidiary">Subsidiary</option>
+                            <option value="Warehouse">Warehouse</option>
+                            <option value="Current">Current</option>
+                            <option value="Permanent">Permanent</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="addressLine1">Address Line 1 *</label>
+                        <input type="text" class="form-control" id="addressLine1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="addressLine2">Address Line 2</label>
+                        <input type="text" class="form-control" id="addressLine2">
+                    </div>
+                    <div class="form-group">
+                        <label for="city">City *</label>
+                        <input type="text" class="form-control" id="city" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="state">State</label>
+                        <input type="text" class="form-control" id="state">
+                    </div>
+                    <div class="form-group">
+                        <label for="county">County</label>
+                        <input type="text" class="form-control" id="county">
+                    </div>
+                    <div class="form-group">
+                        <label for="pincode">Pincode</label>
+                        <input type="text" class="form-control" id="pincode">
+                    </div>
+                    <div class="form-group">
+                        <label for="email_id">Email ID</label>
+                        <input type="email" class="form-control" id="email_id">
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Phone</label>
+                        <input type="text" class="form-control" id="phone">
+                    </div>
+                    <div class="form-group form-check">
+                        <input type="checkbox" class="form-check-input" id="is_primary_address">
+                        <label class="form-check-label" for="is_primary_address">Is Primary Address</label>
+                    </div>
+                    <div class="form-group form-check">
+                        <input type="checkbox" class="form-check-input" id="is_shipping_address">
+                        <label class="form-check-label" for="is_shipping_address">Is Shipping Address</label>
+                    </div>
+                    <div class="form-group form-check">
+                        <input type="checkbox" class="form-check-input" id="disabled">
+                        <label class="form-check-label" for="disabled">Disabled</label>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="saveAddress">Save</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{%endblock%}
+
+{% block script %}
+
+<!-- <script>
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const rows = document.querySelectorAll(".web-list-item");
+        const searchBar = document.getElementById("search-bar");
+        let currentRows = 20; // Default number of rows to show
+
+        // Function to show the first 'n' rows
+        function showRows(count, button = null) {
+            rows.forEach((row, index) => {
+                row.style.display = index < count ? "block" : "none";
+            });
+            currentRows = count;
+
+            // Highlight the active button
+            const buttons = document.querySelectorAll(".btn-group .btn");
+            buttons.forEach(btn => btn.classList.remove("active"));
+            if (button) {
+                button.classList.add("active");
+            }
+        }
+
+        // Initial setup: show default number of rows
+        const defaultButton = document.querySelector(".btn-group .btn"); // Select the default 20 button
+        showRows(currentRows, defaultButton);
+
+        // Function to filter rows based on search input
+        function filterRows() {
+            const searchTerm = searchBar.value.toLowerCase();
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const textContent = row.textContent.toLowerCase();
+                if (textContent.includes(searchTerm)) {
+                    if (visibleCount < currentRows) {
+                        row.style.display = "block";
+                        visibleCount++;
+                    } else {
+                        row.style.display = "none";
+                    }
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
+
+        // Event listener for the search bar
+        searchBar.addEventListener("input", filterRows);
+
+        // Function to load more rows incrementally
+        function loadMoreRows() {
+            currentRows += 20;
+            showRows(currentRows);
+        }
+
+        // Attach the loadMoreRows function to the button
+        window.loadMoreRows = loadMoreRows;
+
+        // Attach the showRows function to buttons
+        window.showRows = showRows;
+
+        // Attach the filterRows function to search bar
+        window.filterRows = filterRows;
+    });
+
+
+</script> -->
+<script>
+    let rowsPerPage = 20; // Default number of rows to show
+    let currentlyVisibleRows = rowsPerPage; // Set initial value to show rows on load
+    let searchQuery = ""; // Store the current search query
+
+    function showRows(count, button = null) {
+        rowsPerPage = count; // Update rows per page
+        currentlyVisibleRows = count; // Update visible row count
+        filterRows();
+
+        // Highlight the active button
+        if (button) {
+            const buttons = document.querySelectorAll(".btn-group .btn");
+            buttons.forEach(btn => btn.classList.remove("active"));
+            button.classList.add("active");
+        }
+    }
+
+    function filterRows() {
+        const searchInputElem = document.getElementById("search-bar");
+        const searchInput = searchInputElem ? searchInputElem.value.toLowerCase() : "";
+        const rows = document.querySelectorAll("#row-container .web-list-item");
+        let visibleCount = 0; // Reset visible row count
+
+        rows.forEach((row, index) => {
+            const textContent = row.textContent.toLowerCase();
+            const matches = textContent.includes(searchInput);
+
+            if (matches && visibleCount < currentlyVisibleRows) {
+                row.style.display = "block"; // Show matching row
+                visibleCount++;
+            } else {
+                row.style.display = "none"; // Hide row
+            }
+        });
+    }
+
+    function loadMoreRows() {
+        currentlyVisibleRows += rowsPerPage; // Increase visible rows count
+        filterRows(); // Reapply filtering with increased row count
+    }
+
+    // Initialize the page with default rows
+    document.addEventListener("DOMContentLoaded", () => {
+        const defaultButton = document.querySelector(".btn-group .btn");
+        if (defaultButton) {
+            showRows(rowsPerPage, defaultButton);
+        } else {
+            showRows(rowsPerPage);
+        }
+    });
+</script>
+
+<script>
+    function toggleSidebar(event = null) {
+        if (event) {
+            event.stopPropagation(); // Prevent event bubbling
+        }
+
+        const sidebarMain = document.querySelector('.sidebar-column'); // web_sidebar
+        const sidebar1 = document.getElementById('sidebar1'); // web_sidebar1
+        const screenWidth = window.innerWidth;
+
+        if (screenWidth > 1023) {
+            // Laptop & Desktop logic
+            if (sidebarMain) {
+                sidebarMain.classList.toggle('collapsed');
+                localStorage.setItem('sidebar-collapsed', sidebarMain.classList.contains('collapsed') ? 'true' : 'false');
+            }
+        } else {
+            // Mobile & Tablet logic
+            if (sidebar1) {
+                sidebar1.style.display = (sidebar1.style.display === 'none' || !sidebar1.style.display) ? 'block' : 'none';
+            }
+        }
+    }
+
+    function toggleDropdown(event) {
+        event.stopPropagation(); // Prevent click from bubbling up
+        const dropdownCard = document.getElementById("dropdownCard"); // Desktop/Laptop dropdown
+        const dropdownCard1 = document.getElementById("dropdownCard1"); // Mobile/Tablet dropdown
+        const screenWidth = window.innerWidth;
+
+        if (screenWidth > 1023) {
+            // Desktop/Laptop
+            if (dropdownCard) {
+                dropdownCard.style.display = (dropdownCard.style.display === "none" || !dropdownCard.style.display) ? "block" : "none";
+            }
+        } else {
+            // Mobile/Tablet
+            if (dropdownCard1) {
+                dropdownCard1.style.display = (dropdownCard1.style.display === "none" || !dropdownCard1.style.display) ? "block" : "none";
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const sidebarMain = document.querySelector('.sidebar-column');
+        if (window.innerWidth > 1023 && sidebarMain && localStorage.getItem('sidebar-collapsed') === 'true') {
+            sidebarMain.classList.add('collapsed');
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", function (event) {
+        const dropdownCard = document.getElementById("dropdownCard");
+        const dropdownCard1 = document.getElementById("dropdownCard1");
+        const profileContainer = document.querySelector('.profile-container');
+
+        if (window.innerWidth > 1023) {
+            // Desktop/Laptop
+            if (dropdownCard && dropdownCard.style.display === "block" &&
+                !dropdownCard.contains(event.target) && !profileContainer.contains(event.target)) {
+                dropdownCard.style.display = "none";
+            }
+        } else {
+            // Mobile/Tablet
+            if (dropdownCard1 && dropdownCard1.style.display === "block" &&
+                !dropdownCard1.contains(event.target) && !profileContainer.contains(event.target)) {
+                dropdownCard1.style.display = "none";
+            }
+        }
+    });
+</script>
+
+<script>
+    document.querySelectorAll(".edit-button").forEach(button => {
+        button.addEventListener("click", function () {
+            const addressName = this.closest(".web-list-item").querySelector(".address-title").textContent.trim();
+            frappe.call({
+                method: "frappe.client.get",
+                args: {
+                    doctype: "Address",
+                    name: addressName
+                },
+                callback: function (response) {
+                    if (response.message) {
+                        const address = response.message;
+                        document.getElementById("addressName").value = address.name;
+                        document.getElementById("addressType").value = address.address_type;
+                        document.getElementById("addressLine1").value = address.address_line1;
+                        document.getElementById("addressLine2").value = address.address_line2 || "";
+                        document.getElementById("city").value = address.city;
+                        document.getElementById("state").value = address.state;
+                        document.getElementById("county").value = address.county;
+                        document.getElementById("pincode").value = address.pincode;
+                        document.getElementById("email_id").value = address.email_id;
+                        document.getElementById("phone").value = address.phone;
+                        document.getElementById("is_primary_address").value = address.is_primary_address;
+                        document.getElementById("is_shipping_address").value = address.is_shipping_address;
+                        document.getElementById("disabled").value = address.disabled;
+                        // Show modal
+                        $("#editAddressModal").modal("show");
+                    }
+                }
+            });
+        });
+    });
+
+    document.getElementById("saveAddress").addEventListener("click", function () {
+        const addressName = document.getElementById("addressName").value;
+        if (!addressName) {
+            frappe.msgprint({
+                title: "Error",
+                indicator: "red",
+                message: "Address Name is missing. Cannot proceed."
+            });
+            return;
+        }
+        // Fetch the latest document
+        frappe.call({
+            method: "frappe.client.get",
+            args: {
+                doctype: "Address",
+                name: addressName
+            },
+            callback: function (response) {
+                if (response.message) {
+                    const latestAddress = response.message;
+                    // Update the address fields with the form data
+                    latestAddress.address_type = document.getElementById("addressType").value;
+                    latestAddress.address_line1 = document.getElementById("addressLine1").value;
+                    latestAddress.address_line2 = document.getElementById("addressLine2").value || "";
+                    latestAddress.city = document.getElementById("city").value;
+                    latestAddress.state = document.getElementById("state").value;
+                    latestAddress.county = document.getElementById("county").value;
+                    latestAddress.pincode = document.getElementById("pincode").value;
+                    latestAddress.email_id = document.getElementById("email_id").value || "";
+                    latestAddress.phone = document.getElementById("phone").value || "";
+                    latestAddress.is_primary_address = document.getElementById("is_primary_address").checked ? 1 : 0;
+                    latestAddress.is_shipping_address = document.getElementById("is_shipping_address").checked ? 1 : 0;
+                    latestAddress.disabled = document.getElementById("disabled").checked ? 1 : 0;
+                    // Save the updated document
+                    frappe.call({
+                        method: "frappe.client.save",
+                        args: {
+                            doc: latestAddress
+                        },
+                        callback: function (saveResponse) {
+                            if (!saveResponse.exc) {
+                                frappe.msgprint("Address updated successfully!");
+                                $("#editAddressModal").modal("hide");
+                                location.reload();
+                            } else {
+                                frappe.msgprint({
+                                    title: "Error",
+                                    indicator: "red",
+                                    message: "Failed to save the address. Please try again."
+                                });
+                            }
+                        }
+                    });
+                } else {
+                    frappe.msgprint({
+                        title: "Error",
+                        indicator: "red",
+                        message: "Could not fetch the latest document. Please try again."
+                    });
+                }
+            }
+        });
+    });
+
+    // Utility function to clear form fields in the modal
+    function clearModalFields() {
+        document.getElementById("addressName").value = "";
+        document.getElementById("addressType").value = "";
+        document.getElementById("addressLine1").value = "";
+        document.getElementById("addressLine2").value = "";
+        document.getElementById("city").value = "";
+        document.getElementById("state").value = "";
+        document.getElementById("county").value = "";
+        document.getElementById("pincode").value = "";
+        document.getElementById("email_id").value = "";
+        document.getElementById("phone").value = "";
+        document.getElementById("is_primary_address").value = "";
+        document.getElementById("is_shipping_address").value = "";
+        document.getElementById("disabled").value = "";
+    }
+
+    // Event listener for modal close to clear fields
+    $('#editAddressModal').on('hidden.bs.modal', function () {
+        clearModalFields();
+    });
+
+    // Initialize buttons dynamically if new rows are added
+    function initializeEditButtons() {
+        document.querySelectorAll(".edit-button").forEach(button => {
+            button.addEventListener("click", function () {
+                const addressName = this.closest(".web-list-item").querySelector(".address-title").textContent.trim();
+                // Fetch address details
+                frappe.call({
+                    method: "frappe.client.get",
+                    args: {
+                        doctype: "Address",
+                        name: addressName
+                    },
+                    callback: function (response) {
+                        if (response.message) {
+                            const address = response.message;
+                            document.getElementById("addressName").value = address.name;
+                            document.getElementById("addressType").value = address.address_type;
+                            document.getElementById("addressLine1").value = address.address_line1;
+                            document.getElementById("addressLine2").value = address.address_line2 || "";
+                            document.getElementById("city").value = address.city;
+                            document.getElementById("state").value = address.state;
+                            document.getElementById("county").value = address.county;
+                            document.getElementById("pincode").value = address.pincode;
+                            document.getElementById("email_id").value = address.email_id;
+                            document.getElementById("phone").value = address.phone;
+                            document.getElementById("is_primary_address").value = address.is_primary_address;
+                            document.getElementById("is_shipping_address").value = address.is_shipping_address;
+                            document.getElementById("disabled").value = address.disabled;
+
+                            // Show modal
+                            $("#editAddressModal").modal("show");
+                        }
+                    },
+                    error: function () {
+                        frappe.msgprint({
+                            title: "Error",
+                            indicator: "red",
+                            message: "Failed to fetch address details."
+                        });
+                    }
+                });
+            });
+        });
+    }
+    // Call the initialization function on page load
+    document.addEventListener("DOMContentLoaded", initializeEditButtons);
+</script>
+{%endblock%}

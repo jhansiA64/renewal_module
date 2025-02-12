@@ -126,16 +126,54 @@ frappe.query_reports["Opportunity Report"] = {
 			
 		},
 	
-		{
-			"fieldname":"customer",
-			"label": __("Customer"),
-			"fieldtype": "MultiSelectList",
-			"options": "Customer",
-                        get_data: function(txt) {
-				return frappe.db.get_link_options('Customer', txt);
-			},	 
-
-		},
+		// {
+		// 	"fieldname":"customer",
+		// 	"label": __("Customer"),
+		// 	"fieldtype": "MultiSelectList",
+		// 	"options": "Customer",
+        //                 get_data: function(txt) {
+		// 		return frappe.db.get_link_options('Customer', txt);
+		// 	},	
+		// 	"change": function () {
+        //         frappe.query_report.set_filter_value("contact_person", null);
+        //         frappe.query_report.refresh();
+        //     }
+        // },
+		// "change": function () {
+        //         frappe.query_report.set_filter_value("contact_person", null);
+        //         frappe.query_report.refresh();
+        //     }
+        // },
+        {
+            "fieldname": "customer",
+            "label": "Customer",
+            "fieldtype": "MultiSelectList",
+            "options": "Customer",
+            "width": 100,
+            "get_data": function (txt) {
+                return frappe.db.get_link_options("Customer", txt);
+            },
+            "change": function () {
+                frappe.query_report.set_filter_value("contact_person", null);
+                frappe.query_report.refresh();
+            }
+        },
+        {
+            "fieldname": "contact_person",
+            "label": "Contact Person",
+            "fieldtype": "MultiSelectList",
+            "options": "Contact",
+            "width": 100,
+            "get_data": function (txt) {
+                let customers = frappe.query_report.get_filter_value("customer") || [];
+                if (customers.length > 0) {
+                    return frappe.db.get_link_options("Contact", txt, {
+                        link_name: ["in", customers]
+                    });
+                }
+                return frappe.db.get_link_options("Contact", txt);
+            }
+        },
 		// {
 		// 	"fieldname":"supplier",
 		// 	"label": __("Supplier"),

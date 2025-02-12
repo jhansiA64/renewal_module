@@ -27,9 +27,13 @@
 
         <!-- Customized Bootstrap Stylesheet -->
         <link href="css/bootstrap.min.css" rel="stylesheet">
-
+        
         <!-- Template Stylesheet -->
         <link href="css/style.css" rel="stylesheet">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&display=swap"
+        rel="stylesheet">
     </head>
 
     <body>
@@ -93,13 +97,26 @@
             <div class="position-absolute bg-dark" style="left: 0; top: 0; width: 100%; height: 100%;">
             </div>
             <div class="container px-0">
-              <nav class="navbar navbar-expand-lg navbar-dark bg-white py-3 px-4">
+              <nav class="navbar navbar-expand-lg navbar-dark bg-white py-3 px-4" style="padding:1px !important;">
                     <a href="index.html" class="navbar-brand p-0">
                         <img src="img/logo.png">
                         <!-- <img src="img/logo.png" alt="Logo"> -->
                     </a>
+                    <div class="navbar-logo1">
+                        <img src="/img/17-years-experience.png" class="navbar-img1">
+                        {% set company = frappe.get_doc("Company", "64 Network Security Pvt Ltd - TG") %}
+                        {% set established_date = company.date_of_establishment %}
+                        {% set today = frappe.utils.now_datetime().date() %}
+                        {% set company_age = frappe.utils.date_diff(today, established_date)//365 %}
+                        <div class="text-block">
+                            <span class=" text-block" data-toggle="counter-up">{{ company_age }}</span>
+                                        <!-- <h4 class="text-block fs-1 mb-0" style="font-weight: 600; font-size: 25px;">+</h4> -->
+                          <!-- {{ company_age }} -->
+                          
+                        </div>
+                    </div>
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
-                        <span class="fa fa-bars"></span>
+                        <span class="fa fa-bars" style="color:#ffffff;"></span>
                     </button>
                     <div class="collapse navbar-collapse" id="navbarCollapse">
                         <div class="navbar-nav ms-auto py-0">
@@ -113,9 +130,21 @@
                             <a href="contact.html" class="nav-item nav-link ">Contact</a>
                             <a href="/login" class="nav-item nav-link ">Login</a>
                       </div>
-                        <div class="d-flex align-items-center flex-nowrap pt-xl-0">
+                        <!-- <div class="d-flex align-items-center flex-nowrap pt-xl-0">
                             
                             <a href="#" class="btn btn-primary rounded-pill text-white py-2 px-4 ms-2 flex-wrap flex-sm-shrink-0">16 Years of Excellence</a>
+                        </div> -->
+                    </div>
+                    <div class="navbar-logo">
+                        <img src="/img/17-years-experience.png" class="navbar-img">
+                        {% set company = frappe.get_doc("Company", "64 Network Security Pvt Ltd - TG") %}
+                        {% set established_date = company.date_of_establishment %}
+                        {% set today = frappe.utils.now_datetime().date() %}
+                        {% set company_age = frappe.utils.date_diff(today, established_date)//365 %}
+                        <div class="text-block">
+                          <!-- {{ company_age }} -->
+                          <span class=" text-block" data-toggle="counter-up">{{ company_age }}</span>
+                            
                         </div>
                     </div>
                 </nav>
@@ -158,7 +187,7 @@
 
         <!-- Contact Start -->
         <div class="container-fluid contact bg-light py-5">
-            {% set event_list = frappe.get_all("Event",filters={'status': 'Open','event_category':'Event'},fields=['name','subject','starts_on','ends_on'],order_by='starts_on asc') %}
+            {% set event_list = frappe.get_all("Event",filters={'status': 'Open','event_category':'Event'},fields=['name','subject','starts_on','ends_on','custom_event_mode'],order_by='starts_on asc') %}
             {% set today = frappe.utils.now_datetime() %}
             {% for event in event_list if event_list %}
             {% set start_datetime = event.starts_on %}
@@ -214,6 +243,13 @@
 
 
             <div class="container-fluid contact bg-light py-5">
+                <!-- <h1>Upcomming Events</h1> -->
+                <div style="justify-content: center;justify-items: center;">
+                    <button class="btn btn-primary" 
+                    style="border-radius:10px;text-align:center; display:flex; justify-content:center; align-items:center; padding:10px;font-size:16px;font-weight: bold;">
+                    Upcomming Events
+                    </button>   
+                </div>
                 <div class="tab-class text-center wow fadeInUp" data-wow-delay="0.3s">
                         <!-- <ul class="nav nav-pills d-inline-flex justify-content-center border-bottom mb-5">
                             
@@ -279,6 +315,122 @@
             
             {% endif %}
             {% endfor %}
+            <!-- <a class="btn btn-primary  py-3 px-5" href="">Browse More Jobs</a>
+            {% for event in event_list if event_list %}
+            {% set start_datetime = event.starts_on %}
+            {% set start_date = start_datetime.strftime("%d-%m-%Y")  %}
+            {% set start_time = start_datetime.time() %}
+            {% set end_datetime = event.starts_on %}
+            {% set end_date = end_datetime.strftime("%d-%m-%Y")  %}
+            {% if today >=start_datetime   %} 
+                                               
+            
+            <div class="container-fluid contact bg-light py-5">
+                
+                <div class="tab-class text-center wow fadeInUp" data-wow-delay="0.3s">
+                        <ul class="nav nav-pills d-inline-flex justify-content-center border-bottom mb-5">
+                            
+                            <li class="nav-item">
+                                <a class="d-flex align-items-center text-start mx-3 pb-3" data-bs-toggle="pill" href="#tab-2">
+                                    <h6 class="job-link">Full Time</h6>
+                                </a>
+                            </li>
+                            
+                        </ul> 
+                        <div class="tab-content">
+                            
+                          <div id="tab-2" class="tab-pane fade show p-0 active">
+                                <div class="col-md-12">
+                                                
+                                    <a class="btn btn-primary" href="#tab-2">Full Time Jobs</a>
+                                </div>
+                                            
+                              <div class="job-item p-4 mb-4">
+                                <div class="row g-4">
+                                        <div class="col-sm-12 col-md-8 d-flex align-items-center"> <a href="carrer_job.html"><img class="flex-shrink-0 img-fluid border rounded" src="img/64_logo_events.png" alt="" style="width: 80px; height: 80px;"></a>
+                                            <div class="text-start ps-4">
+                                              <h5 class="mb-3">{{event.subject}}</h5>
+                                              {% if event.custom_event_mode == "Offline" %}
+                                <span class="text-truncate me-3"><i class="fa fa-map-marker-alt text-primary me-2"></i> Hyderabad, Telangana</span>
+                                {% else %}
+                                <span class="text-truncate me-3"><i class="fa fa-map-marker-alt text-primary me-2"></i> {{event.custom_event_mode}} | {{start_date}} | {{start_time }}</span>
+                                {% endif %}
+                                                 <span class="text-truncate me-3"><i class="fa fa-map-marker-alt text-primary me-2"></i>Hyderabad, Telangana</span>
+                                                <span class="text-truncate me-3"><i class="far fa-clock text-primary me-2"></i>Full Time</span> 
+                                                
+                                          </div>
+                                  </div>
+                                        <div class="col-sm-12 col-md-4 d-flex flex-column align-items-start align-items-md-end justify-content-center">
+                                            <div class="d-flex mb-3">
+                                                <a class="btn btn-light btn-square me-3" href=""><i class="far fa-heart text-primary"></i></a> 
+                                                {% set eventname = event.name %}
+                                                
+                                        
+                                        
+                                        <a  class="btn btn-primary" href="/events_details?event_id={{eventname}}">View Details</a>
+                                        
+    
+                                        
+                                            </div>
+                                            <div class="d-flex align-items-center">
+                                                
+                                                <a class="btn btn-light btn-md-square me-2" href="https://www.facebook.com/sharer/sharer.php?u=https://dev.64network.com/carrer_job?job_id={{jobname}}" target="_blank" title="Share on Facebook"><i class="fab fa-facebook-f"></i></a>
+                                                <a class="btn btn-light btn-md-square me-2" href="https://twitter.com/intent/tweet?url=https://dev.64network.com/carrer_job?job_id={{jobname}}" target="_blank" title="Share on Twitter"><i class="fab fa-twitter"></i></a>
+                                                <a class="btn btn-light btn-md-square me-2" href=""><i class="fa fa-link"></i></a>
+                                                <a class="btn btn-light btn-md-square me-0" href="https://www.linkedin.com/shareArticle?url=https://dev.64network.com/carrer_job?job_id={{jobname}}" target="_blank" title="Share on LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                                            </div>
+                                            <small class="text-truncate"><i class="far fa-calendar-alt text-primary me-2"></i>Date Line: 01 June, 2024</small> 
+                                        </div>
+                                </div>
+                              </div>
+                                
+                            </div>
+                            
+                        </div>
+                    </div>
+            </div>
+            {% endif %}
+            {% endfor %} -->
+
+            <div class="container-fluid contact bg-light">
+                <div style="justify-content: center;justify-items: center;">
+                    <button class="btn btn-primary" 
+                    style="border-radius:10px;text-align:center; display:flex; justify-content:center; align-items:center; padding:10px;font-size:16px;font-weight: bold;">
+                    Previous Events
+                    </button>   
+                </div>
+                <div class="row mt-3">
+                    {% for event in event_list if event_list %}
+                    {% set start_datetime = event.starts_on %}
+                    {% set start_date = start_datetime.strftime("%d-%m-%Y")  %}
+                    {% set start_time = start_datetime.time() %}
+                    {% set end_datetime = event.starts_on %}
+                    {% set end_date = end_datetime.strftime("%d-%m-%Y")  %}
+                    {% if today >=start_datetime   %} 
+                        <div class="col-lg-3 col-md-6 mb-2">
+                            <div class="card">
+                                <div class="card-body">
+                                <h5 class="card-title mb-0">{{event.subject}}</h5>
+                                <p>
+                                    {% if event.custom_event_mode == "Offline" %}
+                                    <span class="text-truncate me-3" style="font-size: 14px;"><i class="fa fa-map-marker-alt text-primary me-2"></i> Hyderabad, Telangana |{{start_date}}</span>
+                                    {% else %}
+                                    <span class="text-truncate me-3" style="font-size: 14px;"><i class="fa fa-map-marker-alt text-primary me-2"></i> {{event.custom_event_mode}} | {{start_date}}</span>
+                                    {% endif %}
+                                </p>
+                                {% set eventname = event.name %}
+                                <a href="/events_details?event_id={{eventname}}" class="card-link btn btn-primary">view Details</a>
+                                </div>
+                            </div> 
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                
+
+            </div>
+
+            
                                 
         </div>
         <!-- Contact End -->
