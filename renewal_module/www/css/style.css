@@ -248,8 +248,10 @@
 }
 
 
-
-
+.nav-item .nav-link1:active h6 {
+    background-color: #e85433;
+    color:white;
+}
 .navbar .dropdown-toggle::after {
     border: none;
     content: "\f107" !important;

@@ -9,17 +9,17 @@ from frappe.utils import get_formatted
 <div class="container">
 
     <div class="row" id="page-list" data-path="sales_invoice">
-        <div class="sidebar-column col-sm-2">
+        <div class="sidebar-column col-sm-2 p-0">
             <div class="web-sidebar">
                 {% include web_sidebar %}
             </div>
         </div>
         <div class="main-column col-sm-10">
-            <div class="page-content-wrapper">
+            <div class="page-content-wrapper ml-2">
                 <div class="page-breadcrumbs">
                     <div class="breadcrumb-container" style="margin-top:-2px;">
                         <nav aria-label="breadcrumb" style="display: flex; align-items: center;">
-                            <ol class="breadcrumb" itemscope itemtype="http://schema.org/BreadcrumbList">
+                            <ol class="breadcrumb ml-2" itemscope itemtype="http://schema.org/BreadcrumbList">
                                 <div class="page-header-icon">
                                     <i class="fa fa-bars" aria-hidden="true" onclick="toggleSidebar(event)"></i>
                                 </div>
@@ -30,7 +30,7 @@ from frappe.utils import get_formatted
                             <ol class="breadcrumb">
                                 <h3 class="my-account-header" style="margin: 0;color:#383838;">Sales Invoice</h3>
                             </ol>
-                            <ol class="breadcrumb" style="margin-left: auto;margin-right:0;">
+                            <ol class="breadcrumb" style="margin-left: auto;margin-right:10px;">
                                 <input type="text" id="search-bar" class="form-control search" placeholder="Search..."
                                     onkeyup="filterRows()" style="border-radius: 10px;">
                             </ol>
@@ -45,11 +45,93 @@ from frappe.utils import get_formatted
 
                     <div class="page_content" style="background-color: white;">
 
-                        <div class="website-list" data-doctype="Renewal List" data-txt="None" style="min-height:90vh;">
-                            <div class="website-list-filters">
+                        <div class="website-list" data-doctype="Sales Invoice" data-txt="None"
+                            style="min-height:90vh;padding-left:1px;">
+                            <div class="website-list-filters mb-3">
+                                <!-- <div class="dropdown">
+                                    <div class="dropdown-button">
+                                        <span>Status</span>
+                                        <span class="dropdown-icon1 material-symbols-outlined">
+                                            keyboard_arrow_down
+                                        </span>
+                                    </div>
+                                    <div id="status-filter" class="dropdown-options">
+                                        <div> </div>
+                                        <div>Draft</div>
+                                        <div>Return</div>
+                                        <div>Credit Note Issued</div>
+                                        <div>Submitted</div>
+                                        <div>Paid</div>
+                                        <div>Partly Paid</div>
+                                        <div>Unpaid</div>
+                                        <div>Unpaid and Discounted</div>
+                                        <div>Partly Paid and Discounted</div>
+                                        <div>Overdue and Discounted</div>
+                                        <div>Overdue</div>
+                                        <div>Cancelled</div>
+                                        <div>Internal Transfer</div>
+                                    </div>
+                                </div> -->
+                                {% set sales_invoice_meta = frappe.get_doc("DocType", "Sales Invoice") %}
+                                {% set status_field = sales_invoice_meta.get("fields", []) | selectattr("fieldname",
+                                "equalto", "status") | list %}
+                                {% if status_field %}
+                                {% set status_options = status_field[0].options.split("\n") %}
+                                {% else %}
+                                {% set status_options = [] %}
+                                {% endif %}
+
+                                <div class="dropdown">
+                                    <div class="dropdown-button">
+                                        <span>Status</span>
+                                        <!-- <span class="dropdown-icon1 material-symbols-outlined">
+                                            keyboard_arrow_down
+                                        </span>-->
+                                        <span class=" dropdown-icon1 fa fa-angle-down"></span>
+                                    </div>
+                                    <div id="status-filter" class="dropdown-options">
+                                        {% for option in status_options %}
+                                        {% if option.strip() %}
+                                        <div>{{ option }}</div>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
                             </div>
                             <div id="row-container" class="result"
                                 style="background-color: white;box-sizing: border-box;">
+                                <div class="web-list-items"
+                                    style="background-color:#f3f3f3;border-radius: 10px;padding:8px 0px;align-items: center;justify-items: center;">
+                                    <div class="row align-items-center">
+                                        <div class="col-sm-3">
+                                            <span class="dname d-s-n">ID</span>
+                                            <div class="row">
+                                                <div class="col-5 d-l-n">
+                                                    <span class="dname">ID</span>
+                                                    <div>
+                                                        <span class="list-item-statuss ">Status</span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-5 d-l-n text-right">
+                                                    <span class="items-prioritys">Total Amount</span>
+                                                </div>
+                                                <div class="col-2 d-l-n text-right">
+                                                    <span class="items-prioritys ">Download</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-3 d-s-n text-center">
+                                            <span class="list-item-statuss">Status</span>
+                                        </div>
+                                        <div class="col-sm-3 d-s-n text-right">
+                                            <span class="items-prioritys">Total Amount</span>
+                                        </div>
+                                        <div class="col-sm-3 d-s-n text-right">
+                                            <span class="items-names">Download</span>
+                                        </div>
+                                    </div>
+                                </div>
                                 {% for d in doc %}
                                 <div class="web-list-item transaction-list-item">
                                     <div class="row align-items-center">
@@ -72,7 +154,7 @@ from frappe.utils import get_formatted
                                                     </div>
                                                     <div class="">
                                                         <span
-                                                            class="indicator-pill red list-item-status">{{d.status}}</span>
+                                                            class="indicator-pill red list-item-status status">{{d.status}}</span>
                                                     </div>
                                                 </div>
                                                 <div class="col-5 d-l-n">
@@ -80,21 +162,21 @@ from frappe.utils import get_formatted
                                                         {{d.rounded_total}}
                                                     </div>
                                                 </div>
-                                                <div class="col-2 text-right d-l-n">
-                                                    <a class="edit-button tooltip-btn"
-                                                            style="border-radius:10px;"
-                                                            onclick="printFile('{{d.custom_invoice_attachment}}')">
-                                                            <span class="material-symbols-outlined"
-                                                                style="font-size: 14px;">
-                                                                Download
-                                                            </span>
-                                                            <span class="tooltip-text">Download</span>
-                                                        </a>
+                                                <div class="col-2 d-l-n text-right">
+                                                    <a class="edit-button float-right tooltip-btn"
+                                                        style="border-radius:10px;"
+                                                        onclick="printFile('{{d.custom_invoice_attachment}}')">
+                                                        <span class="material-symbols-outlined"
+                                                            style="font-size: 12px;">
+                                                            Download
+                                                        </span>
+                                                        <span class="tooltip-text">Download</span>
+                                                    </a>
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="col-sm-3 d-s-n">
-                                            <span class="indicator-pill red list-item-status status">{{d.status}}</span>
+                                            <span class="indicator-pill red list-item-status">{{d.status}}</span>
                                         </div>
 
                                         <div class="col-sm-2 d-s-n text-right font-weight-bold item-total">
@@ -154,6 +236,42 @@ from frappe.utils import get_formatted
 {% endblock %}
 
 {% block script %}
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const dropdownButton = document.querySelector(".dropdown-button");
+        const dropdown = dropdownButton.closest(".dropdown");
+        const dropdownOptions = dropdown.querySelector(".dropdown-options");
+
+        // Open dropdown when clicking the button
+        dropdownButton.addEventListener("click", function (event) {
+            event.stopPropagation(); // Prevent event from reaching document
+            dropdown.classList.toggle("active");
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener("click", function (event) {
+            if (!dropdown.contains(event.target)) {
+                dropdown.classList.remove("active");
+            }
+        });
+
+        // Handle selecting an option
+        document.querySelectorAll(".dropdown-options div").forEach(option => {
+            option.addEventListener("click", function (event) {
+                event.stopPropagation(); // Prevent event from reaching document
+                const selectedText = this.innerText.trim();
+
+                if (selectedText) {
+                    dropdownButton.querySelector("span:first-child").innerText = selectedText;
+                }
+
+                dropdown.classList.remove("active"); // Close dropdown after selection
+                filterRows(); // Call function to filter rows (if needed)
+            });
+        });
+    });
+</script>
 <script>
     function toggleSidebar(event = null) {
         if (event) {
@@ -230,7 +348,7 @@ from frappe.utils import get_formatted
 <script>
     let rowsPerPage = 20; // Default number of rows to show
     let currentlyVisibleRows = rowsPerPage; // Track visible row count
-    let searchQuery = ""; // Store the current search query
+    //let searchQuery = ""; // Store the current search query
 
     function showRows(count, button = null) {
         rowsPerPage = count; // Update rows per page
@@ -247,9 +365,11 @@ from frappe.utils import get_formatted
 
     function filterRows() {
         const searchInput = document.getElementById("search-bar").value.toLowerCase();
+        //const statusFilter = document.getElementById("status-filter").value.toLowerCase();
+        const statusFilter = document.querySelector(".dropdown-button span:first-child").textContent.toLowerCase();
         const rows = document.querySelectorAll("#row-container .web-list-item");
-        let visibleRowCount = 0; // Track how many rows are visible after filtering
 
+        let visibleRowCount = 0; // Track how many rows are visible after filtering
         rows.forEach(row => {
             const name = row.querySelector(".list-item-name")?.textContent.toLowerCase() || "";
             const status = row.querySelector(".list-item-status")?.textContent.toLowerCase() || "";
@@ -257,12 +377,15 @@ from frappe.utils import get_formatted
             let totalAmount = row.querySelector(".item-total")?.textContent.toLowerCase() || "";
             totalAmount = totalAmount.replace(/,/g, "").replace(/\s+/g, "");
 
-            const matches = name.includes(searchInput) ||
+            const matchesSearch = name.includes(searchInput) ||
                 status.includes(searchInput) ||
                 itemName.includes(searchInput) ||
                 totalAmount.includes(searchInput);
 
-            if (matches && visibleRowCount < currentlyVisibleRows) {
+            //const matchesStatus = statusFilter === "" || status === statusFilter;
+            const matchesStatus = (statusFilter === "status" || statusFilter === "" || status === statusFilter);
+
+            if (matchesSearch && matchesStatus && visibleRowCount < currentlyVisibleRows) {
                 row.style.display = "block"; // Show matching row
                 visibleRowCount++;
             } else {

@@ -5,14 +5,14 @@ import frappe
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <div class="container">
     <div class="row" id="page-list" data-path="issue">
-        <div class="sidebar-column col-sm-2">
+        <div class="sidebar-column col-sm-2 p-0">
             <div class="web-sidebar">
                 {% include web_sidebar %}
             </div>
         </div>
         <div class="main-column col-sm-10">
-            <div class="page-content-wrapper pl-3">
-                <div class="page-breadcrumbs">
+            <div class="page-content-wrapper">
+                <div class="page-breadcrumbs ml-2">
                     <div class="breadcrumb-container" style="margin-top:-2px;">
                         <nav aria-label="breadcrumb" style="display: flex; align-items: center;">
                             <ol class="breadcrumb" itemscope itemtype="http://schema.org/BreadcrumbList">
@@ -24,32 +24,31 @@ import frappe
                                 </div>
                             </ol>
                             <ol class="breadcrumb">
-                                <h3 class="my-account-header" style="margin: 0;color:#383838;">Issue</h3>
+                                <h3 class="my-account-header" style="margin: 0;color:#383838;">Tickets</h3>
                             </ol>
-                            <ol class="breadcrumb" style="margin-left: auto;margin-right:0;display:flex;">
+                            <ol class="breadcrumb" style="margin-left: auto;margin-right:1px;display:flex;">
                                 <input type="text" id="search-bar" class="form-control search" placeholder="Search..."
                                     onkeyup="filterRows()" style="border-radius: 10px;">
 
                             </ol>
                             <ol class="breadcrumb">
-                                <a class="btn btn-primary btn-sm button-new" href="/tickets"
-                                    style="border-radius:10px;">create</a>
+                                <a class="btn btn-sm button-new" href="/tickets"
+                                    style="border-radius:10px;color:whitesmoke;margin-right:10px;margin-top:1px">create</a>
                             </ol>
 
                         </nav>
                     </div>
 
                 </div>
-                <main class="container ml-2">
-                    <div class="page-header-wrapper">
-                        
-                    </div>
+
+                <main class="container">
                     <div class="page_content" style="background-color: white;">
 
-                        <div class="website-list" data-doctype="Issue" data-txt="None" style="min-height:90vh;">
-                            <div class="website-list-filters pt-2">
-                                <div class="dropdown-container" style="position: relative; width: 150px;">
-                                    <select id="status-filter" class="form-control mb-3" placeholder="status.."
+                        <div class="website-list" data-doctype="Issue" data-txt="None"
+                            style="min-height:90vh;padding-left: 0rem;">
+                            <div class="website-list-filters mb-3">
+                                <div class="dropdown-container">
+                                    <select id="status-filter" class="form-control mb-1" placeholder="status.."
                                         onchange="filterRows()" style="width:100%;border-radius:10px;">
                                         <option value="" disabled selected hidden>Status ..</option>
                                         <option value=""></option>
@@ -59,59 +58,68 @@ import frappe
                                         <option value="Resolved">Resolved</option>
                                         <option value="Closed">Closed</option>
                                     </select>
-                                    <span class="dropdown-icon material-symbols-outlined"
-                                        style="position: absolute;top: 50%;right: 10px;transform: translateY(-50%);pointer-events: none;">
-                                        keyboard_arrow_down
-                                    </span>
+                                    <span class="dropdown-icon1 fa fa-angle-down"></span>
                                 </div>
                             </div>
                             <div id="row-container" class="result"
                                 style="background-color: white;box-sizing: border-box;">
-                                <div class="web-list-items transaction-list-item ml-5">
+                                <div class="web-list-items"
+                                    style="background-color:#f3f3f3;border-radius: 10px;padding:8px;align-items: center;justify-items: center;">
                                     <div class="row align-items-center">
-                                        <div class="col-sm-3">
-                                            <span class="list-item-names font-weight-bold">Subject</span>
+                                        <div class="col-sm-2">
+                                            <span>ID</span>
                                         </div>
-                                        <div class="col-sm-3">
-                                            <span class="list-item-statuss font-weight-bold">Status</span>
+                                        <div class="col-sm-4">
+                                            <span class="list-item-names">Subject</span>
                                         </div>
-                                        <div class="col-sm-3">
-                                            <span class="items-names font-weight-bold">Raised By</span>
+                                        <div class="col-sm-2">
+                                            <span class="list-item-statuss">Status</span>
                                         </div>
-                                        <div class="col-sm-3">
-                                            <span class="items-prioritys font-weight-bold">Priority</span>
+                                        <div class="col-sm-2">
+                                            <span class="items-names">Raised By</span>
+                                        </div>
+                                        <div class="col-sm-2 d-s-n text-center">
+                                            <span class="items-prioritys">Priority</span>
+                                        </div>
+                                        <div class="col-sm-2 d-l-n">
+                                            <span class="items-prioritys">Priority</span>
                                         </div>
                                     </div>
                                 </div>
                                 {% for d in doc %}
-                                <div class="web-list-item transaction-list-item ml-5">
+                                <div class="web-list-item transaction-list-item" style="padding-left:1px;">
                                     <div class="row align-items-center">
-                                        <div class="col-sm-3">
-                                            <span class="list-item-name">{{d.subject}}</span>
-                                            <div class="small text-muted transaction-time" title="">
-                                            </div>
+                                        <div class="col-sm-2">
+                                            <span class="dname font-weight-bold">{{d.name}}</span>
+                                            <a class="transaction-item-link" href="ticket?d_name={{ d.name }}">Link</a>
                                         </div>
-                                        <div class="col-sm-3">
-                                            <span class="indicator-pill red list-item-status status">{{d.status}}</span>
+                                        <div class="col-sm-4">
+                                            <span class="list-item-name">{{d.subject}}</span>
+                                        </div>
+                                        <div class="col-sm-2">
+                                            <span class="indicator-pill red list-item-status">{{d.status}}</span>
                                         </div>
 
-                                        <div class="col-sm-3">
-                                            <div class="items-name ellipsis">
+                                        <div class="col-sm-2">
+                                            <div class="ellipsis items-name ellipsis-width">
                                                 {{ d.raised_by }}
                                             </div>
                                         </div>
-                                        <div class="col-sm-3">
-                                            <div class="items-priority">
+                                        <div class="col-sm-2 d-s-n text-center">
+                                            <div class="items-preview ellipsis ellipsis-width items-priority">
+                                                {{ d.priority }}
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-2 d-l-n">
+                                            <div class="items-preview ellipsis ellipsis-width items-priority">
                                                 {{ d.priority }}
                                             </div>
                                         </div>
                                     </div>
-                                    <a class="transaction-item-link" href="ticket?d_name={{ d.name }}">Link</a>
                                 </div>
                                 {% endfor %}
                             </div>
                         </div>
-                        
                         <div class="list-paging-area level mb-2" style="padding:5px">
                             <div class="level-left">
                                 <div class="btn-group">
@@ -132,7 +140,7 @@ import frappe
                             </div>
                         </div>
 
-                        
+
                     </div>
                 </main>
             </div>
@@ -277,12 +285,14 @@ import frappe
         let visibleCount = 0;
 
         rows.forEach(row => {
+            const dname = row.querySelector(".dname").textContent.toLowerCase();
             const subject = row.querySelector(".list-item-name").textContent.toLowerCase();
             const status = row.querySelector(".list-item-status").textContent.toLowerCase();
             const raisedBy = row.querySelector(".items-name").textContent.toLowerCase();
             const priority = row.querySelector(".items-priority").textContent.toLowerCase();
 
             const matchesSearch = subject.includes(searchInput) ||
+                dname.includes(searchInput) ||
                 status.includes(searchInput) ||
                 raisedBy.includes(searchInput) ||
                 priority.includes(searchInput);

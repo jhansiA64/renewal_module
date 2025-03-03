@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 {% extends "templates/web.html" %}
 {% from "frappe/templates/includes/avatar_macro.html" import avatar %}
 import frappe
@@ -5,7 +6,7 @@ import frappe
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <div class="container">
     <div class="row" id="page-list" data-path="ticket">
-        <div class="sidebar-column col-sm-2">
+        <div class="sidebar-column col-sm-2 p-0">
             <div class="web-sidebar">
                 {% include web_sidebar %}
             </div>
@@ -17,16 +18,15 @@ import frappe
                         <nav aria-label="breadcrumb">
                             <ol class="breadcrumb" itemscope itemtype="http://schema.org/BreadcrumbList">
                                 <div class="page-header-icon">
-                                    <i class="fa fa-bars" aria-hidden="true"
-                                        onclick="toggleSidebar(event)"></i>
+                                    <i class="fa fa-bars" aria-hidden="true" onclick="toggleSidebar(event)"></i>
                                 </div>
                                 <div id="sidebar1" class="page-header-toggle">
                                     {% include web_sidebar1 %}
                                 </div>
                                 <li itemprop="itemListElement" itemscope itemtype="http://schema.org/ListItem"
                                     class="breadcrumb-item">
-                                    <a itemprop="item" href="/issue" itemprop="url">
-                                        <span itemprop="name">Issue</span>
+                                    <a itemprop="item" href="/issue">
+                                        <span itemprop="name">Ticket</span>
                                         <meta itemprop="position" content="1" />
                                     </a>
                                 </li>
@@ -49,12 +49,12 @@ import frappe
                             <h3 class="m-1">{{d_name.name or ""}}</h3>
                         </div>
                     </div>
-                    <div class="page_content m-1">
+                    <div class="page_content">
                         <div>
-                            <div class="row transaction-subheading mt-1">
-                                <div class="col-6 text-muted small mt-1"></div>
+                            <div class="row transaction-subheading">
+                                <div class="col-6 text-muted small"></div>
                             </div>
-                            <div class="row indicator-container mt-2">
+                            <div class="row indicator-container">
                                 <div class="col-6">
                                     <span class="indicator-pill red status">{{d_name.status or ""}}</span>
                                 </div>
@@ -63,7 +63,7 @@ import frappe
                                 </div>
                             </div>
 
-                            <div class="order-container mt-4 ml-1">
+                            <div class="order-container ml-1 mt-2">
                                 <div class="row">
                                     <div class="col-sm-12">
                                         <div class="form-group">
@@ -447,8 +447,9 @@ import frappe
         flex: 1;
     }
 
-    .comment-content .content p {
+    .comment-content .content  {
         margin-bottom: 0px;
+        display:block;
     }
 </style>
 {% endblock %}

@@ -3,16 +3,20 @@
 import frappe
 {% block page_content %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 <div class="container">
     <div class="row" id="page-list" data-path="sales_order">
-        <div class="sidebar-column col-sm-2">
+        <!-- <div class="sidebar-column col-sm-2 p-0"> -->
+        <div class="sidebar-column col-sm-2 p-0">
+
             <div class="web-sidebar">
                 {% include web_sidebar %}
             </div>
         </div>
         <div class="main-column col-sm-10">
-            <div class="page-content-wrapper ml-2">
-                <div class="page-breadcrumbs">
+            <div class="page-content-wrapper">
+                <div class="page-breadcrumbs ml-2">
                     <div class="breadcrumb-container" style="margin-top:-1px;">
                         <nav aria-label="breadcrumb" style="display: flex; align-items: center;">
                             <ol class="breadcrumb" itemscope itemtype="http://schema.org/BreadcrumbList">
@@ -26,28 +30,78 @@ import frappe
                             <ol class="breadcrumb">
                                 <h3 class="my-account-header" style="margin: 0;color:#383838;">Sales Order</h3>
                             </ol>
-                            <ol class="breadcrumb" style="margin-left:auto;margin-right:0;">
+                            <ol class="breadcrumb" style="margin-left: auto;margin-right:10px;">
                                 <input type="text" id="search-bar" class="form-control search" placeholder="Search..."
                                     onkeyup="filterRows()" style="border-radius: 10px;">
                             </ol>
-
                         </nav>
                     </div>
-
                 </div>
-                <main class="container ml-2">
-                    <div class="page_content" style="background-color: white;">
-
-                        <div class="website-list" data-doctype="Sales Order" data-txt="None" style="min-height:90vh;">
-                            <div class="website-list-filters">
+                <main class="container">
+                    <div class="page_content pl-2" style="background-color: white;">
+                        <div class="website-list" data-doctype="Sales Order" data-txt="None"
+                            style="min-height:90vh;padding-left:1px;">
+                            <div class="website-list-filters mb-3">
+                                {% set sales_order_meta = frappe.get_doc("DocType", "Sales Order") %}
+                                {% set status_field = sales_order_meta.get("fields", []) | selectattr("fieldname",
+                                "equalto", "status") | list %}
+                                {% if status_field %}
+                                {% set status_options = status_field[0].options.split("\n") %}
+                                {% else %}
+                                {% set status_options = [] %}
+                                {% endif %}
+                                <div class="dropdown">
+                                    <div class="dropdown-button">
+                                        <span>Status</span>
+                                        <!-- <span class="dropdown-icon1 material-symbols-outlined">
+                                            keyboard_arrow_down
+                                        </span> -->
+                                        <span class="dropdown-icon1 fa fa-angle-down"></span>
+                                    </div>
+                                    <div id="status-filter" class="dropdown-options">
+                                        <div></div>
+                                        {% for option in status_options %}
+                                        {% if option.strip() %}
+                                        <div>{{ option }}</div>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
                             </div>
                             <div id="row-container" class="result"
                                 style="background-color: white;box-sizing: border-box;">
+                                <div class="web-list-items"
+                                    style="background-color:#f3f3f3;border-radius: 10px;padding:8px 0px;align-items: center;justify-items: center;">
+                                    <div class="row align-items-center">
+                                        <div class="col-sm-3">
+                                            <span class="dname d-s-n">ID</span>
+                                            <div class="row">
+                                                <div class="col-6 d-l-n">
+                                                    <span class="dname">ID</span>
+                                                </div>
+                                                <div class="col-6 d-l-n text-right">
+                                                    <span class="items-prioritys">Total Amount</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-3">
+                                            <span class="list-item-statuss">Status</span>
+                                        </div>
+                                        <div class="col-sm-3">
+                                            <span class="items-names">Item Name</span>
+                                        </div>
+
+                                        <div class="col-sm-3 d-s-n text-right">
+                                            <span class="items-prioritys">Total Amount</span>
+                                        </div>
+                                    </div>
+                                </div>
                                 {% for d in doc %}
                                 <div class="web-list-item transaction-list-item">
                                     <div class="row align-items-center">
                                         <div class="col-sm-3">
-                                            <span class="list-item-name font-weight-bold d-s-n" style="color:#383838">
+                                            <span class="list-item-name ellipsis ellipsis-width font-weight-bold d-s-n"
+                                                style="color:#383838">
                                                 <a class="transaction-item-link"
                                                     href="sales_orders?d_name={{ d.name }}">link</a>
                                                 {{d.name}}
@@ -58,7 +112,9 @@ import frappe
                                             </div>
                                             <div class="row">
                                                 <div class="col-8 d-l-n">
-                                                    <span class="list-item-name font-weight-bold" style="color:#383838">
+                                                    <span
+                                                        class="list-item-name ellipsis ellipsis-width font-weight-bold"
+                                                        style="color:#383838">
                                                         <a class="transaction-item-link"
                                                             href="sales_orders?d_name={{ d.name }}">link</a>
                                                         {{d.name}}
@@ -77,7 +133,7 @@ import frappe
 
                                         </div>
                                         <div class="col-sm-3">
-                                            <span class="indicator-pill red list-item-status status">{{d.status}}</span>
+                                            <span class="indicator-pill red list-item-status">{{d.status}}</span>
                                         </div>
                                         <div class="col-sm-3">
                                             <div class="ellipsis ellipsis-width items-name">
@@ -92,7 +148,6 @@ import frappe
                                 {% endfor %}
                             </div>
                         </div>
-
                         <div class="list-paging-area level mb-2" style="padding:5px">
                             <div class="level-left">
                                 <div class="btn-group">
@@ -111,29 +166,54 @@ import frappe
                             </div>
                         </div>
                     </div>
-
                 </main>
-
             </div>
         </div>
-
     </div>
 </div>
-
 {% endblock %}
 
 {% block script %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const dropdownButton = document.querySelector(".dropdown-button");
+        const dropdown = dropdownButton.closest(".dropdown");
+        const dropdownOptions = dropdown.querySelector(".dropdown-options");
+        // Open dropdown when clicking the button
+        dropdownButton.addEventListener("click", function (event) {
+            event.stopPropagation(); // Prevent event from reaching document
+            dropdown.classList.toggle("active");
+        });
+        // Close dropdown when clicking outside
+        document.addEventListener("click", function (event) {
+            if (!dropdown.contains(event.target)) {
+                dropdown.classList.remove("active");
+            }
+        });
+        // Handle selecting an option
+        document.querySelectorAll(".dropdown-options div").forEach(option => {
+            option.addEventListener("click", function (event) {
+                event.stopPropagation(); // Prevent event from reaching document
+                const selectedText = this.innerText.trim();
 
+                if (selectedText) {
+                    dropdownButton.querySelector("span:first-child").innerText = selectedText;
+                }
+
+                dropdown.classList.remove("active"); // Close dropdown after selection
+                filterRows(); // Call function to filter rows (if needed)
+            });
+        });
+    });
+</script>
 <script>
     function toggleSidebar(event = null) {
         if (event) {
             event.stopPropagation(); // Prevent event bubbling
         }
-
         const sidebarMain = document.querySelector('.sidebar-column'); // web_sidebar
         const sidebar1 = document.getElementById('sidebar1'); // web_sidebar1
         const screenWidth = window.innerWidth;
-
         if (screenWidth > 1023) {
             // Laptop & Desktop logic
             if (sidebarMain) {
@@ -147,13 +227,11 @@ import frappe
             }
         }
     }
-
     function toggleDropdown(event) {
         event.stopPropagation(); // Prevent click from bubbling up
         const dropdownCard = document.getElementById("dropdownCard"); // Desktop/Laptop dropdown
         const dropdownCard1 = document.getElementById("dropdownCard1"); // Mobile/Tablet dropdown
         const screenWidth = window.innerWidth;
-
         if (screenWidth > 1023) {
             // Desktop/Laptop
             if (dropdownCard) {
@@ -166,14 +244,12 @@ import frappe
             }
         }
     }
-
     document.addEventListener("DOMContentLoaded", () => {
         const sidebarMain = document.querySelector('.sidebar-column');
         if (window.innerWidth > 1023 && sidebarMain && localStorage.getItem('sidebar-collapsed') === 'true') {
             sidebarMain.classList.add('collapsed');
         }
     });
-
     // Close dropdown when clicking outside
     document.addEventListener("click", function (event) {
         const dropdownCard = document.getElementById("dropdownCard");
@@ -195,14 +271,9 @@ import frappe
         }
     });
 </script>
-
-
-
 <script>
-    rowsPerPage = 20; // Default number of rows to show
+    let rowsPerPage = 20; // Default number of rows to show
     let currentlyVisibleRows = 0; // Counter to track visible rows
-    searchQuery = ""; // Store the current search query
-
     function showRows(count, button = null) {
         rowsPerPage = count; // Update rows per page
         currentlyVisibleRows = count; // Update visible row count
@@ -210,30 +281,29 @@ import frappe
 
         // Highlight the active button
         if (button) {
-            const buttons = document.querySelectorAll(".btn-group .btn");
-            buttons.forEach(btn => btn.classList.remove("active"));
+            document.querySelectorAll(".btn-group .btn").forEach(btn => btn.classList.remove("active"));
             button.classList.add("active");
         }
     }
-
     function filterRows() {
         const searchInput = document.getElementById("search-bar").value.toLowerCase();
+        const statusFilter = document.querySelector(".dropdown-button span:first-child").textContent.toLowerCase();
         const rows = document.querySelectorAll("#row-container .web-list-item");
         let visibleCount = 0;
         rows.forEach(row => {
             const name = row.querySelector(".list-item-name").textContent.toLowerCase();
             const status = row.querySelector(".list-item-status").textContent.toLowerCase();
             const itemName = row.querySelector(".items-name").textContent.toLowerCase();
-
             let totalAmount = row.querySelector(".item-total").textContent.toLowerCase();
             totalAmount = totalAmount.replace(/,/g, "").replace(/\s+/g, "");
-
-            const matches = name.includes(searchInput) ||
+            // Check if row matches the search query
+            const matchesSearch = name.includes(searchInput) ||
                 status.includes(searchInput) ||
                 itemName.includes(searchInput) ||
                 totalAmount.includes(searchInput);
-
-            if (matches && visibleCount < currentlyVisibleRows) {
+            // ✅ Fix: Check if status matches the selected filter (ignore "Status" default)
+            const matchesStatus = (statusFilter === "status" || statusFilter === " " || status === statusFilter);
+            if (matchesSearch && matchesStatus && visibleCount < currentlyVisibleRows) {
                 row.style.display = "block"; // Show matching row
                 visibleCount++;
             } else {
@@ -241,19 +311,14 @@ import frappe
             }
         });
     }
-
     function loadMoreRows() {
         currentlyVisibleRows += rowsPerPage; // Increase visible rows by current rowsPerPage count
         filterRows(); // Reapply filtering with increased row count
     }
-
     // Initialize the page with default rows
     document.addEventListener("DOMContentLoaded", () => {
         const defaultButton = document.querySelector(".btn-group .btn");
         showRows(rowsPerPage, defaultButton);
     });
 </script>
-
-
-
 {% endblock %}

@@ -1,29 +1,95 @@
-/* * {
+* {
+    /* font-weight: 600 !important; */
+    color: #383838 !important;
+
+}
+
+html {
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", Segoe UI Symbol, "Noto Color Emoji"
+}
+
+body[data-path="issue"],
+body[data-path="ticket"],
+body[data-path="tickets"],
+body[data-path="sales_order"],
+body[data-path="sales_orders"],
+body[data-path="sales_invoice"],
+body[data-path="sales_invoices"],
+body[data-path="renewal_list"],
+body[data-path="renewal_lists"],
+body[data-path="address_list"],
+body[data-path="address_create"],
+body[data-path="me"] {
+    font-size: 12px !important;
+}
+
+body[data-path="issue"] .navbar,
+body[data-path="ticket"] .navbar,
+body[data-path="tickets"] .navbar,
+body[data-path="sales_order"] .navbar,
+body[data-path="sales_orders"] .navbar,
+body[data-path="sales_invoice"] .navbar,
+body[data-path="sales_invoices"] .navbar,
+body[data-path="renewal_list"] .navbar,
+body[data-path="renewal_lists"] .navbar,
+body[data-path="address_list"] .navbar,
+body[data-path="address_create"] .navbar,
+body[data-path="me"] .navbar {
+    display: none !important;
+}
+
+body[data-path="issue"] .topbar,
+body[data-path="ticket"] .topbar,
+body[data-path="tickets"] .topbar,
+body[data-path="sales_order"] .topbar,
+body[data-path="sales_orders"] .topbar,
+body[data-path="sales_invoice"] .topbar,
+body[data-path="sales_invoices"] .topbar,
+body[data-path="renewal_list"] .topbar,
+body[data-path="renewal_lists"] .topbar,
+body[data-path="address_list"] .topbar,
+body[data-path="address_create"] .topbar,
+body[data-path="me"] .topbar {
+    display: none !important;
+}
+
+body[data-path="issue"] .web-footer,
+body[data-path="ticket"] .web-footer,
+body[data-path="tickets"] .web-footer,
+body[data-path="sales_order"] .web-footer,
+body[data-path="sales_orders"] .web-footer,
+body[data-path="sales_invoice"] .web-footer,
+body[data-path="sales_invoices"] .web-footer,
+body[data-path="renewal_list"] .web-footer,
+body[data-path="renewal_lists"] .web-footer,
+body[data-path="address_list"] .web-footer,
+body[data-path="address_create"] .web-footer,
+body[data-path="me"] .web-footer {
+    display: none !important;
+}
+
+body[data-path="issue"] .footer,
+body[data-path="ticket"] .footer,
+body[data-path="tickets"] .footer,
+body[data-path="sales_order"] .footer,
+body[data-path="sales_orders"] .footer,
+body[data-path="sales_invoice"] .footer,
+body[data-path="sales_invoices"] .footer,
+body[data-path="renewal_list"] .footer,
+body[data-path="renewal_lists"] .footer,
+body[data-path="address_list"] .footer,
+body[data-path="address_create"] .footer,
+body[data-path="me"] .footer {
+    display: none !important;
+}
+
+
+.label1 {
+    font-size: 13px !important;
     font-weight: 600 !important;
-} */
-
-@media (min-width: 992px) {
-    .navbar {
-        display: none !important;
-    }
-
-    .web-footer {
-        display: none !important;
-    }
-
-    /* body[data-path="login"] .navbar {
-        display: block !important;
-    } */
-}
-
-@media (min-width:300px) {
-    .web-footer {
-        display: none !important;
-    }
+    color: #383838 !important;
 
 }
-
-
 
 main.my-4 {
     margin-top: 0rem !important;
@@ -39,20 +105,33 @@ body[data-path="sales_invoices"],
 body[data-path="issue"],
 body[data-path="ticket"],
 body[data-path="tickets"],
-body[data-path="addresss"],
-body[data-path="address_create"] {
+body[data-path="address_list"],
+body[data-path="address_create"],
+body[data-path="me"] {
     background-color: #F9FAFA !important;
 }
 
-.container {
+
+body[data-path="renewal_list"] .container,
+body[data-path="renewal_lists"] .container,
+body[data-path="sales_order"] .container,
+body[data-path="sales_orders"] .container,
+body[data-path="sales_invoice"] .container,
+body[data-path="sales_invoices"] .container,
+body[data-path="issue"] .container,
+body[data-path="ticket"] .container,
+body[data-path="tickets"] .container,
+body[data-path="address_list"] .container,
+body[data-path="address_create"] .container,
+body[data-path="me"] .container {
     width: 100% !important;
     height: 100% !important;
     padding-right: 5px !important;
     padding-left: 5px !important;
-    margin-right: 0px !important;
-    margin-left: 0px !important;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
     font-size: 12px !important;
-    /* background-color: whitesmoke !important; */
+    background-color: white !important;
 }
 
 .row {
@@ -61,41 +140,212 @@ body[data-path="address_create"] {
 }
 
 
-@media (min-width: 992px) {
-    .sidebar-column {
+
+@media (min-width:992px) {
+
+    [data-path="sales_order"] .sidebar-column,
+    [data-path="sales_orders"] .sidebar-column,
+    [data-path="sales_invoice"] .sidebar-column,
+    [data-path="sales_invoices"] .sidebar-column,
+    [data-path="renewal_list"] .sidebar-column,
+    [data-path="renewal_lists"] .sidebar-column,
+    [data-path="issue"] .sidebar-column,
+    [data-path="tickets"] .sidebar-column,
+    [data-path="ticket"] .sidebar-column,
+    [data-path="address_create"] .sidebar-column,
+    [data-path="address_list"] .sidebar-column {
         display: block;
-        height: 100% !important;
+        height: 100vh !important;
         background-color: whitesmoke !important;
         border-right: 1px solid #e0e0e0 !important;
-        width: 16% !important;
+        width: 15% !important;
         position: fixed !important;
-        height: 100vh !important;
     }
 
-    .main-column {
-        width: 84% !important;
+    [data-path="me"] .sidebar-column {
+        width: 16% !important;
+        display: block;
         height: 100vh !important;
-        padding: 0rem !important;
-        margin-left: 19% !important;
+        background-color: whitesmoke !important;
+        border-right: 1px solid #e0e0e0 !important;
+        position: fixed !important;
+    }
+
+
+    [data-path="sales_order"] .main-column,
+    [data-path="sales_orders"] .main-column,
+    [data-path="sales_invoice"] .main-column,
+    [data-path="sales_invoices"] .main-column,
+    [data-path="renewal_list"] .main-column,
+    [data-path="renewal_lists"] .main-column,
+    [data-path="issue"] .main-column,
+    [data-path="tickets"] .main-column,
+    [data-path="ticket"] .main-column,
+    [data-path="address_create"] .main-column,
+    [data-path="address_list"] .main-column {
+        width: calc(100% - 16%) !important;
+        height: 100vh !important;
+        padding: 0 !important;
+        margin-left: 18% !important;
         flex-grow: 1 !important;
     }
+
+    [data-path="me"] .main-column {
+        width: calc(100%-17%) !important;
+        height: 100vh !important;
+        padding: 0 !important;
+        margin-left: 18% !important;
+        flex-grow: 1 !important;
+    }
+
+    body[data-path="sales_order"] .page_content,
+    body[data-path="sales_orders"] .page_content,
+    body[data-path="sales_invoice"] .page_content,
+    body[data-path="sales_invoices"] .page_content,
+    body[data-path="renewal_list"] .page_content,
+    body[data-path="renewal_lists"] .page_content,
+    body[data-path="issue"] .page_content,
+    body[data-path="ticket"] .page_content,
+    body[data-path="tickets"] .page_content,
+    body[data-path="address_create"] .page_content,
+    body[data-path="address_list"] .page_content,
+    body[data-path="me"] .page_content {
+        padding-left: 0rem !important;
+        margin-left: 0px !important;
+        margin-right: 0px !important;
+
+    }
+}
+
+@media screen and (max-width: 769px) {
+
+    body[data-path="sales_order"] .page_content,
+    body[data-path="sales_orders"] .page_content,
+    body[data-path="sales_invoice"] .page_content,
+    body[data-path="sales_invoices"] .page_content,
+    body[data-path="renewal_list"] .page_content,
+    body[data-path="renewal_lists"] .page_content,
+    body[data-path="issue"] .page_content,
+    body[data-path="ticket"] .page_content,
+    body[data-path="tickets"] .page_content,
+    body[data-path="address_create"] .page_content,
+    body[data-path="address_list"] .page_content,
+    body[data-path="me"] .page_content {
+        padding-left: 0rem !important;
+        width: 90vw !important;
+        margin-left: 0px !important;
+        margin-right: 0px !important;
+
+    }
+
+    body[data-path="sales_order"] .page-header-wrapper,
+    body[data-path="sales_orders"] .page-header-wrapper,
+    body[data-path="sales_invoice"] .page-header-wrapper,
+    body[data-path="sales_invoices"] .page-header-wrapper,
+    body[data-path="renewal_list"] .page-header-wrapper,
+    body[data-path="renewal_lists"] .page-header-wrapper,
+    body[data-path="address_list"] .page-header-wrapper,
+    body[data-path="address_create"] .page-header-wrapper,
+    body[data-path="issue"] .page-header-wrapper,
+    body[data-path="ticket"] .page-header-wrapper,
+    body[data-path="tickets"] .page-header-wrapper,
+    body[data-path="me"] .page-header-wrapper {
+        padding: 0rem !important;
+        width: 90vw !important;
+        margin-left: 0px !important;
+        margin-right: 0px !important;
+
+    }
+
+    body[data-path="sales_orders"] .page-breadcrumbs,
+    body[data-path="sales_order"] .page-breadcrumbs,
+    body[data-path="sales_invoices"] .page-breadcrumbs,
+    body[data-path="sales_invoice"] .page-breadcrumbs,
+    body[data-path="renewal_lists"] .page-breadcrumbs,
+    body[data-path="renewal_list"] .page-breadcrumbs,
+    body[data-path="ticket"] .page-breadcrumbs,
+    body[data-path="tickets"] .page-breadcrumbs,
+    body[data-path="address_create"] .page-breadcrumbs {
+        width: 90vw !important;
+    }
+
+    body[data-path="sales_orders"] .breadcrumb-item,
+    body[data-path="sales_order"] .breadcrumb-item,
+    body[data-path="sales_invoices"] .breadcrumb-item,
+    body[data-path="sales_invoice"] .breadcrumb-item,
+    body[data-path="renewal_lists"] .breadcrumb-item,
+    body[data-path="renewal_list"] .breadcrumb-item,
+    body[data-path="ticket"] .breadcrumb-item {
+        display: flex !important;
+        align-items: center !important;
+    }
+}
+
+@media screen and (max-width:768px) {
+
+    body[data-path="sales_order"] .page-breadcrumbs,
+    body[data-path="sales_orders"] .page-breadcrumbs,
+    body[data-path="sales_invoice"] .page-breadcrumbs,
+    body[data-path="sales_invoices"] .page-breadcrumbs,
+    body[data-path="ticket"] .page-breadcrumbs,
+    body[data-path="tickets"] .page-breadcrumbs,
+    body[data-path="issue"] .page-breadcrumbs,
+    body[data-path="renewal_list"] .page-breadcrumbs,
+    body[data-path="renewal_lists"] .page-breadcrumbs,
+    body[data-path="address_create"] .page-breadcrumbs,
+    body[data-path="address_list"] .page-breadcrumbs,
+    body[data-path="me"] .page-breadcrumbs {
+        width: 90vw !important;
+    }
+}
+
+@media screen and (min-width:992px) {
+
+    body[data-path="sales_order"] .page-content-wrapper,
+    body[data-path="sales_orders"] .page-content-wrapper,
+    body[data-path="sales_invoice"] .page-content-wrapper,
+    body[data-path="sales_invoices"] .page-content-wrapper,
+    body[data-path="ticket"] .page-content-wrapper,
+    body[data-path="tickets"] .page-content-wrapper,
+    body[data-path="issue"] .page-content-wrapper,
+    body[data-path="renewal_list"] .page-content-wrapper,
+    body[data-path="renewal_lists"] .page-content-wrapper,
+    body[data-path="address_create"].page-content-wrapper,
+    body[data-path="address_list"] .page-content-wrapper,
+    body[data-path="me"] .page-content-wrapper {
+        padding-left: 0.7rem !important;
+    }
 }
 
 
 
-/* .btn-group .btn.active {
-    background-color: gray !important;
-    color: white !important;
+/* .page-header-icon {
+    font-size: 20px !important;
+    color: #383838 !important;
+    margin-right: 10px !important;
 } */
 
-
-
-[data-doctype="Web Form"] .page-content-wrapper .container .page_content .web-list-container {
-    min-height: 90vh !important;
-    border: 1px solid var(--dark-border-color);
-    border-radius: var(--border-radius-md);
-    padding: 2rem;
+.page-header-toggle {
+    display: none;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    padding: 5px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    width: 200px;
+    height: 100%;
+    top: 0;
+    left: 0;
+    position: fixed;
 }
+
+@media(min-width:992px) {
+    .page-header-icon {
+        display: none;
+    }
+}
+
 
 .web-sidebar {
     padding: 5px !important;
@@ -107,13 +357,12 @@ li .sidebar-item {
 }
 
 .sidebar-item a.active {
-    color: black !important;
+    color: #383838 !important;
     background-color: white !important;
     border-radius: 10px !important;
 }
 
 .sidebar-item:hover {
-    /* background-color: white !important; */
     background-color: white !important;
     border-radius: 10px !important;
 }
@@ -125,8 +374,9 @@ li .sidebar-item {
 .sidebar-item .material-symbols-outlined {
     font-size: 18px !important;
     font-weight: 0 !important;
-    color: blue !important;
+    color: #383838 !important;
     font-family: 'Material Symbols Outlined' !important;
+    font-display: swap !important;
 }
 
 .account-info {
@@ -135,15 +385,11 @@ li .sidebar-item {
 
 .account-info .col {
     flex: 0 !important;
+    padding: 10px !important;
 }
 
 .my-account-container {
     margin: 1rem !important;
-}
-
-[data-doctype="Web Form"] .page-content-wrapper .container .page_content {
-    max-width: 90vw !important;
-    margin: 0rem !important;
 }
 
 /* Profile Dropdown */
@@ -152,6 +398,7 @@ li .sidebar-item {
     margin-bottom: 2px;
     width: 100%;
     border-radius: 10px;
+    padding: 0 !important;
 }
 
 .profile-container:hover {
@@ -162,7 +409,7 @@ li .sidebar-item {
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 10px;
+    /* gap: 10px; */
     cursor: pointer;
     border-radius: 10px;
 }
@@ -194,12 +441,12 @@ li .sidebar-item {
     font-size: 16px;
     font-weight: 800;
     margin: 0;
-    color: #333;
+    color: #383838;
 }
 
 .profile-role {
     font-size: 12px;
-    color: #777;
+    color: #383838;
     margin: 0;
 }
 
@@ -209,7 +456,7 @@ li .sidebar-item {
     justify-content: center;
     align-items: center;
     font-size: 12px;
-    color: #333;
+    color: #383838;
     width: 5%;
 }
 
@@ -253,23 +500,24 @@ li .sidebar-item {
     width: 100%;
 }
 
+
 .dropdown-card ul {
     list-style: none;
     margin: 0;
     padding: 0;
-    color: black;
+    color: #383838;
 }
 
 .dropdown-card .title {
     padding: 5px 10px;
-    color: black;
+    color: #383838;
 }
 
 .dropdown-card .title a {
     text-decoration: none;
     font-size: 12px;
     font-weight: 400;
-    color: black;
+    color: #383838;
 }
 
 /*collapse sidebar*/
@@ -316,6 +564,10 @@ li .sidebar-item {
 }
 
 .sidebar-column.collapsed .sidebar-item .label {
+    display: none;
+}
+
+.sidebar-column.collapsed .sidebar-item .label1 {
     display: none;
 }
 
@@ -390,6 +642,10 @@ li .sidebar-item {
     display: none;
 }
 
+.sidebar-column.collapsed .sidebar-item .label1 {
+    display: none;
+}
+
 .sidebar-column.collapsed .collapse-toggle .icons {
     display: none;
 }
@@ -397,8 +653,6 @@ li .sidebar-item {
 .sidebar-column.collapsed .collapse-toggle .start {
     display: block;
 }
-
-
 
 
 
@@ -514,6 +768,15 @@ li .sidebar-item {
     background-color: gray !important;
     color: white !important;
     border: none !important;
+    font-size: 12px !important;
+}
+
+.btn-group .btn {
+    font-size: 12px !important;
+}
+
+.level-right .btn {
+    font-size: 12px !important;
 }
 
 .btn:focus {
@@ -529,5 +792,726 @@ li .sidebar-item {
     .modal-content {
         width: 600px !important;
 
+    }
+}
+
+
+
+
+@media (max-width:768px) {
+    .website-list {
+        margin-left: 0px !important;
+        padding: 2px !important;
+    }
+}
+
+@media (min-width:769px) {
+    .page-header-toggle {
+        display: none !important;
+    }
+}
+
+.dropdown-card1 {
+    display: none;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    padding: 5px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    width: 100%;
+}
+
+
+.dropdown-card1 ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    color: #383838;
+}
+
+.dropdown-card1 .title {
+    padding: 5px 10px;
+    color: #383838;
+}
+
+.dropdown-card1 .title a {
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 400;
+    color: #383838;
+}
+
+.search {
+    padding-left: 5px;
+    margin-top: 2px;
+    height: 30px;
+    margin-right: 5px;
+    width: 150px;
+}
+
+.my-account-name {
+    font-size: 18px !important;
+}
+
+.dropdown-container {
+    width: 150px;
+    height: 30px;
+    position: relative;
+}
+
+[data-path="issue"] .form-control {
+    font-size: 14px !important;
+}
+
+.button-new {
+    background-color: #EC4F2E !important;
+    color: white !important;
+    font-size: 12px;
+}
+
+[data-path="tickets"] .form-column {
+    padding-left: 1px !important;
+}
+
+.edit-button1 {
+    height: 20px !important;
+    padding: 0 !important;
+    width: 40px !important;
+    font-size: 12px !important;
+}
+
+.edit-button {
+    height: 20px !important;
+    padding: 2px !important;
+    /* width: 80px !important; */
+    font-size: 10px !important;
+}
+
+[data-path="sales_order"] h3,
+[data-path="sales_orders"] h3,
+[data-path="sales_invoice"] h3,
+[data-path="sales_invoices"] h3,
+[data-path="renewal_list"] h3,
+[data-path="renewal_lists"] h3,
+[data-path="issue"] h3,
+[data-path="ticket"] h3,
+[data-path="tickets"] h3,
+[data-path="address_create"] h3,
+[data-path="address_list"] h3,
+[data-path="me"] h3 {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+[data-path="sales_order"] .list-item-name,
+[data-path="sales_order"] .item-total,
+[data-path="sales_invoice"] .list-item-name,
+[data-path="sales_invoice"] .item-total,
+[data-path="renewal_list"] .list-item-name,
+[data-path="renewal_list"] .item-total {
+    font-size: 12px;
+}
+
+[data-path="issue"] .form-control,
+[data-path="sales_order"] .form-control,
+[data-path="sales_invoice"] .form-control,
+[data-path="renewal_list"] .form-control {
+    font-size: 12px !important;
+}
+
+/* [data-path="sales_order"] .select:hover {
+    background-color: gray;
+} */
+
+.dropdown-icon1 {
+    position: absolute;
+    top: 55%;
+    right: 10px;
+    transform: translateY(-50%);
+    pointer-events: none;
+    font-size: 14px !important;
+}
+
+
+.value:hover,
+.value:focus {
+    background-color: white;
+    color: black;
+    padding: 10px;
+}
+
+[data-path="tickets"] input[type="text"],
+[data-path="tickets"] input[type="file"],
+[data-path="tickets"] textarea,
+[data-path="tickets"] select {
+    font-size: 12px !important;
+}
+
+[data-path="me"] .my-account-name,
+[data-path="me"] .my-account-item-link {
+    font-size: 12px !important;
+}
+
+[data-path="address_list"] .form-group,
+[data-path="address_list"] .form-control,
+[data-path="address_list"] .modal-title,
+[data-path="address_create"] .form-group,
+[data-path="address_create"] .form-control,
+[data-path="me"] .modal-title,
+[data-path="me"] .form-group,
+[data-path="me"] .form-control,
+[data-path="me"] .my-account-item,
+[data-path="me"] .my-account-item-desc {
+    font-size: 12px !important;
+}
+
+/* status filter css*/
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+    width: 150px;
+    height: 30px;
+    font-family: Arial, sans-serif;
+}
+
+.dropdown-button {
+    width: 100%;
+    height: 100%;
+    padding-left: 10px;
+    background-color: white;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    text-align: left;
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+}
+
+.dropdown-button .icon {
+    transition: transform 0.3s ease;
+}
+
+.dropdown-button .material-symbols-outlined {
+    font-size: 16px !important;
+}
+
+.dropdown.active .dropdown-button .icon {
+    transform: rotate(180deg);
+}
+
+.dropdown-options {
+    display: none;
+    position: absolute;
+    width: 100%;
+    border: 1px solid #ccc;
+    background-color: #f3f3f3;
+    z-index: 10;
+    font-size: 12px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-options div {
+    padding: 5px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.dropdown-options div:hover {
+    background-color: white;
+    color: black;
+    /* Custom hover color */
+}
+
+.dropdown.active .dropdown-options {
+    display: block;
+}
+
+[data-path="sales_orders"] h3,
+[data-path="sales_invoices"] h3,
+[data-path="renewal_lists"] h3 {
+    font-size: 12px !important;
+}
+
+.item-grand-total {
+    font-size: 12px !important;
+}
+
+@media screen and (max-width: 769px) and (min-width:426px) {
+    h3 {
+        font-size: 12px !important;
+        font-weight: bold !important;
+    }
+
+    h3 .my-account-header {
+        font-size: 12px !important;
+        font-weight: bold !important;
+    }
+
+    .page-header-icon {
+        font-size: 14px !important;
+        margin-right: 10px !important;
+    }
+
+    .page-head {
+        margin-top: 5px !important;
+    }
+
+    .list-item-name {
+        font-size: 12px !important;
+    }
+
+    .list-item-names {
+        font-size: 12px !important;
+    }
+
+    .list-item-status {
+        font-size: 12px !important;
+    }
+
+    .list-item-statuss {
+        font-size: 12px !important;
+    }
+
+    .item-startdate {
+        font-size: 12px !important;
+    }
+
+    .item-enddate {
+        font-size: 12px !important;
+    }
+
+    .items-name {
+        font-size: 12px !important;
+    }
+
+    .items-names {
+        font-size: 12px !important;
+    }
+
+    .dname {
+        font-size: 12px !important;
+    }
+
+    .items-priority {
+        font-size: 12px !important;
+    }
+
+    .items-prioritys {
+        font-size: 12px !important;
+    }
+
+    .item-total {
+        font-size: 12px !important;
+    }
+
+    .item-grand-total {
+        font-size: 12px !important;
+    }
+
+    .search {
+        font-size: 12px !important;
+        padding-left: 5px !important;
+        margin-top: 2px !important;
+        width: 120px !important;
+        height: 30px !important;
+    }
+
+    .breadcrumb-item {
+        font-size: 12px !important;
+    }
+
+    .customer {
+        font-size: 12px !important;
+    }
+
+    .order-items {
+        font-size: 12px !important;
+    }
+
+    .item_name_and_description {
+        font-size: 12px !important;
+    }
+
+    .item-qty {
+        font-size: 12px !important;
+    }
+
+    .order-qty {
+        font-size: 12px !important;
+    }
+
+    .order-rate {
+        font-size: 12px !important;
+    }
+
+    .item-amount {
+        font-size: 12px !important;
+    }
+
+    .item-grand-total {
+        font-size: 12px !important;
+    }
+
+    .btn-group .btn-sm {
+        font-size: 12px !important;
+    }
+
+    .level-right .btn-sm {
+        font-size: 12px !important;
+    }
+
+    .page-header-actions-block .btn-sm {
+        font-size: 10px !important;
+    }
+
+    .btn {
+        font-size: 12px !important;
+    }
+
+    .status {
+        font-size: 12px !important;
+    }
+
+    [data-path="tickets"] input[type="text"],
+    [data-path="tickets"] input[type="file"],
+    [data-path="tickets"] textarea,
+    [data-path="tickets"] select {
+        font-size: 12px !important;
+    }
+
+    [data-path="ticket"] .control-label,
+    [data-path="ticket"] .control-value,
+    [data-path="ticket"] .content,
+    [data-path="ticket"] .commentname {
+        font-size: 12px !important;
+    }
+
+    [data-path="address_list"] .form-group,
+    [data-path="address_list"] .form-control,
+    [data-path="sales_order"] .form-control,
+    [data-path="address_list"] .modal-title,
+    [data-path="address_create"] .form-group,
+    [data-path="address_create"] .form-control,
+    [data-path="me"] .modal-title,
+    [data-path="me"] .form-group,
+    [data-path="me"] .form-control,
+    [data-path="me"] .my-account-item,
+    [data-path="me"] .my-account-item-desc {
+        font-size: 12px !important;
+    }
+
+    [data-path="me"] .my-account-name,
+    [data-path="me"] .my-account-item-link {
+        font-size: 12px !important;
+    }
+
+    .dropdown-container {
+        width: 150px;
+        height: 30px;
+        position: relative;
+        display: flex;
+    }
+
+    [data-path="issue"] .form-control,
+    [data-path="sales_order"] .form-control,
+    [data-path="sales_invoice"] .form-control,
+    [data-path="renewal_list"] .form-control {
+        font-size: 12px !important;
+    }
+
+    .label1 {
+        font-size: 12px !important;
+    }
+
+    .profile-name {
+        font-size: 12px !important;
+    }
+
+    .profile-role {
+        font-size: 12px !important;
+    }
+
+    .profile-dropdown .material-symbols-outlined {
+        font-size: 14px !important;
+    }
+
+    .dropdown-card1 ul li .title {
+        font-size: 12px !important;
+    }
+}
+
+@media screen and (max-width: 426px) and (min-width: 300px) {
+    h3 {
+        font-size: 10px !important;
+    }
+
+    h3 .my-account-header {
+        font-size: 10px !important;
+    }
+
+    .page-head {
+        margin-top: 5px !important;
+    }
+
+    .page-header-icon {
+        font-size: 14px !important;
+        margin-right: 10px !important;
+    }
+
+    .list-item-name {
+        font-size: 10px !important;
+    }
+
+    .transaction-item-link {
+        font-size: 10px !important;
+    }
+
+    .list-item-names {
+        font-size: 10px !important;
+    }
+
+    .list-item-status {
+        font-size: 10px !important;
+    }
+
+    .list-item-statuss {
+        font-size: 10px !important;
+    }
+
+    .item-startdate {
+        font-size: 10px !important;
+    }
+
+    .item-enddate {
+        font-size: 10px !important;
+    }
+
+    .items-name {
+        font-size: 10px !important;
+    }
+
+    .item-grand-total {
+        font-size: 10px !important;
+    }
+
+    .dname {
+        font-size: 10px !important;
+    }
+
+    .items-names {
+        font-size: 10px !important;
+    }
+
+    .items-prioritys {
+        font-size: 10px !important;
+    }
+
+    .items-priority {
+        font-size: 10px !important;
+    }
+
+    .item-total {
+        font-size: 10px !important;
+    }
+
+    .search {
+        font-size: 10px !important;
+        padding-left: 5px !important;
+        width: 100px !important;
+        height: 25px !important;
+    }
+
+    .breadcrumb-item {
+        font-size: 10px !important;
+    }
+
+    .customer {
+        font-size: 10px !important;
+    }
+
+
+
+    .order-items {
+        font-size: 10px !important;
+    }
+
+    .item_name_and_description {
+        font-size: 10px !important;
+    }
+
+    .item-qty {
+        font-size: 10px !important;
+    }
+
+    .order-qty {
+        font-size: 10px !important;
+    }
+
+    .order-rate {
+        font-size: 10px !important;
+    }
+
+    .item-amount {
+        font-size: 10px !important;
+    }
+
+    .item-grand-total {
+        font-size: 10px !important;
+    }
+
+    .page-header-actions-block .btn-sm {
+        font-size: 10px !important;
+    }
+
+    .btn-group .btn-sm {
+        font-size: 10px !important;
+    }
+
+    .btn-sm {
+        font-size: 10px !important;
+    }
+
+    .level-right .btn-sm {
+        font-size: 10px !important;
+    }
+
+    .status {
+        font-size: 10px !important;
+    }
+
+
+    [data-path="tickets"] input[type="text"] {
+        font-size: 10px !important;
+    }
+
+    [data-path="tickets"] input[type="file"] {
+        font-size: 10px !important;
+    }
+
+    [data-path="tickets"] textarea {
+        font-size: 10px !important;
+    }
+
+    [data-path="tickets"] select {
+        font-size: 10px !important;
+    }
+
+    [data-path="ticket"] .control-label,
+    [data-path="ticket"] .control-value,
+    [data-path="ticket"] .content,
+    [data-path="ticket"] .commentname {
+        font-size: 10px !important;
+    }
+
+    .address-title {
+        font-size: 10px !important;
+    }
+
+    body[data-path="address_list"] {
+        font-size: 10px !important;
+    }
+
+    [data-path="address_list"] .form-group,
+    [data-path="address_list"] .form-control,
+    [data-path="address_list"] .modal-title,
+    [data-path="address_create"] .form-group,
+    [data-path="address_create"] .form-control,
+    [data-path="me"] .modal-title,
+    [data-path="me"] .form-group,
+    [data-path="me"] .form-control,
+    [data-path="me"] .my-account-item,
+    [data-path="me"] .my-account-item-desc {
+        font-size: 10px !important;
+    }
+
+    [data-path="me"] .my-account-name,
+    [data-path="me"] .my-account-item-link {
+        font-size: 10px !important;
+    }
+
+    .tooltip-btn {
+        position: relative;
+        display: inline-block;
+    }
+
+    .tooltip-btn .tooltip-text {
+        visibility: hidden;
+        background-color: white;
+        color: #383838;
+        text-align: center;
+        padding: 5px 8px;
+        border-radius: 5px;
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: nowrap;
+        font-size: 12px;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .tooltip-btn:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    .dropdown-container {
+        width: 120px;
+        height: 30px;
+        position: relative;
+    }
+
+    [data-path="issue"] .form-control,
+    [data-path="sales_order"] .form-control,
+    [data-path="sales_invoice"] .form-control,
+    [data-path="renewal_list"] .form-control {
+        font-size: 10px !important;
+    }
+
+    .dropdown-icon1 {
+        top: 50% !important;
+    }
+
+    .button-new {
+        font-size: 10px !important;
+    }
+
+    .dropdown-button {
+        font-size: 10px !important;
+    }
+
+    .dropdown-options {
+        font-size: 10px !important;
+    }
+
+    .dropdown-options div {
+        font-size: 10px !important;
+    }
+
+    .label1 {
+        font-size: 10px !important;
+    }
+
+    .profile-name {
+        font-size: 10px !important;
+    }
+
+    .profile-role {
+        font-size: 10px !important;
+    }
+
+    .profile-dropdown .material-symbols-outlined {
+        font-size: 14px !important;
+    }
+
+    .dropdown-card1 ul li .title {
+        font-size: 10px !important;
     }
 }

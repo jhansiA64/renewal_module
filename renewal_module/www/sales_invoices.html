@@ -5,13 +5,13 @@ import frappe
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <div class="container">
     <div class="row" id="page-list" data-path="sales_invoices">
-        <div class="sidebar-column col-sm-2">
+        <div class="sidebar-column col-sm-2 p-0">
             <div class="web-sidebar">
                 {% include web_sidebar %}
             </div>
         </div>
         <div class="main-column col-sm-10">
-            <div class="page-content-wrapper pl-3">
+            <div class="page-content-wrapper">
                 <div class="page-breadcrumbs">
                     <div class="breadcrumb-container container" style="margin-top:-1px;">
                         <nav aria-label="breadcrumb">
@@ -43,7 +43,7 @@ import frappe
 
                     </div>
                 </div>
-                <main class="container ml-2" style="background-color: white;min-height:90vh;">
+                <main class="container" style="background-color: white;min-height:90vh;">
                     <div class="page-header-wrapper">
                         <div class="page-header">
                             <h3 class="m-0">{{d_name.name}}</h3>
@@ -51,22 +51,26 @@ import frappe
                         </div>
                         <div class="page-header-actions-block">
                             <div class="row">
-                                <div class="dropdown d-s-n">
-                                    <button class="btn btn-secondary edit-button float-right btn-sm"
-                                        onclick="printFile('{{d_name.custom_invoice_attachment}}')"
-                                        style="border-radius:10px;">
-                                        Download
-                                    </button>
-                                </div>
-                                <div class="dropdown d-l-n">
-                                    <a class="edit-button float-right tooltip-btn"
-                                        onclick="printFile('{{d_name.custom_invoice_attachment}}')"
-                                        style="border-radius:10px;">
-                                        <span class="material-symbols-outlined" style="font-size: 16px;">
+                                <div class="col d-s-n mr-2">
+                                    <div class="dropdown">
+                                        <button class="btn btn-secondary edit-button float-right btn-sm mr-2"
+                                            onclick="printFile('{{d_name.custom_invoice_attachment}}')"
+                                            style="border-radius:10px;font-size: 12px;">
                                             Download
-                                        </span>
-                                        <span class="tooltip-text">Download</span>
-                                    </a>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col d-l-n">
+                                    <div class="dropdown">
+                                        <a class="edit-button float-right tooltip-btn d-l-n"
+                                            onclick="printFile('{{d_name.custom_invoice_attachment}}')"
+                                            style="border-radius:10px;">
+                                            <span class="material-symbols-outlined" style="font-size: 14px;">
+                                                Download
+                                            </span>
+                                            <span class="tooltip-text">Download</span>
+                                        </a>
+                                    </div>
                                 </div>
 
                                 <script>
@@ -88,19 +92,20 @@ import frappe
                                 </div>
                             </div>
                             <div class="row indicator-container mt-2">
-                                <div class="col-8">
+                                <div class="col-10">
                                     <span class="indicator-pill red">
                                         {{d_name.status}}
                                     </span>
                                 </div>
-                                <div class="text-right col-3">
+                                <div class="text-right col-2 customer">
                                     <b>{{d_name.customer}}</b>
                                 </div>
                             </div>
-                            <div class="order-container mt-4 pl-3 ml-1">
+                            <div class="order-container mt-4 pl-3">
                                 <!-- items -->
                                 <div class="w-100">
-                                    <div class="order-items order-item-header mb-1 row text-muted">
+                                    <div class="order-items order-item-header mb-1 row text-muted"
+                                        style="background-color:#f3f3f3;border-radius: 10px;padding:8px 0px;align-items: center;justify-items: center;">
                                         <span class="col-5">
                                             Item
                                         </span>
@@ -146,8 +151,8 @@ import frappe
                                 {% endfor %}
                             </div>
                         </div>
-                        
-                            <div class="row mr-2">
+                        <div>
+                            <div class="mr-2">
                                 <div class="w-100 mt-5 order-taxes font-weight-bold">
                                     <div class="col-4 col-md-6 d-flex">
                                         <div class="item-grand-total col-8">
@@ -159,7 +164,7 @@ import frappe
                                     </div>
                                 </div>
                             </div>
-                        
+                        </div>
                     </div>
                 </main>
 

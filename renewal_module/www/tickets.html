@@ -1,18 +1,20 @@
+<!doctype html>
 {% extends "templates/web.html" %}
 {% from "frappe/templates/includes/avatar_macro.html" import avatar %}
 import frappe
 {% block page_content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <div class="container">
     <div class="row" id="page-list" data-path="tickets">
-        <div class="sidebar-column col-sm-2">
+        <div class="sidebar-column col-sm-2 p-0">
             <div class="web-sidebar">
                 {% include web_sidebar %}
             </div>
         </div>
         <div class="main-column col-sm-10">
-            <div class="page-content-wrapper pl-3">
+            <div class="page-content-wrapper">
                 <!-- breadcrumbs -->
-                <div class="page-breadcrumbs">
+                <div class="page-breadcrumbs ml-2">
                     <div class="breadcrumb-container" style="margin-top:-1px;">
                         <nav aria-label="breadcrumb" style="display: flex; align-items: center;">
                             <ol class="breadcrumb" itemscope itemtype="http://schema.org/BreadcrumbList">
@@ -24,22 +26,24 @@ import frappe
                                 </div>
                             </ol>
                             <ol class="breadcrumb">
-                                <h3 class="my-account-header" style="margin: 0;color:#383838;">Issue</h3>
+                                <h3 class="my-account-header" style="margin: 0;color:#383838;">Ticket</h3>
                             </ol>
 
                         </nav>
                     </div>
                 </div>
-                <main class="container my-4">
+                <main class="container">
                     <div class="page-header-wrapper">
+
                     </div>
 
-                    <div class="page_content ml-3" style="background-color: white;">
+                    <div class="page_content" style="background-color: white;padding-left: 1px;">
                         <!-- web form container -->
-                        <div class="web-form-container ml-2 pl-2">
+                        <div class="web-form-container">
                             <!-- breadcrumb -->
                             <div class="breadcrumb-container container">
                             </div>
+                            <!-- main card -->
 
                             <form role="form" class="web-form" id="ticket-form">
                                 <div class="web-form-body">
@@ -100,10 +104,11 @@ import frappe
                                                                 </select>
                                                             </div>
 
-                                                            <button type="button" class="btn btn-warm btn-sm"
-                                                                id="discard-button">Discard</button>
-                                                            <button type="submit"
-                                                                class="btn btn-primary btn-sm">Submit</button>
+                                                            <button type="button" class="btn btn-warm btn-sm mr-3"
+                                                                id="discard-button"
+                                                                style="font-size: 12px;">Discard</button>
+                                                            <button type="submit" class="btn button-new btn-sm"
+                                                                style="font-size:12px;">Submit</button>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -112,8 +117,8 @@ import frappe
                                     </div>
                                 </div>
                             </form>
-
-                            
+                            <!-- attachments -->
+                            <!-- comments -->
                             <div style="height: 3rem"></div>
                         </div>
 
