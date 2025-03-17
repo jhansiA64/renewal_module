@@ -19,6 +19,8 @@ def validate_filters(from_date, to_date, company):
 @frappe.whitelist()
 def get_funnel_data(from_date, to_date, company):
 	validate_filters(from_date, to_date, company)
+	frappe.msgprint(company)
+	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(company)))
 	filters_data = {
 		"brand": [],
 		"company":company,

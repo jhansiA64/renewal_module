@@ -1,0 +1,19 @@
+{
+ "content": null,
+ "creation": "2025-03-06 16:05:28.907517",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-03-06 16:05:28.907517",
+ "modified_by": "Administrator",
+ "module": "Custom Module",
+ "name": "opportunity-dashboar",
+ "owner": "Administrator",
+ "page_name": "opportunity-dashboar",
+ "roles": [],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Opportunity Dashboard"
+}

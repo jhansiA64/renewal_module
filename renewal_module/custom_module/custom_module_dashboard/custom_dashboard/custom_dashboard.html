@@ -1,0 +1,55 @@
+{% extends "templates/pages/page.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>{{ title }}</h2>
+
+    <!-- Sales by Salesperson Section -->
+    <div class="report-widget">
+        <h3>Sales by Salesperson</h3>
+        {% for record in sales_data %}
+            <p>{{ record.sales_person }}: {{ record.grand_total }}</p>
+        {% endfor %}
+    </div>
+
+    <!-- Chart.js Section for Monthly Sales -->
+    <h3>Sales Trend (Monthly)</h3>
+    <canvas id="salesTrendChart" width="400" height="200"></canvas>
+
+    <script>
+        // Ensure chart_data is being passed correctly from Jinja to JavaScript
+        var chartData = JSON.parse(chart_data );
+        
+        // Check if the data is correctly passed
+        console.log(chartData);  // Should print your chart data as an array of objects
+        
+        var months = [];
+        var sales = [];
+
+        // Loop through chartData to extract months and sales data
+        chartData.forEach(function(data) {
+            months.push(data.month);
+            sales.push(data.total_sales);
+        });
+
+        // Logging the months and sales arrays to confirm the data is correct
+        console.log("Months:", months);
+        console.log("Sales:", sales);
+
+        // Initialize the Chart.js chart
+        var ctx = document.getElementById('salesTrendChart').getContext('2d');
+        var salesTrendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: months,  // X-axis labels
+                datasets: [{
+                    label: 'Total Sales',
+                    data: sales,  // Y-axis data
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    tension: 0.1
+                }]
+            }
+        });
+    </script>
+</div>
+{% endblock %}

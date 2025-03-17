@@ -1,0 +1,23 @@
+{
+ "creation": "2025-03-05 17:46:12.664624",
+ "currency": "INR",
+ "docstatus": 0,
+ "doctype": "Number Card",
+ "filters_json": "{\"company\":\"64 Network Security Pvt Ltd - TG\",\"timespan\":\"last week\",\"from_date\":\"2023-04-01\",\"to_date\":\"2024-03-31\",\"group_by\":\"Opportunity\",\"based_on\":\"Expected Date\",\"sales_stage\":[\"Closed Won\"],\"item_group\":[],\"brand\":[],\"customer\":[],\"contact_person\":[],\"sales_person\":[],\"user\":\"Administrator\"}",
+ "function": "Count",
+ "idx": 0,
+ "is_public": 0,
+ "is_standard": 1,
+ "label": "Won Amt (LW)",
+ "modified": "2025-03-05 17:46:12.735403",
+ "modified_by": "Administrator",
+ "module": "Custom Module",
+ "name": "Won Amt (LW)",
+ "owner": "Administrator",
+ "report_field": "selling_amount",
+ "report_function": "Sum",
+ "report_name": "Opportunity Report",
+ "show_percentage_stats": 1,
+ "stats_time_interval": "Daily",
+ "type": "Report"
+}

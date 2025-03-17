@@ -220,7 +220,7 @@ def get_data(filters):
 def get_conditions(filters):
 	conditions = []
 	user = frappe.session.user
-	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(user)))
+	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(filters)))
 	# sales_user = frappe.db.sql("""SELECT tu.full_name FROM `tabUser` tu WHERE tu.email='{user}';""", as_dict= 1)
 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(sales_user)))
 

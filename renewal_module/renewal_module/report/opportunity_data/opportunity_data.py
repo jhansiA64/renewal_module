@@ -1,5 +1,8 @@
-# Copyright (c) 2023, Aravind Mandala and contributors
+# Copyright (c) 2025, Aravind Mandala and contributors
 # For license information, please see license.txt
+
+# import frappe
+
 
 # import frappe
 import frappe
@@ -12,14 +15,14 @@ from dateutil import relativedelta
 
 
 def execute(filters=None):
-	columns, data = get_columns(), get_data(filters)
+	columns, data, item_data, brand_data, sales_stage_data, monthly_data  = get_columns(), get_data(filters), get_item_group_data(filters),get_brand_data(filters),get_sales_stage_data(filters), get_monthly_data(filters)
 
 	currency = filters.presentation_currency or frappe.get_cached_value(
 		"Company", filters.company, "default_currency"
 	)
 
 	# report_summary = get_report_summary(filters,columns, currency, data)
-	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(report_summary)))
+	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(monthly_data)))
 
 	chart = get_chart_data(filters, columns, data)
 	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(chart)))
@@ -153,6 +156,7 @@ def get_data(filters):
 	)
 
 def get_conditions(filters):
+	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(filters)))
 	conditions = []
 
 	if filters.get("opportunity_id"):
@@ -161,17 +165,22 @@ def get_conditions(filters):
 	if filters.get("timespan") != "custom":
 		if filters.get("timespan") == "this year":
 			date = frappe.db.get_value("Fiscal Year",["year_start_date"])
-			frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date)))
+			# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date)))
 		date_range = get_timespan_date_range(filters.get("timespan")) 
 		date1 = datetime.strptime(str(date_range[0]),"%Y-%m-%d").date()
 		date2 = datetime.strptime(str(date_range[1]),"%Y-%m-%d").date()
-		frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date1)))
+		# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date1)))
+		#conditions.append(f" and DATE(`tabOpportunity`.creation) >= '{date1}' and DATE(`tabOpportunity`.creation) <= '{date2}'")
 		if filters.get("based_on") == "Creation":
-			conditions.append(f" and DATE(`tabOpportunity`.creation) >= '{date1}' and DATE(`tabOpportunity`.creation) <= '{date2}'")	
-	    # else:
-		# 	conditions.append(f" and DATE(`tabOpportunity Item`.expected_date) >= '{date1}' and DATE(`tabOpportunity Item`.expected_date) <= '{date2}'")	
-	    
+			conditions.append(f" and DATE(`tabOpportunity`.creation)>='{date1}' and DATE(`tabOpportunity`.creation) <='{date2}'")
+		else:
+			conditions.append(f" and DATE(`tabOpportunity Item`.expected_date) >= '{date1}' and DATE(`tabOpportunity Item`.expected_date) <= '{date2}' ")		
+	    # if filters.get("based_on") == "Creation":
+        #     conditions.append(f" and DATE(`tabOpportunity`.creation) >= '{date1}' and DATE(`tabOpportunity`.creation) <= '{date2}'")    
+        # else:
+        #     conditions.append(f" and DATE(`tabOpportunity Item`.expected_date) >= '{date1}' and DATE(`tabOpportunity Item`.expected_date) <= '{date2}'")     
 
+       
 	if filters.get("timespan") == "custom":
 		
 		conditions.append(" and DATE(`tabOpportunity`.creation) >= %(from_date)s and DATE(`tabOpportunity`.creation) <= %(to_date)s")
@@ -208,6 +217,107 @@ def get_join(filters):
 	
 
 	return join
+
+
+
+def get_item_group_data(filters):
+	return frappe.db.sql(
+		"""
+		SELECT
+			`tabOpportunity Item`.item_group,
+			sum(`tabOpportunity Item`.qty) as qty,
+			sum(`tabOpportunity Item`.amount) as amount			
+		FROM
+			`tabOpportunity Item`
+			{join}
+		WHERE
+			`tabOpportunity`.company = %(company)s
+			{conditions}
+		Group BY 
+		`tabOpportunity Item`.item_group	
+		
+		ORDER BY
+			amount desc  """.format(
+			conditions=get_conditions(filters), join=get_join(filters)
+		),
+		filters,
+		as_dict=1,
+	)
+
+
+def get_brand_data(filters):
+	return frappe.db.sql(
+		"""
+		SELECT
+			`tabOpportunity Item`.brand,
+			sum(`tabOpportunity Item`.qty) as qty,
+			sum(`tabOpportunity Item`.amount) as amount			
+		FROM
+			`tabOpportunity Item`
+			{join}
+		WHERE
+			`tabOpportunity`.company = %(company)s
+			{conditions}
+		Group BY 
+		`tabOpportunity Item`.brand	
+		
+		ORDER BY
+			amount desc  """.format(
+			conditions=get_conditions(filters), join=get_join(filters)
+		),
+		filters,
+		as_dict=1,
+	)
+
+
+
+def get_sales_stage_data(filters):
+	return frappe.db.sql(
+		"""
+		SELECT
+			`tabOpportunity Item`.sales_stage,
+			sum(`tabOpportunity Item`.qty) as qty,
+			sum(`tabOpportunity Item`.amount) as amount			
+		FROM
+			`tabOpportunity Item`
+			{join}
+		WHERE
+			`tabOpportunity`.company = %(company)s
+			{conditions}
+		Group BY 
+		`tabOpportunity Item`.sales_stage	
+		
+		ORDER BY
+			amount desc  """.format(
+			conditions=get_conditions(filters), join=get_join(filters)
+		),
+		filters,
+		as_dict=1,
+	)
+
+
+def get_monthly_data(filters):
+	return frappe.db.sql(
+		"""
+		SELECT
+				CONCAT(MONTHNAME(`tabOpportunity`.creation)) AS month,  -- Get full month name and year
+				SUM(`tabOpportunity Item`.amount) AS amount , -- Sum of the amount for each month
+				SUM(`tabOpportunity Item`.qty) AS qty 
+			FROM
+				`tabOpportunity Item`
+				{join}			
+			WHERE
+				`tabOpportunity`.company = %(company)s AND `tabOpportunity Item`.forecast = "Include"
+				{conditions}  
+			GROUP BY
+				YEAR(`tabOpportunity`.creation), MONTH(`tabOpportunity`.creation) 
+			ORDER BY
+				`tabOpportunity`.creation ASC;  """.format(
+			conditions=get_conditions(filters), join=get_join(filters)
+		),
+		filters,
+		as_dict=1,
+	)
 
 # def get_report_summary(filters,columns, currency, data):
 # 	new,new_total, renewal, renewal_total = 0,0, 0, 0
@@ -263,7 +373,7 @@ def get_chart_data(filters,columns, data):
 
 		brand_wise_sales_map[item_key] = flt(brand_wise_sales_map[item_key]) + flt(row.get("amount"))
 
-	frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(brand_wise_sales_map)))	
+	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(brand_wise_sales_map)))	
 	brand_wise_sales_map = {
 		item: value
 		for item, value in (sorted(brand_wise_sales_map.items(), key=lambda i: i[0]))

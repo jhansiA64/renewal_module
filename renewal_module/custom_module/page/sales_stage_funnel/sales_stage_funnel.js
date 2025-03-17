@@ -147,14 +147,51 @@ erpnext.SalesStageFunnel = class SalesStageFunnel {
 		}
 	}
 
+	// render_funnel() {
+	// 	var me = this;
+	// 	this.prepare_funnel();
+	
+	// 	var context = this.elements.context,
+	// 		x_start = 0.0,
+	// 		// x_end = this.options.width * 0.6, // Set width to 60%
+	// 		// x_mid = (x_end - x_start) / 2.0,
+	// 		x_mid = this.options.width / 2.0,
+	// 		currentWidth = this.options.width * 0.3,
+	// 		x_end = x_mid + currentWidth,
+	// 		y = 0,
+	// 		y_old = 0.0;
+	
+	// 	if (this.options.total_weightage === 0) {
+	// 		this.elements.no_data.toggle(true);
+	// 		return;
+	// 	}
+	
+	// 	this.options.data.forEach(function (d) {
+	// 		context.fillStyle = d.color;
+	// 		context.strokeStyle = d.color;
+	// 		me.draw_triangle(x_start, x_mid, x_end, y, me.options.height);
+	
+	// 		y_old = y;
+	
+	// 		// New y
+	// 		y = y + d.height;
+	
+	// 		// New x
+	// 		var half_side = (me.options.height - y) / Math.sqrt(3);
+	// 		x_start = x_mid - half_side;
+	// 		x_end = x_mid + half_side;
+	
+	// 		var y_mid = y_old + (y - y_old) / 2.0;
+	
+	// 		me.draw_legend(x_mid, y_mid, me.options.width, me.options.height, d.value + " - " + d.title);
+	// 	});
+	// }
 	render_funnel() {
 		var me = this;
 		this.prepare_funnel();
-	
+		
 		var context = this.elements.context,
 			x_start = 0.0,
-			// x_end = this.options.width * 0.6, // Set width to 60%
-			// x_mid = (x_end - x_start) / 2.0,
 			x_mid = this.options.width / 2.0,
 			currentWidth = this.options.width * 0.3,
 			x_end = x_mid + currentWidth,
@@ -169,23 +206,26 @@ erpnext.SalesStageFunnel = class SalesStageFunnel {
 		this.options.data.forEach(function (d) {
 			context.fillStyle = d.color;
 			context.strokeStyle = d.color;
+	
+			// Ensure the triangle gets drawn properly with adjusted x_start, x_mid, x_end
 			me.draw_triangle(x_start, x_mid, x_end, y, me.options.height);
 	
 			y_old = y;
-	
-			// New y
+			
+			// Calculate new y for the next triangle
 			y = y + d.height;
 	
-			// New x
+			// Adjust x_start and x_end for the funnel
 			var half_side = (me.options.height - y) / Math.sqrt(3);
 			x_start = x_mid - half_side;
 			x_end = x_mid + half_side;
 	
+			// Draw the legend for each funnel stage
 			var y_mid = y_old + (y - y_old) / 2.0;
-	
 			me.draw_legend(x_mid, y_mid, me.options.width, me.options.height, d.value + " - " + d.title);
 		});
 	}
+	
 	
 	prepare_funnel() {
 		console.log("preparing funnel")
@@ -222,16 +262,26 @@ erpnext.SalesStageFunnel = class SalesStageFunnel {
 	}
 	
 
+	// draw_triangle(x_start, x_mid, x_end, y, height) {
+	// 	var context = this.elements.context;
+	// 	context.beginPath();
+	// 	context.moveTo(x_start, y);
+	// 	context.lineTo(x_end, y);
+	// 	context.lineTo(x_mid, height);
+	// 	context.lineTo(x_start, y);
+	// 	context.closePath();
+	// 	context.fill();
+	// }
 	draw_triangle(x_start, x_mid, x_end, y, height) {
 		var context = this.elements.context;
 		context.beginPath();
-		context.moveTo(x_start, y);
-		context.lineTo(x_end, y);
-		context.lineTo(x_mid, height);
-		context.lineTo(x_start, y);
+		context.moveTo(x_start, y);       // Start point of the left edge
+		context.lineTo(x_end, y);         // End point of the right edge
+		context.lineTo(x_mid, height);    // Top of the triangle (center)
 		context.closePath();
 		context.fill();
 	}
+	
 
 	draw_legend(x_mid, y_mid, width, height, title) {
 		var context = this.elements.context;

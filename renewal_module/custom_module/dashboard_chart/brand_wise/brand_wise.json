@@ -1,0 +1,33 @@
+{
+ "chart_name": "Brand Wise",
+ "chart_type": "Report",
+ "creation": "2025-03-06 13:21:15.656754",
+ "currency": "INR",
+ "docstatus": 0,
+ "doctype": "Dashboard Chart",
+ "dynamic_filters_json": "{}",
+ "filters_json": "{\"company\":\"64 Network Security Pvt Ltd - TG\",\"timespan\":\"last week\",\"group_by\":\"Opportunity\",\"based_on\":\"Expected Date\",\"sales_stage\":[\"Closed Won\"],\"user\":\"Administrator\",\"from_date\":\"2023-04-01\",\"to_date\":\"2024-03-31\"}",
+ "group_by_type": "Count",
+ "idx": 0,
+ "is_public": 0,
+ "is_standard": 1,
+ "modified": "2025-03-06 13:21:22.995180",
+ "modified_by": "Administrator",
+ "module": "Custom Module",
+ "name": "Brand Wise",
+ "number_of_groups": 0,
+ "owner": "Administrator",
+ "report_name": "Opportunity Report",
+ "roles": [],
+ "time_interval": "Yearly",
+ "timeseries": 0,
+ "timespan": "Last Year",
+ "type": "Line",
+ "use_report_chart": 0,
+ "x_field": "brand",
+ "y_axis": [
+  {
+   "y_field": "selling_amount"
+  }
+ ]
+}

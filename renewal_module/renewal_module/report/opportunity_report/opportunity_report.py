@@ -172,6 +172,7 @@ def execute(filters=None):
 			],
 		}
 	)
+	# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(group_wise_columns)))
 
 	columns = get_columns(group_wise_columns, filters)
 
@@ -1241,7 +1242,7 @@ def get_chart_data(filters, columns, data):
         'type':'bar',
         'height':300,
 		'fieldtype':'Currency',
-		'colors':["#FBC543",  "#007c01", "#de0a26"],
+		'colors':["#FBC543", "#de0a26" ,  "#007c01"],
     }
 
 

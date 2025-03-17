@@ -1,0 +1,37 @@
+.blue {
+    color: blue !important;
+}
+
+.green {
+    color: green !important;
+}
+
+.red {
+    color: red !important;
+}
+
+.orange {
+    color: orange !important;
+}
+
+.widget-group .grid-col-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    column-gap: 5px;
+    row-gap: 10px;
+    align-items: center;
+}
+
+/* Medium Screens (426px and above) */
+@media screen and (min-width: 426px) {
+    .widget-group .grid-col-3 {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+}
+
+/* Large Screens (992px and above) */
+@media screen and (min-width: 992px) {
+    .widget-group .grid-col-3 {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+}
