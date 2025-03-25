@@ -129,7 +129,7 @@ def get_columns(filters):
 def get_target_data(filters, sales_data):
 	
     sales_users_data = get_parents_data(filters, "Target Details")
-    frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(sales_users_data)))
+    # frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(sales_users_data)))
     if not sales_users_data:
 	    return
     sales_users = []
