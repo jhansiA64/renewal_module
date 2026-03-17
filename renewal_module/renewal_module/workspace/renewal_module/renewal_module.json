@@ -31,7 +31,7 @@
    "type": "Link"
   }
  ],
- "modified": "2024-08-27 14:50:18.623720",
+ "modified": "2025-09-10 12:41:46.807059",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Renewal Module",
@@ -50,7 +50,7 @@
  "public": 1,
  "quick_lists": [],
  "roles": [],
- "sequence_id": 7.0,
+ "sequence_id": 12.0,
  "shortcuts": [
   {
    "color": "Grey",
@@ -78,6 +78,7 @@
    "doc_view": "List",
    "label": "Renewals Based On Timespam",
    "link_to": "Renewals Based On Timespam",
+   "report_ref_doctype": "Renewal List",
    "type": "Report"
   }
  ],

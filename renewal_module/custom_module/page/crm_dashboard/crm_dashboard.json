@@ -1,0 +1,35 @@
+{
+ "content": null,
+ "creation": "2025-04-26 12:13:03.798515",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-06-30 14:37:51.572383",
+ "modified_by": "Administrator",
+ "module": "Custom Module",
+ "name": "crm-dashboard",
+ "owner": "Administrator",
+ "page_name": "crm-dashboard",
+ "roles": [
+  {
+   "role": "Administrator"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Geetha - Sales Manager"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Dashboard"
+}

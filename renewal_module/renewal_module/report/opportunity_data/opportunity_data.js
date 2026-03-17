@@ -15,8 +15,14 @@ frappe.query_reports["Opportunity Data"] = {
 			"fieldname": "based_on",
 			"label": __("Based ON"),
 			"fieldtype": "Select",
-			"options": "Creation\nExpected Date",
+			"options": "Creation\nExpected Date\nCommitted Date",
 			"default": "Creation"
+		},
+		{
+			"fieldname":"forecast",
+			"label": __("Forecast"),
+			"fieldtype": "Select",
+			"options": "\nInclude\nExclude",
 		},
 		{
 			fieldname: "timespan",

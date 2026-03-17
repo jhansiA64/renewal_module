@@ -26,6 +26,12 @@
   "total_amount",
   "end_date",
   "note",
+  "sla_details_section",
+  "sla_product",
+  "column_break_mcun",
+  "sla_type",
+  "column_break_bhby",
+  "tickets",
   "item_details_section",
   "items",
   "contact_details_section",
@@ -197,11 +203,42 @@
    "fieldname": "note",
    "fieldtype": "Small Text",
    "label": "Note"
+  },
+  {
+   "fieldname": "sla_details_section",
+   "fieldtype": "Section Break",
+   "label": "SLA Details"
+  },
+  {
+   "fieldname": "sla_product",
+   "fieldtype": "Data",
+   "label": "SLA Product",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_mcun",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sla_type",
+   "fieldtype": "Data",
+   "label": "SLA Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_bhby",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tickets",
+   "fieldtype": "Data",
+   "label": "Tickets",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-11-23 11:37:51.073818",
+ "modified": "2025-07-08 13:00:57.728420",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Renewal List",
@@ -221,6 +258,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "search_fields": "status,end_date",
  "show_name_in_global_search": 1,
  "sort_field": "modified",

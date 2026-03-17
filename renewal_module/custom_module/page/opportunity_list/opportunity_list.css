@@ -1,0 +1,69 @@
+[data-route^="opportunity-list"] .sticky-top {
+    display: none !important;
+}
+ 
+[data-route^="opportunity-list"] .page-head {
+    display: none !important;
+}
+ 
+body[data-route^="opportunity-list"] {
+    font-size: 12.25px !important;
+}
+ 
+ 
+[data-route^="opportunity-list"] .layout-main {
+    padding: 0 !important;
+    background: #F3F4F6;
+    margin: 0px !important;
+    width: 100%;
+}
+ 
+ 
+[data-route^="opportunity-list"] .layout-main-section-wrapper {
+    padding: 0 !important;
+}
+ 
+[data-route^="opportunity-list"] .container,
+[data-route^="opportunity-list"] .container-fluid,
+[data-route^="opportunity-list"] .container-lg,
+[data-route^="opportunity-list"] .container-md,
+[data-route^="opportunity-list"] .container-sm,
+[data-route^="opportunity-list"] .container-xl,
+[data-route^="opportunity-list"] .container-xxl {
+    padding: 0px !important;
+    max-width: 100% !important;
+}
+ 
+[data-route^="opportunity-list"] .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+ 
+[data-route^="opportunity-list"] [class^="col"],
+[data-route^="opportunity-list"] [class*=" col"] {
+    padding: 4px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

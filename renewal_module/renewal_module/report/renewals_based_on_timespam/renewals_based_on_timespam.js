@@ -107,27 +107,30 @@ frappe.query_reports["Renewals Based On Timespam"] = {
 			},
 		},
 		{
-			"fieldname":"opportunity_type",
-			"label": __("Opportunity Type"),
+			"fieldname":"status",
+			"label": __("Status"),
 			"fieldtype": "MultiSelectList",
 			get_data: function() {
 				return [
-					{ "value": "New", "description": "Opportunity Type" },
-					{ "value": "Renewal", "description": "Opportunity Type" },
-					{ "value": "Additional", "description": "Opportunity Type" }
+					{ "value": "Active", "description": "Status" },
+					{ "value": "Renewed", "description": "Status" },
+					{ "value": "Cofed", "description": "Status" },
+					{ "value": "New Opp", "description": "Status" },
+					{ "value": "Draft", "description": "Status" },
+					{ "value": "Lost", "description": "Status" }
 					
 				]
 			}
 		},
-		{	"fieldname":"sales_stage",
-			"label": __("Sales Stage"),
-			"fieldtype": "MultiSelectList",
-			"options": "Sales Stage",
-			get_data: function(txt) {
-				return frappe.db.get_link_options('Sales Stage', txt);
-			},
+		// {	"fieldname":"sales_stage",
+		// 	"label": __("Sales Stage"),
+		// 	"fieldtype": "MultiSelectList",
+		// 	"options": "Sales Stage",
+		// 	get_data: function(txt) {
+		// 		return frappe.db.get_link_options('Sales Stage', txt);
+		// 	},
 			
-		},
+		// },
 
 	],
 	"formatter": function(value, row, column, data, default_formatter) {

@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<link href="/assets/renewal_module/css/issue_themes/app.min.css">
+<link href="/assets/renewal_module/css/issue_themes/vendors.min.css">
+<link rel="stylesheet" href="https://unpkg.com/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+<script src="/assets/renewal_module/js/issue_themes/vendors.min.js"></script>
+<script src="/assets/renewal_module/js/issue_themes/app.min.js"></script>
+<script src="/assets/renewal_module/js/issue_themes/config.js"></script>
+<script src="/assets/renewal_module/js/issue_themes/custom_table.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
+
+<style>
+    :root {
+        --ins-logo-lg-height: 36px !important;
+        --ins-logo-sm-height: 36px !important;
+    }
+
+    * {
+        font-family: 'intervariable', 'inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    }
+
+    .sticky-top {
+        display: none !important;
+    }
+
+    .page-head {
+        display: none !important;
+    }
+
+    .content-page {
+        padding: 0 !important;
+    }
+
+    .layout-main-section {
+        padding: 0 !important;
+    }
+
+    @media (min-width: 300px) {
+        .col-md-12 {
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+    }
+
+    @media (min-width: 300px) {
+
+        .container,
+        .container-lg,
+        .container-md,
+        .container-sm {
+            max-width: 100% !important;
+        }
+    }
+
+    .content-page {
+        padding: 0 !important;
+    }
+
+    .layout-main-section {
+        padding: 0 !important;
+    }
+</style>
+
+<script>
+    (() => {
+        //console.log("Initializing Notifications...");
+
+        let notificationOffset = 0;
+        const pageLength = 10;
+        let totalUnread = 0;
+
+        /*Load Notifications*/
+        function loadNotifications(reset = false) {
+            if (reset) {
+                notificationOffset = 0;
+                totalUnread = 0;
+                const list = document.getElementById("notification-list");
+                if (list) list.innerHTML = "";
+            }
+
+            frappe.call({
+                method: "renewal_module.api.get_user_notifications",
+                args: { offset: notificationOffset, limit: pageLength },
+                callback: (r) => {
+                    if (!r.message || r.message.length === 0) {
+                        console.warn("No notifications found");
+                        const seeMoreBtn = document.getElementById("see-more-btn");
+                        if (seeMoreBtn) seeMoreBtn.style.display = "none";
+                        return;
+                    }
+
+                    const notifications = r.message;
+                    const container = document.getElementById("notification-list");
+                    if (!container) return console.error("Missing #notification-list container");
+
+                    notifications.forEach((n) => {
+                        const dotClass = n.read ? "border border-primary" : "bg-primary";
+
+                        const notificationDiv = document.createElement("div");
+                        const safeHtml = (typeof DOMPurify !== "undefined")
+                            ? DOMPurify.sanitize(String(n.subject || ""))
+                            : frappe.utils.escape_html(String(n.subject || ""));
+                        notificationDiv.className = "dropdown-item notification-item py-2 text-wrap d-flex align-items-center gap-2";
+                        notificationDiv.innerHTML = `
+						<span class="rounded-circle ${dotClass}" style="width:10px; height:10px; flex-shrink:0;"></span>
+						<span class="flex-shrink-0 position-relative">
+							<span class="avatar-md rounded-circle bg-light d-flex align-items-center justify-content-center">
+								<i class="ti ti-bell fs-4 text-primary"></i>
+							</span>
+						</span>
+						<span class="flex-grow-1 text-muted">
+							<span class="fw-medium text-body">${safeHtml}</span><br>
+							<span class="fs-xs">${frappe.datetime.prettyDate(n.creation)}</span>
+						</span>
+					`;
+
+                        notificationDiv.addEventListener("click", () => markAsRead(n, notificationDiv));
+                        container.appendChild(notificationDiv);
+                    });
+
+                    notificationOffset += notifications.length;
+                    totalUnread += notifications.filter(n => !n.read).length;
+                    updateBadge(totalUnread);
+
+                    const seeMoreBtn = document.getElementById("see-more-btn");
+                    if (seeMoreBtn)
+                        seeMoreBtn.style.display = notifications.length < pageLength ? "none" : "block";
+
+                    const totalEl = document.getElementById("total-notifications");
+                    if (totalEl) totalEl.innerText = `${notificationOffset} Notifications`;
+                }
+            });
+        }
+
+        /** ------------------------------
+         *  Mark Notification as Read
+         * ------------------------------ */
+        function markAsRead(notification, element) {
+            if (notification.read) return;
+
+            frappe.call({
+                method: "renewal_module.api.mark_notification_as_read",
+                args: { notification_name: notification.name },
+                callback: (r) => {
+                    if (!r.exc) {
+                        const dot = element.querySelector("span.rounded-circle");
+                        if (dot) {
+                            dot.classList.remove("bg-primary");
+                            dot.classList.add("border", "border-primary");
+                        }
+                        notification.read = 1;
+                        if (totalUnread > 0) totalUnread--;
+                        updateBadge(totalUnread);
+                    }
+                }
+            });
+        }
+
+        /** ------------------------------
+         *  Update Badge Count
+         * ------------------------------ */
+        function updateBadge(count) {
+            const badge = document.querySelector(".topbar-badge");
+            if (!badge) return;
+            if (count > 0) {
+                badge.innerText = count;
+                badge.classList.remove("d-none");
+            } else {
+                badge.classList.add("d-none");
+            }
+        }
+
+        /** ------------------------------
+         *  See More Button Click
+         * ------------------------------ */
+        document.addEventListener("click", (e) => {
+            if (e.target && e.target.id === "see-more-btn") {
+                loadNotifications(false);
+            }
+        });
+
+        /** ------------------------------
+         *  Initial Load
+         * ------------------------------ */
+        frappe.after_ajax(() => {
+            loadNotifications(true);
+        });
+    })();
+
+    /** --------------------------------
+     *  Avatar Handling
+     * -------------------------------- */
+    (() => {
+        const avatarEl = document.getElementById("topbar-user-avatar");
+        if (!avatarEl) {
+            console.warn("Missing #topbar-user-avatar element");
+            return;
+        }
+
+        frappe.db.get_value("User", frappe.session.user, ["user_image", "full_name"])
+            .then(r => {
+                if (!r || !r.message) return;
+                const { user_image, full_name } = r.message;
+
+                if (user_image) {
+                    avatarEl.innerHTML = `
+					<img src="${user_image}" width="32" height="32" class="rounded-circle" alt="user-image">
+				`;
+                } else {
+                    const firstLetter = (full_name || frappe.session.user || "?").charAt(0).toUpperCase();
+                    avatarEl.textContent = firstLetter;
+                }
+            })
+            .catch(err => console.error("Failed to load user avatar:", err));
+    })();
+
+    /** global search **/
+    (() => {
+        //console.log("🔍 Initializing Global Search...");
+
+        const $input = $(".topbar-search");
+        if (!$input.length) {
+            console.warn("⚠️ Missing .topbar-search input");
+            return;
+        }
+
+        let $dropdown = null;
+
+        function clearSearchResults() {
+            if ($dropdown) {
+                $dropdown.remove();
+                $dropdown = null;
+                $(document).off("click.searchDropdown");
+            }
+        }
+
+        function showSearchResults(results, searchText) {
+            clearSearchResults();
+
+            const $searchBar = $input.closest(".app-search");
+            $searchBar.css("position", "relative");
+
+            $dropdown = $('<div class="search-results-dropdown"></div>').css({
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                background: "#fff",
+                border: "1px solid #ddd",
+                width: "100%",
+                zIndex: 9999,
+                maxHeight: "300px",
+                overflowY: "auto",
+                display: "none",
+            });
+
+            $searchBar.append($dropdown);
+
+            const regex = new RegExp(`(${searchText})`, "ig");
+
+            results.forEach(item => {
+                const label = item.label || item.name || item.doctype || item.value;
+                const highlightedLabel = label.replace(regex, "<mark>$1</mark>");
+                const $item = $('<div class="search-item"></div>')
+                    .css({ padding: "5px 10px", cursor: "pointer" })
+                    .html(highlightedLabel);
+
+                $item.hover(
+                    () => $item.css("background", "#f8f9fa"),
+                    () => $item.css("background", "white")
+                );
+
+                $item.on("click", () => frappe.set_route("Form", item.doctype, item.value));
+                $dropdown.append($item);
+            });
+
+            $dropdown.show();
+
+            $(document).on("click.searchDropdown", (e) => {
+                if (!$(e.target).closest($searchBar).length) clearSearchResults();
+            });
+        }
+
+        $input.on(
+            "input",
+            frappe.utils.debounce(function () {
+                const txt = $(this).val().trim();
+                //console.log("🔎 Search text:", txt);
+                if (!txt) {
+                    clearSearchResults();
+                    return;
+                }
+
+                frappe.call({
+                    method: "renewal_module.api.global_search",
+                    args: { txt },
+                    callback: (r) => {
+                        if (r.message && r.message.length) {
+                            showSearchResults(r.message, txt);
+                        } else {
+                            clearSearchResults();
+                        }
+                    },
+                });
+            }, 300)
+        );
+    })();
+</script>
+
+
+
+<!--sidebar start-->
+<div class="sidenav-menu">
+    <!-- Brand Logo -->
+    <a href="/app" class="logo">
+        <span class="logo logo-light">
+            <span class="logo-lg"><img src="/assets/renewal_module/images/logo.png" alt="logo"></span>
+            <span class="logo-sm"><img src="/assets/renewal_module/images/logo-sm-round.png" alt="small logo"></span>
+        </span>
+
+        <span class="logo logo-dark">
+            <span class="logo-lg"><img src="/assets/renewal_module/images/logo.png" alt="dark logo"></span>
+            <span class="logo-sm"><img src="/assets/renewal_module/images/logo-sm-round.png" alt="small logo"></span>
+        </span>
+    </a>
+
+
+    <!-- Sidebar Hover Menu Toggle Button -->
+    <button class="button-on-hover">
+        <i class="ti ti-menu-4 fs-22 align-middle"></i>
+    </button>
+
+    <!-- Full Sidebar Menu Close Button -->
+    <button class="button-close-offcanvas">
+        <i class="ti ti-x align-middle"></i>
+    </button>
+
+    <div class="scrollbar" data-simplebar>
+
+        <!-- User -->
+        <div class="sidenav-user">
+
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <a href="/app/user-profile" class="link-reset">
+                        <img src="assets/images/users/user-3.jpg" alt="user-image"
+                            class="rounded-circle mb-2 avatar-md">
+                        <span class="sidenav-user-name fw-bold">Geneva K.</span>
+                        <span class="fs-12 fw-semibold" data-lang="user-role">Art Director</span>
+                    </a>
+                </div>
+                <div>
+                    <a class="dropdown-toggle drop-arrow-none link-reset sidenav-user-set-icon"
+                        data-bs-toggle="dropdown" data-bs-offset="0,12" href="#!" aria-haspopup="false"
+                        aria-expanded="false">
+                        <i class="ti ti-settings fs-24 align-middle ms-1"></i>
+                    </a>
+
+                    <div class="dropdown-menu dropdown-menu-end">
+                        <!-- Header -->
+                        <div class="dropdown-header noti-title d-none">
+                            <h6 class="text-overflow m-0">Welcome back 👋!</h6>
+                        </div>
+
+                        <!-- My Profile -->
+                        <a href="/app/user-profile" class="dropdown-item">
+                            <!--<i class="ti ti-user-circle me-1 fs-17 align-middle"></i>-->
+                            <span class="align-middle">My Profile</span>
+                        </a>
+                        <!-- Settings -->
+                        <a href="javascript:void(0);" class="dropdown-item"
+                            onclick="frappe.set_route('Form', 'User', frappe.session.user)">
+                            <!--<i class="ti ti-settings-2 me-1 fs-17 align-middle"></i>-->
+                            <span class="align-middle">My Settings</span>
+                        </a>
+                        <!-- session default -->
+                        <!--<a href="javascript:void(0);" class="dropdown-item">
+                            <i class="ti ti-bell-ringing me-1 fs-17 align-middle"></i>
+                            <span class="align-middle">Session Default</span>
+                        </a>-->
+
+                        <!-- Reload -->
+                        <a href="javascript:void(0);" class="dropdown-item" onclick="location.reload()">
+                            <!--<i class="ti ti-bell-ringing me-1 fs-17 align-middle"></i>-->
+                            <span class="align-middle">Reload</span>
+                        </a>
+                        <!-- Apps -->
+                        <a href="/apps" class="dropdown-item">
+                            <!--<i class="ti ti-headset me-1 fs-17 align-middle"></i>-->
+                            <span class="align-middle">Apps</span>
+                        </a>
+                        <!-- view website -->
+                        <a href="/" class="dropdown-item" target="_blank">
+                            <!--<i class="ti ti-bell-ringing me-1 fs-17 align-middle"></i>-->
+                            <span class="align-middle">View Website</span>
+                        </a>
+
+                        <!-- Divider -->
+                        <div class="dropdown-divider"></div>
+                        <!-- Logout -->
+                        <a href="javascript:void(0);" class="dropdown-item fw-semibold" onclick="frappe.app.logout()">
+                            <!--<i class="ti ti-logout-2 me-1 fs-17 align-middle"></i>-->
+                            <span class="align-middle">Log Out</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--- Sidenav Menu -->
+        <ul class="side-nav">
+            <!-- <li class="side-nav-title mt-2" data-lang="menu-title">Navigation</li> -->
+
+            <!--<li class="side-nav-item">
+                <a data-bs-toggle="collapse" href="/app/dashboard" aria-expanded="false"
+                    aria-controls="sidebarDashboards" class="side-nav-link">
+                    <span class="menu-icon"><i data-lucide="circle-gauge"></i></span>
+                    <span class="menu-text" data-lang="dashboards">Dashboards</span>
+                    <span class="badge bg-success">02</span>
+                </a>
+                <div class="collapse" id="sidebarDashboards">
+                    <ul class="sub-menu">
+                        <li class="side-nav-item">
+                            <a href="#" class="side-nav-link">
+                                <span class="menu-text" data-lang="dashboard-one">Dashboard 1</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="#" class="side-nav-link">
+                                <span class="menu-text" data-lang="dashboard-two">Dashboard 2</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>-->
+
+            <!--<li class="side-nav-item">
+                <a href="#" target="_blank" class="side-nav-link">
+                    <span class="menu-icon"><i data-lucide="earth"></i></span>
+                    <span class="menu-text" data-lang="landing-page">Landing Page</span>
+                </a>
+            </li>-->
+
+            <!-- <li class="side-nav-title" data-lang="apps-title">Apps</li> -->
+
+            <!--<li class="side-nav-item">
+                <a href="#" class="side-nav-link">
+                    <span class="menu-icon"><i data-lucide="message-square-dot"></i></span>
+                    <span class="menu-text" data-lang="chat"> Chat </span>
+                </a>
+            </li>-->
+
+
+
+            <!--<li class="side-nav-item">
+                <a data-bs-toggle="collapse" data-bs-target="#sidebarCRM" aria-expanded="false"
+                    aria-controls="sidebarCRM" class="side-nav-link" href="javascript:void(0);">
+                    <span class="menu-icon"><i data-lucide="handshake"></i></span>
+                    <span class="menu-text" data-lang="crm"> CRM </span>
+                    <span class="menu-arrow"></span>
+                </a>
+
+                <div class="collapse" id="sidebarCRM">
+                    <ul class="sub-menu">
+                        <li class="side-nav-item">
+                            <a href="/app/customer" class="side-nav-link">
+                                <span class="menu-text" data-lang="crm-customer">Customers</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/contact-view" class="side-nav-link">
+                                <span class="menu-text" data-lang="crm-contacts">Contacts</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/opportunity" class="side-nav-link">
+                                <span class="menu-text" data-lang="crm-opportunities">Opportunities</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/quotation" class="side-nav-link">
+                                <span class="menu-text" data-lang="crm-quotations">Quotations</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/address" class="side-nav-link">
+                                <span class="menu-text" data-lang="crm-address">Address</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/sales-person" class="side-nav-link">
+                                <span class="menu-text" data-lang="crm-sales-person">Sales Person</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/call-list" class="side-nav-link">
+                                <span class="menu-text" data-lang="crm-call-list">Call List</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+            <li class="side-nav-item">
+                <a data-bs-toggle="collapse" data-bs-target="#sidebarSelling" aria-expanded="false"
+                    aria-controls="sidebarSelling" class="side-nav-link" href="javascript:void(0)">
+                    <span class="menu-icon"><i data-lucide="shopping-bag"></i></span>
+                    <span class="menu-text" data-lang="selling"> Selling</span>
+                    <span class="menu-arrow"></span>
+                </a>
+                <div class="collapse" id="sidebarSelling">
+                    <ul class="sub-menu">
+                        <li class="side-nav-item">
+                            <a href="/app/item" class="side-nav-link">
+                                <span class="menu-text" data-lang="item">Item</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/quotation" class="side-nav-link">
+                                <span class="menu-text" data-lang="quotation">Quotation</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/customer-order-form" class="side-nav-link">
+                                <span class="menu-text" data-lang="customer-order-form">COF</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/sales-order" class="side-nav-link">
+                                <span class="menu-text" data-lang="sales-orders">Sales Order</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/sales-invoice" class="side-nav-link">
+                                <span class="menu-text" data-lang="sales-invoices">Sales Invoices</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>-->
+
+            <!--<li class="side-nav-item">
+                <a data-bs-toggle="collapse" data-bs-target="#sidebarBuying" aria-expanded="false"
+                    aria-controls="sidebarBuying" class="side-nav-link" href="javascript:void(0)">
+                    <span class="menu-icon"><i data-lucide="shopping-cart"></i></span>
+                    <span class="menu-text" data-lang="buying"> Buying</span>
+                    <span class="menu-arrow"></span>
+                </a>
+                <div class="collapse" id="sidebarBuying">
+                    <ul class="sub-menu">
+                        <li class="side-nav-item">
+                            <a href="/app/supplier-quotation" class="side-nav-link">
+                                <span class="menu-text" data-lang="supplier-quotation">Supplier Quotation</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/purchase-order" class="side-nav-link">
+                                <span class="menu-text" data-lang="purchase-order">Purchase Order</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/purchase-invoice" class="side-nav-link">
+                                <span class="menu-text" data-lang="purchase-invoice">Purchase Invoice</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+            <li class="side-nav-item">
+                <a data-bs-toggle="collapse" data-bs-target="#sidebarUsers" aria-expanded="false"
+                    aria-controls="sidebarUsers" class="side-nav-link" href="javascript:void(0);">
+                    <span class="menu-icon"><i data-lucide="users"></i></span>
+                    <span class="menu-text" data-lang="users"> Users </span>
+                    <span class="menu-arrow"></span>
+                </a>
+                <div class="collapse" id="sidebarUsers">
+                    <ul class="sub-menu">
+                        <li class="side-nav-item">
+                            <a href="/app/user" class="side-nav-link">
+                                <span class="menu-text" data-lang="role-details">Users</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/role" class="side-nav-link">
+                                <span class="menu-text" data-lang="roles">Roles</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/user-profile" class="side-nav-link">
+                                <span class="menu-text" data-lang="profile">User Profile</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/permission-manager" class="side-nav-link">
+                                <span class="menu-text" data-lang="permissions">Permissions</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>-->
+
+            <li class="side-nav-item">
+                <a data-bs-toggle="collapse" data-bs-target="#sidebarTickets" aria-expanded="false"
+                    aria-controls="sidebarTickets" class="side-nav-link" href="javascript:void(0)">
+                    <span class="menu-icon"><i data-lucide="life-buoy"></i></span>
+                    <span class="menu-text" data-lang="support"> Support</span>
+                    <span class="menu-arrow"></span>
+                </a>
+                <div class="collapse" id="sidebarTickets">
+                    <ul class="sub-menu">
+                        <li class="side-nav-item">
+                            <a href="/app/support-dashboard" class="side-nav-link">
+                                <span class="menu-text" data-lang="tickets">Support Dashboard</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/ticket" class="side-nav-link">
+                                <span class="menu-text" data-lang="tickets">Tickets</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+            <!--<li class="side-nav-item">
+                <a data-bs-toggle="collapse" data-bs-target="#sidebarreport" aria-expanded="false"
+                    aria-controls="sidebarreport" class="side-nav-link" href="javascript:void(0)">
+                    <span class="menu-icon"><i data-lucide="bar-chart-2"></i></span>
+                    <span class="menu-text" data-lang="reports"> Reports</span>
+                    <span class="menu-arrow"></span>
+                </a>
+                <div class="collapse" id="sidebarreport">
+                    <ul class="sub-menu">
+                        <li class="side-nav-item">
+                            <a href="" class="side-nav-link">
+                                <span class="menu-text" data-lang=""></span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+            <li class="side-nav-item">
+                <a data-bs-toggle="collapse" data-bs-target="#sidebarrenewals" aria-expanded="false"
+                    aria-controls="sidebarrenewals" class="side-nav-link" href="javascript:void(0)">
+                    <span class="menu-icon"><i data-lucide="receipt-text"></i></span>
+                    <span class="menu-text" data-lang="renewals"> Renewals</span>
+                    <span class="menu-arrow"></span>
+                </a>
+                <div class="collapse" id="sidebarrenewals">
+                    <ul class="sub-menu">
+                        <li class="side-nav-item">
+                            <a href="/app/renewal-list" class="side-nav-link">
+                                <span class="menu-text" data-lang="renewals">Renewals</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+            <li class="side-nav-item">
+                <a data-bs-toggle="collapse" data-bs-target="#sidebarhr" aria-expanded="false" aria-controls="sidebarhr"
+                    class="side-nav-link" href="javascript:void(0)">
+                    <span class="menu-icon"><i data-lucide="briefcase"></i></span>
+                    <span class="menu-text" data-lang="HR"> HR</span>
+                    <span class="menu-arrow"></span>
+                </a>
+                <div class="collapse" id="sidebarhr">
+                    <ul class="sub-menu">
+                        <li class="side-nav-item">
+                            <a href="/app/employee-lifecycle" class="side-nav-link">
+                                <span class="menu-text" data-lang="employee_lifecycle">Employee LifeCycle</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/shift-&-attendance" class="side-nav-link">
+                                <span class="menu-text" data-lang="shift_attendance">Shift & Attendance</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/expense-claims" class="side-nav-link">
+                                <span class="menu-text" data-lang="expense_claims">Expense Claims</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/leaves" class="side-nav-link">
+                                <span class="menu-text" data-lang="leaves">Leaves</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/recruitment" class="side-nav-link">
+                                <span class="menu-text" data-lang="recruitment">Recruitment</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/performance" class="side-nav-link">
+                                <span class="menu-text" data-lang="performance">Performance</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+            <li class="side-nav-item">
+                <a href="/app/custom-calendar" class="side-nav-link">
+                    <span class="menu-icon"><i data-lucide="calendar"></i></span>
+                    <span class="menu-text" data-lang="calendar"> Calendar </span>
+                </a>
+            </li>
+
+            <li class="side-nav-item">
+                <a href="#" class="side-nav-link">
+                    <span class="menu-icon"><i data-lucide="folder-open-dot"></i></span>
+                    <span class="menu-text" data-lang="file-manager"> File Manager </span>
+                </a>
+            </li>
+
+            <li class="side-nav-item">
+                <a data-bs-toggle="collapse" data-bs-target="#sidebarEcommerce" aria-expanded="false"
+                    aria-controls="sidebarEcommerce" class="side-nav-link" href="javascript:void(0)">
+                    <span class="menu-icon"><i data-lucide="shopping-bag"></i></span>
+                    <span class="menu-text" data-lang="ecommerce">Ecommerce</span>
+                    <span class="menu-arrow"></span>
+                </a>
+                <div class="collapse" id="sidebarEcommerce">
+                    <ul class="sub-menu">
+                        <li class="side-nav-item">
+                            <a data-bs-toggle="collapse" data-bs-target="#sidebarItem" aria-expanded="false"
+                                aria-controls="sidebarItem" class="side-nav-link" href="javascript:void(0)">
+                                <span class="menu-text" data-lang="eco-Item">Items</span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <div class="collapse" id="sidebarItem">
+                                <ul class="sub-menu">
+                                    <li class="side-nav-item">
+                                        <a href="/app/item" class="side-nav-link">
+                                            <span class="menu-text" data-lang="eco-pro-listing">Item</span>
+                                        </a>
+                                    </li>
+                                    <li class="side-nav-item">
+                                        <a href="/app/item-group" class="side-nav-link">
+                                            <span class="menu-text" data-lang="eco-item-group">ItemGroup</span>
+                                        </a>
+                                    </li>
+                                    <li class="side-nav-item">
+                                        <a href="/app/item-price" class="side-nav-link">
+                                            <span class="menu-text" data-lang="eco-pro-details">Item Price</span>
+                                        </a>
+                                    </li>
+                                    <li class="side-nav-item">
+                                        <a href="/app/price-list" class="side-nav-link">
+                                            <span class="menu-text" data-lang="eco-pro-add">Price List</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="#" class="side-nav-link">
+                                <span class="menu-text" data-lang="eco-categories">Categories</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a data-bs-toggle="collapse" data-bs-target="#sidebarOrders" aria-expanded="false"
+                                aria-controls="sidebarOrders" class="side-nav-link" href="javascript:void(0)">
+                                <span class="menu-text" data-lang="eco-orders">Orders</span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <div class="collapse" id="sidebarOrders">
+                                <ul class="sub-menu">
+                                    <li class="side-nav-item">
+                                        <a href="#" class="side-nav-link">
+                                            <span class="menu-text" data-lang="eco-orders-list">Orders</span>
+                                        </a>
+                                    </li>
+                                    <li class="side-nav-item">
+                                        <a href="#" class="side-nav-link">
+                                            <span class="menu-text" data-lang="eco-order-details">Order
+                                                Details</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/customer" class="side-nav-link">
+                                <span class="menu-text" data-lang="eco-customers">Customers</span>
+                            </a>
+                        </li>
+
+                        <li class="side-nav-item">
+                            <a data-bs-toggle="collapse" data-bs-target="#sidebarSellers" aria-expanded="false"
+                                aria-controls="sidebarSellers" class="side-nav-link" href="javascript:void(0)">
+                                <span class="menu-text" data-lang="eco-sellers"> Sellers </span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <div class="collapse" id="sidebarSellers">
+                                <ul class="sub-menu">
+                                    <li class="side-nav-item">
+                                        <a href="#" class="side-nav-link">
+                                            <span class="menu-text" data-lang="eco-sellers-list">Sellers</span>
+                                        </a>
+                                    </li>
+                                    <li class="side-nav-item">
+                                        <a href="#" class="side-nav-link">
+                                            <span class="menu-text" data-lang="eco-sellers-details">Sellers
+                                                Details</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+
+                        <li class="side-nav-item">
+                            <a href="#" class="side-nav-link">
+                                <span class="menu-text" data-lang="eco-reviews">Reviews</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+
+            <li class="side-nav-item">
+                <a data-bs-toggle="collapse" data-bs-target="#sidebarEmail" aria-expanded="false"
+                    aria-controls="sidebarEmail" class="side-nav-link" href="javascript:void(0)">
+                    <span class="menu-icon"><i data-lucide="inbox"></i></span>
+                    <span class="menu-text" data-lang="email">Email</span>
+                    <span class="badge text-bg-danger">New</span>
+                </a>
+                <div class="collapse" id="sidebarEmail">
+                    <ul class="sub-menu">
+                        <li class="side-nav-item">
+                            <a href="#" class="side-nav-link">
+                                <span class="menu-text" data-lang="email-inbox">Inbox</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="#" class="side-nav-link">
+                                <span class="menu-text" data-lang="email-details">Details</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="#" class="side-nav-link">
+                                <span class="menu-text" data-lang="email-compose">Compose</span>
+                            </a>
+                        </li>
+                        <li class="side-nav-item">
+                            <a href="/app/email-template" class="side-nav-link">
+                                <span class="menu-text" data-lang="email-templates">Email Templates</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>-->
+
+        </ul>
+    </div>
+</div>
+<!-- end sidebar menu -->
+
+<!-- header start-->
+
+<header class="app-topbar">
+    <div class="container-fluid topbar-menu">
+        <div class="d-flex align-items-center gap-2">
+            <!-- Topbar Brand Logo -->
+            <div class="logo-topbar">
+                <!-- Logo light -->
+                <a href="/app" class="logo-light">
+                    <span class="logo-lg"><img src="/assets/renewal_module/images/logo.png" alt="logo"></span>
+                    <span class="logo-sm"><img src="/assets/renewal_module/images/logo-sm-round.png"
+                            alt="small logo"></span>
+                </a>
+
+                <!-- Logo Dark -->
+                <a href="/app" class="logo-dark">
+                    <span class="logo-lg"><img src="/assets/renewal_module/images/logo.png" alt="logo"></span>
+                    <span class="logo-sm"><img src="/assets/renewal_module/images/logo-sm-round.png"
+                            alt="small logo"></span>
+                </a>
+            </div>
+
+            <!-- Sidebar Menu Toggle Button -->
+            <button class="sidenav-toggle-button btn btn-default btn-icon">
+                <i class="ti ti-menu-4 fs-22"></i>
+            </button>
+
+            <!-- Horizontal Menu Toggle Button -->
+            <button class="topnav-toggle-button px-2" data-bs-toggle="collapse" data-bs-target="#topnav-menu-content">
+                <i class="ti ti-menu-4 fs-22"></i>
+            </button>
+
+            <!-- Mega Menu Dropdown -->
+            <div class="topbar-item d-none d-md-flex">
+                <div class="dropdown">
+                    <button class="topbar-link btn fw-medium btn-link dropdown-toggle drop-arrow-none"
+                        data-lang="mega-menu" data-bs-toggle="dropdown" data-bs-offset="0,17" type="button"
+                        aria-haspopup="false" aria-expanded="false">
+                        Mega Menu <i class="ti ti-chevron-down ms-1 fs-16"></i>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-xxl p-0">
+                        <div class="h-100" style="max-height: 380px;" data-simplebar>
+                            <div class="row g-0">
+
+                                <!-- Dashboard & Analytics -->
+                                <div class="col-md-4">
+                                    <div class="p-2">
+                                        <h5 class="mb-1 fw-semibold fs-sm dropdown-header">Dashboard & Analytics
+                                        </h5>
+                                        <ul class="list-unstyled megamenu-list">
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-chart-line align-middle me-2 fs-16"></i>
+                                                    Sales Dashboard</a></li>
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-bulb align-middle me-2 fs-16"></i>
+                                                    Marketing Dashboard</a></li>
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-currency-dollar align-middle me-2 fs-16"></i>
+                                                    Finance Overview</a></li>
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-users align-middle me-2 fs-16"></i> User
+                                                    Analytics</a></li>
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-activity align-middle me-2 fs-16"></i>
+                                                    Traffic Insights</a></li>
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-gauge align-middle me-2 fs-16"></i>
+                                                    Performance Metrics</a></li>
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-zoom-check align-middle me-2 fs-16"></i>
+                                                    Conversion Tracking</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <!-- Project Management -->
+                                <div class="col-md-4">
+                                    <div class="p-2">
+                                        <h5 class="mb-1 fw-semibold fs-sm dropdown-header">Project Management
+                                        </h5>
+                                        <ul class="list-unstyled megamenu-list">
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-layout-kanban align-middle me-2 fs-16"></i>
+                                                    Kanban Workflow</a></li>
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-calendar-stats align-middle me-2 fs-16"></i>
+                                                    Project Timeline</a></li>
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-list-check align-middle me-2 fs-16"></i>
+                                                    Task Management</a></li>
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-users-group align-middle me-2 fs-16"></i>
+                                                    Team Members</a></li>
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-clipboard-list align-middle me-2 fs-16"></i>
+                                                    Assignments</a></li>
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-chart-pie align-middle me-2 fs-16"></i>
+                                                    Resource Allocation</a></li>
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-file-invoice align-middle me-2 fs-16"></i>
+                                                    Project Reports</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <!-- User Management -->
+                                <div class="col-md-4">
+                                    <div class="p-2">
+                                        <h5 class="mb-1 fw-semibold fs-sm dropdown-header">User Management</h5>
+                                        <ul class="list-unstyled megamenu-list">
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-user-circle align-middle me-2 fs-16"></i>
+                                                    User Profiles</a></li>
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-lock me-2 align-middle fs-16"></i> Access
+                                                    Control</a></li>
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-shield-lock align-middle me-2 fs-16"></i>
+                                                    Role Permissions</a></li>
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-notes align-middle me-2 fs-16"></i>
+                                                    Activity Logs</a></li>
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-settings align-middle me-2 fs-16"></i>
+                                                    Security Settings</a></li>
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-users align-middle me-2 fs-16"></i> User
+                                                    Groups</a></li>
+                                            <li><a href="javascript:void(0);" class="dropdown-item"><i
+                                                        class="ti ti-key align-middle me-2 fs-16"></i>
+                                                    Authentication </a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div> <!-- .d-flex-->
+
+        <div class="d-flex align-items-center gap-1">
+            <!-- Search -->
+            <div class="app-search d-none d-xl-flex me-2">
+                <input type="search" class="form-control topbar-search rounded-pill" name="search"
+                    placeholder="Quick Search...">
+                <i data-lucide="search" class="app-search-icon text-muted"></i>
+            </div>
+
+            <!-- Language Dropdown -->
+            <div class="topbar-item hidden">
+                <div class="dropdown">
+                    <button class="topbar-link fw-bold" data-bs-toggle="dropdown" data-bs-offset="0,24" type="button"
+                        aria-haspopup="false" aria-expanded="false">
+                        <img src="/assets/renewal_module/images/us.svg" alt="user-image" class="rounded" height="20"
+                            id="selected-language-image">
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end">
+                        <a href="javascript:void(0);" class="dropdown-item" data-translator-lang="en" title="English">
+                            <img src="/assets/renewal_module/images/us.svg" alt="English" class="me-1 rounded"
+                                height="18" data-translator-image>
+                            <span class="align-middle">English</span>
+                        </a>
+                        <a href="javascript:void(0);" class="dropdown-item" data-translator-lang="de" title="German">
+                            <img src="/assets/renewal_module/images/de.svg" alt="German" class="me-1 rounded"
+                                height="18" data-translator-image>
+                            <span class="align-middle">Deutsch</span>
+                        </a>
+                        <a href="javascript:void(0);" class="dropdown-item" data-translator-lang="it" title="Italian">
+                            <img src="/assets/renewal_module/images/it.svg" alt="Italian" class="me-1 rounded"
+                                height="18" data-translator-image>
+                            <span class="align-middle">Italiano</span>
+                        </a>
+                        <a href="javascript:void(0);" class="dropdown-item" data-translator-lang="es" title="Spanish">
+                            <img src="/assets/renewal_module/images/es.svg" alt="Spanish" class="me-1 rounded"
+                                height="18" data-translator-image>
+                            <span class="align-middle">Español</span>
+                        </a>
+                        <a href="javascript:void(0);" class="dropdown-item" data-translator-lang="ru" title="Russian">
+                            <img src="/assets/renewal_module/images/ru.svg" alt="Russian" class="me-1 rounded"
+                                height="18" data-translator-image>
+                            <span class="align-middle">Русский</span>
+                        </a>
+                        <a href="javascript:void(0);" class="dropdown-item" data-translator-lang="hi" title="Hindi">
+                            <img src="/assets/renewal_module/images/in.svg" alt="Hindi" class="me-1 rounded" height="18"
+                                data-translator-image>
+                            <span class="align-middle">हिन्दी</span>
+                        </a>
+                    </div> <!-- end dropdown-menu-->
+                </div> <!-- end dropdown-->
+            </div> <!-- end topbar item-->
+
+            <!-- Notification Dropdown -->
+            <div class="topbar-item">
+                <div class="dropdown">
+                    <button class="topbar-link dropdown-toggle drop-arrow-none" data-bs-toggle="dropdown"
+                        data-bs-offset="0,24" type="button" data-bs-auto-close="outside" aria-haspopup="false"
+                        aria-expanded="false">
+                        <i data-lucide="bell" class="fs-xxl"></i>
+                        <span class="badge text-bg-danger badge-circle topbar-badge"></span>
+                    </button>
+                    <div class="dropdown-menu p-0 dropdown-menu-end dropdown-menu-lg">
+                        <!-- Header -->
+                        <div class="px-3 py-2 border-bottom bg-light">
+                            <div class="row align-items-center">
+                                <div class="col">
+                                    <h6 class="m-0 fs-md fw-semibold">Notifications</h6>
+                                </div>
+                                <div class="col text-end">
+                                    <a href="#" id="total-notifications"
+                                        class="badge badge-soft-success badge-label py-1">0 Notifications</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Scrollable Notifications List -->
+                        <div id="notification-list" class="p-2" style="max-height: 300px; overflow-y: auto;">
+                            <!-- JS will dynamically inject notifications here -->
+                        </div>
+
+                        <!-- Read All Button -->
+                        <div class="border-top text-center py-2 bg-light sticky-bottom">
+                            <a href="javascript:void(0);" id="see-more-btn"
+                                class="text-reset text-decoration-underline fw-bold link-offset-2">
+                                See More
+                            </a>
+                        </div>
+                    </div><!-- End dropdown-menu -->
+                </div> <!-- end dropdown-->
+            </div> <!-- end topbar item-->
+
+            <!-- Theme Mode Dropdown -->
+            <div class="topbar-item">
+                <div class="dropdown">
+                    <button class="topbar-link" data-bs-toggle="dropdown" data-bs-offset="0,24" type="button"
+                        aria-haspopup="false" aria-expanded="false">
+                        <i data-lucide="layout-grid" class="fs-xxl"></i>
+                    </button>
+
+                    <div class="dropdown-menu dropdown-menu-lg p-2 dropdown-menu-end">
+                        <div class="row align-items-center g-1">
+                            <!--<div class="col-4">
+                                <a href="javascript:void(0);"
+                                    class="dropdown-item border border-dashed rounded text-center py-2">
+                                    <span class="avatar-sm d-block mx-auto mb-1">
+                                        <span class="avatar-title text-bg-light rounded-circle">
+                                            <img src="assets/images/logos/google.svg" alt="Google Logo"
+                                                height="18">
+                                        </span>
+                                    </span>
+                                    <span class="align-middle fw-medium">Google</span>
+                                </a>
+                            </div>-->
+
+                            <!--<div class="col-4">
+                                <a href="javascript:void(0);"
+                                    class="dropdown-item border border-dashed rounded text-center py-2">
+                                    <span class="avatar-sm d-block mx-auto mb-1">
+                                        <span class="avatar-title text-bg-light rounded-circle">
+                                            <img src="assets/images/logos/figma.svg" alt="Figma Logo"
+                                                height="18">
+                                        </span>
+                                    </span>
+                                    <span class="align-middle fw-medium">Figma</span>
+                                </a>
+                            </div>-->
+
+                            <!--<div class="col-4">
+                                <a href="javascript:void(0);"
+                                    class="dropdown-item border border-dashed rounded text-center py-2">
+                                    <span class="avatar-sm d-block mx-auto mb-1">
+                                        <span class="avatar-title text-bg-light rounded-circle">
+                                            <img src="assets/images/logos/slack.svg" alt="Slack Logo"
+                                                height="18">
+                                        </span>
+                                    </span>
+                                    <span class="align-middle fw-medium">Slack</span>
+                                </a>
+                            </div>-->
+
+                            <!--<div class="col-4">
+                                <a href="javascript:void(0);"
+                                    class="dropdown-item border border-dashed rounded text-center py-2">
+                                    <span class="avatar-sm d-block mx-auto mb-1">
+                                        <span class="avatar-title text-bg-light rounded-circle">
+                                            <img src="assets/images/logos/dropbox.svg" alt="Dropbox Logo"
+                                                height="18">
+                                        </span>
+                                    </span>
+                                    <span class="align-middle fw-medium">Dropbox</span>
+                                </a>
+                            </div>-->
+
+                            <!--<div class="col-4 text-center">
+                                <a href="javascript:void(0);"
+                                    class="btn btn-sm rounded-circle btn-icon btn-danger">
+                                    <i data-lucide="circle-plus" class="fs-18"></i>
+                                </a>
+                            </div>-->
+
+                            <div class="col-4">
+                                <a href="/app/custom-calendar"
+                                    class="dropdown-item border border-dashed rounded text-center py-2">
+                                    <span class="avatar-sm d-block mx-auto mb-1">
+                                        <span class="avatar-title bg-primary-subtle text-primary rounded-circle">
+                                            <i class="ti ti-calendar fs-18"></i>
+                                        </span>
+                                    </span>
+                                    <span class="align-middle fw-medium">Calendar</span>
+                                </a>
+                            </div>
+
+                            <div class="col-4">
+                                <a href="javascript:void(0);"
+                                    class="dropdown-item border border-dashed rounded text-center py-2">
+                                    <span class="avatar-sm d-block mx-auto mb-1">
+                                        <span class="avatar-title bg-primary-subtle text-primary rounded-circle">
+                                            <i class="ti ti-message-circle fs-18"></i>
+                                        </span>
+                                    </span>
+                                    <span class="align-middle fw-medium">Chat</span>
+                                </a>
+                            </div>
+
+                            <!--<div class="col-4">
+                                <a href="javascript:void(0);"
+                                    class="dropdown-item border border-dashed rounded text-center py-2">
+                                    <span class="avatar-sm d-block mx-auto mb-1">
+                                        <span
+                                            class="avatar-title bg-primary-subtle text-primary rounded-circle">
+                                            <i class="ti ti-folder fs-18"></i>
+                                        </span>
+                                    </span>
+                                    <span class="align-middle fw-medium">Files</span>
+                                </a>
+                            </div>-->
+
+                            <div class="col-4">
+                                <a href="javascript:void(0);"
+                                    class="dropdown-item border border-dashed rounded text-center py-2">
+                                    <span class="avatar-sm d-block mx-auto mb-1">
+                                        <span class="avatar-title bg-primary-subtle text-primary rounded-circle">
+                                            <i class="ti ti-users fs-18"></i>
+                                        </span>
+                                    </span>
+                                    <span class="align-middle fw-medium">Team</span>
+                                </a>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div> <!-- end dropdown-->
+            </div> <!-- end topbar item-->
+
+            <!-- Theme Mode Dropdown -->
+            <div class="topbar-item">
+                <div class="dropdown">
+                    <button class="topbar-link" data-bs-toggle="dropdown" data-bs-offset="0,24" type="button"
+                        aria-haspopup="false" aria-expanded="false">
+                        <i data-lucide="sun" class="fs-xxl"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end thememode-dropdown">
+
+                        <li>
+                            <label class="dropdown-item">
+                                <i data-lucide="sun" class="align-middle me-1 fs-16"></i>
+                                <span class="align-middle">Light</span>
+                                <input class="form-check-input" type="radio" name="data-bs-theme" value="light">
+                            </label>
+                        </li>
+
+                        <li>
+                            <label class="dropdown-item">
+                                <i data-lucide="moon" class="align-middle me-1 fs-16"></i>
+                                <span class="align-middle">Dark</span>
+                                <input class="form-check-input" type="radio" name="data-bs-theme" value="dark">
+                            </label>
+                        </li>
+
+                        <li>
+                            <label class="dropdown-item">
+                                <i data-lucide="monitor-cog" class="align-middle me-1 fs-16"></i>
+                                <span class="align-middle">System</span>
+                                <input class="form-check-input" type="radio" name="data-bs-theme" value="system">
+                            </label>
+                        </li>
+
+                    </ul> <!-- end dropdown-menu-->
+                </div> <!-- end dropdown-->
+            </div> <!-- end topbar item-->
+
+            <!-- FullScreen -->
+            <div class="topbar-item d-none d-sm-flex">
+                <button class="topbar-link" type="button" data-toggle="fullscreen">
+                    <i data-lucide="maximize" class="fs-xxl fullscreen-off"></i>
+                    <i data-lucide="minimize" class="fs-xxl fullscreen-on"></i>
+                </button>
+            </div>
+
+            <!-- Light/Dark Mode Button -->
+            <div class="topbar-item d-none">
+                <button class="topbar-link" id="light-dark-mode" type="button">
+                    <i data-lucide="moon" class="fs-xxl mode-light-moon"></i>
+                </button>
+            </div>
+
+            <!-- Monocrome Mode Button -->
+            <div class="topbar-item d-none d-sm-flex">
+                <button class="topbar-link" type="button" id="monochrome-mode">
+                    <i data-lucide="palette" class="fs-xxl"></i>
+                </button>
+            </div>
+
+            <!-- User Dropdown -->
+            <div class="topbar-item">
+                <div class="dropdown">
+                    <a class="topbar-link dropdown-toggle drop-arrow-none" data-bs-toggle="dropdown"
+                        data-bs-offset="0,19" href="javascript:void(0);" aria-haspopup="false" aria-expanded="false">
+                        <span id="topbar-user-avatar"
+                            class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                            style="width: 32px; height: 32px; font-weight: 600; font-size: 14px;">
+                        </span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end">
+                        <!-- Header -->
+                        <div class="dropdown-header noti-title d-none">
+                            <h6 class="text-overflow m-0">Welcome back 👋!</h6>
+                        </div>
+
+                        <!-- My Profile -->
+                        <a href="/app/user-profile" class="dropdown-item">
+                            <!--<i class="ti ti-user-circle me-1 fs-17 align-middle"></i>-->
+                            <span class="align-middle">My Profile</span>
+                        </a>
+                        <!-- Settings -->
+                        <a href="javascript:void(0);" class="dropdown-item"
+                            onclick="frappe.set_route('Form', 'User', frappe.session.user)">
+                            <!--<i class="ti ti-settings-2 me-1 fs-17 align-middle"></i>-->
+                            <span class="align-middle">My Settings</span>
+                        </a>
+                        <!-- session default -->
+                        <!--<a href="javascript:void(0);" class="dropdown-item">
+                            <i class="ti ti-bell-ringing me-1 fs-17 align-middle"></i>
+                            <span class="align-middle">Session Default</span>
+                        </a>-->
+
+                        <!-- Reload -->
+                        <a href="javascript:void(0);" class="dropdown-item" onclick="location.reload()">
+                            <!--<i class="ti ti-bell-ringing me-1 fs-17 align-middle"></i>-->
+                            <span class="align-middle">Reload</span>
+                        </a>
+                        <!-- Apps -->
+                        <a href="/apps" class="dropdown-item">
+                            <!--<i class="ti ti-headset me-1 fs-17 align-middle"></i>-->
+                            <span class="align-middle">Apps</span>
+                        </a>
+                        <!-- view website -->
+                        <a href="/" class="dropdown-item" target="_blank">
+                            <!--<i class="ti ti-bell-ringing me-1 fs-17 align-middle"></i>-->
+                            <span class="align-middle">View Website</span>
+                        </a>
+
+                        <!-- Divider -->
+                        <div class="dropdown-divider"></div>
+                        <!-- Logout -->
+                        <a href="javascript:void(0);" class="dropdown-item fw-semibold" onclick="frappe.app.logout()">
+                            <!--<i class="ti ti-logout-2 me-1 fs-17 align-middle"></i>-->
+                            <span class="align-middle">Log Out</span>
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</header>
+<!--header closed-->

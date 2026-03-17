@@ -1,0 +1,342 @@
+a {
+    text-decoration: none;
+    color: black !important;
+}
+
+.blue {
+    color: blue !important;
+}
+
+.green {
+    color: green !important;
+}
+
+.red {
+    color: red !important;
+}
+
+.orange {
+    color: orange !important;
+}
+
+.yellow {
+    color: #FCCD00 !important;
+}
+
+.title {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.title1 {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.select-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+#sales-person-dropdown {
+    width: 100%;
+    padding-right: 25px;
+}
+
+.ml-2 {
+    margin-left: 0.5rem;
+}
+
+a.sales-link {
+    pointer-events: auto !important;
+}
+
+@media (min-width: 1200px) {
+
+    .container-xl,
+    .container-lg,
+    .container-md,
+    .container-sm,
+    .container {
+        max-width: 100% !important;
+        padding-left: 24px !important;
+        padding-right: 24px !important;
+    }
+}
+
+.card1 .card1-header {
+    min-height: 20px !important;
+    padding: 0 1rem !important;
+}
+
+.card1 .card1-body {
+    padding: 0rem 0rem !important;
+    color: var(--bs-card-color);
+}
+
+.card1 .card1-title {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+}
+
+/* modal css */
+.legend-modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.legend-modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 400px;
+}
+
+.legend-close {
+    float: right;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.title2 {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+@media screen and (max-width: 768px) {
+    .title2 {
+        font-size: 12px;
+    }
+
+}
+
+/* .widget {
+    border: 1px solid #807E78 !important;
+} */
+
+.card1 {
+    /*border: 1px solid #807E78 !important;*/
+    background-color: #FFFFFF !important;
+    border: none !important;
+}
+
+/* tables */
+.table-responsive {
+    overflow-x: auto;
+    width: 100%;
+    /* background-color: #FFFFFF !important; */
+    margin-top: 1px;
+    border-radius: 10px 10px 0px 0px !important;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0px !important;
+}
+
+.table th,
+.table td {
+    padding: 3px 5px !important;
+    text-align: left !important;
+    border-bottom: 1px solid #807E78 !important;
+    white-space: nowrap;
+    border-radius: 0px;
+}
+
+tbody {
+    background-color: white !important;
+    border-bottom: 1px solid #807E78 !important;
+    border-radius: 0px;
+}
+
+#opportunity-table-container table thead {
+    background-color: #FFFFFF !important;
+}
+
+#salesgrowthChart {
+    height: 225px !important;
+    width: 100% !important;
+}
+
+#salesgrowthChartYear {
+    height: 210px !important;
+    width: 100% !important;
+}
+
+
+.box1 {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1%;
+    background-color: #F3F3F3 !important;
+    justify-content: space-between;
+}
+
+.box1 .widget {
+    flex: 0 0 10%;
+    box-sizing: border-box;
+    padding: 5px;
+    background: white;
+    border-radius: 8px;
+    min-height: 50px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* Ensure all widgets have same height visually */
+.box1 .number-widget-box {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.box1 .widget-content {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 600px) {
+    .box1 .widget {
+        flex: 0 0 48%;
+        margin-bottom: 10px;
+        overflow: hidden;
+    }
+}
+
+@media (min-width: 601px) and (max-width: 900px) {
+    .box1 .widget {
+        flex: 0 0 31.5%;
+        margin-bottom: 10px;
+        overflow: hidden;
+    }
+}
+
+@media (min-width: 901px) and (max-width: 1200px) {
+    .box1 .widget {
+        flex: 0 0 9%;
+        margin-bottom: 10px;
+        overflow: hidden;
+    }
+}
+
+@media (min-width: 1201px) {
+    .box1 .widget {
+        flex: 0 0 9%;
+        overflow: hidden;
+    }
+}
+
+@media screen and (min-width:601px) {
+    .widget-bottom {
+        margin-bottom: 30px;
+    }
+}
+
+.hidden {
+    display: none !important;
+}
+
+#custom-date-fields input[type="date"] {
+    background-color: white !important;
+    color: #000;
+    /* Optional: ensure text is readable */
+    border-radius: 10px !important;
+}
+
+/*pagination button */
+/* Style for active button */
+.btn-group .btn.active {
+    background-color: gray !important;
+    color: white !important;
+    border: none !important;
+    font-size: 12px !important;
+}
+
+.btn-group .btn {
+    font-size: 12px !important;
+    background-color: #fff !important;
+}
+
+.level-right .btn {
+    font-size: 12px !important;
+    background-color: #fff !important;
+}
+
+.btn:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.dashboard-card.active-card {
+    border: 3px solid black !important;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.25) !important;
+    border-radius: 8px !important;
+}
+
+/* Example active style */
+.active-widget {
+    border: 2px solid #007bff;
+    background-color: #FFF4DE;
+}
+
+
+/*#sales-stage-cards .widget {
+    flex: 1 1 calc(20% - 10px);
+    min-width: 180px;
+    max-width: 220px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+#sales-stage-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+@media (max-width: 768px) {
+    #sales-stage-cards .widget {
+        flex: 1 1 calc(50% - 10px);
+    }
+}*/
+
+.widget.number-widget-box.active {
+    /*box-shadow: 0 0 10px rgba(0, 123, 255, 0.3);*/
+    background-color: #f7bfbe !important;
+}
+
+.widget.number-widget-box.active .widget-title a {
+    color: #fffafa !important;
+    font-weight: bold !important;
+}
+
+.widget.number-widget-box.active .number {
+    color: #fffafa !important;
+    font-weight: bold !important;
+}
+
+@media screen and (max-width:426px) {
+    #from-date-display {
+        margin-top: 5px;
+    }
+
+    #to-date-display {
+        margin-top: 5px;
+    }
+}

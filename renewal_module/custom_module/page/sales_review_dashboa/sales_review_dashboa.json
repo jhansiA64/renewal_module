@@ -1,0 +1,34 @@
+{
+ "content": null,
+ "creation": "2025-07-09 05:50:12.316565",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-07-09 05:50:12.316565",
+ "modified_by": "Administrator",
+ "module": "Custom Module",
+ "name": "sales-review-dashboa",
+ "owner": "Administrator",
+ "page_name": "sales-review-dashboa",
+ "roles": [
+  {
+   "role": "Administrator"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "Geetha - Sales Manager"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0
+}

@@ -1,0 +1,28 @@
+{
+ "content": null,
+ "creation": "2025-05-02 10:28:19.787981",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-05-02 10:28:19.787981",
+ "modified_by": "Administrator",
+ "module": "Custom Module",
+ "name": "target-dashboard",
+ "owner": "Administrator",
+ "page_name": "target-dashboard",
+ "roles": [
+  {
+   "role": "Administrator"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Sales User"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0
+}

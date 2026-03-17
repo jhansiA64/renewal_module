@@ -64,14 +64,26 @@ def get_context(context):
         context.message="please log in user"
         return context
     
-    if user_email =="Administrator" and "Customer" in user_role:
-        issue = frappe.db.sql("""
-            SELECT i.name,i.status,i.subject,i.raised_by,i.priority,i.customer
+    # Support role gets access to all issues
+    if "Support" in user_role or "Tech Support" in user_role or user_email =="Administrator":
+        issues = frappe.db.sql("""
+            SELECT i.name, i.status, i.subject, i.raised_by, i.priority, i.customer
             FROM `tabIssue` i
             ORDER BY i.creation DESC
         """, as_dict=True)
-        context.doc = issue
-        context.message = f"Showing all issues as Administrator: {user_email}."
+
+         # Count by status
+        status_counts = frappe.db.sql("""
+            SELECT status, COUNT(*) as count
+            FROM `tabIssue`
+            GROUP BY status
+        """, as_dict=True)
+
+        context.doc = issues
+        context.message = f"Showing all issues for Support role: {user_email}."
+        context.status_counts = {
+            row["status"].lower().replace(" ", "_"): row["count"] for row in status_counts
+        }
         return context
     
     contact_name = frappe.db.get_value("Contact", {"email_id": user_email}, "name")
@@ -92,11 +104,25 @@ def get_context(context):
             WHERE i.customer = %s
             ORDER BY i.creation DESC
         """, (customer,), as_dict=True)
+
+        # Count by status for this customer's issues
+        status_counts = frappe.db.sql("""
+            SELECT status, COUNT(*) as count
+            FROM `tabIssue`
+            WHERE customer = %s
+            GROUP BY status
+        """, (customer,), as_dict=True)
         
         context.doc = issues
         context.message = f"user data fetched successfully: {user_email}."
+        #context.status_counts = {row["status"]: row["count"] for row in status_counts}
+        context.status_counts = {
+            row["status"].lower().replace(" ", "_"): row["count"] for row in status_counts
+        }
+
     else:
         context.doc = []
         context.message = "You are not authorized to view issues."
+        context.status_counts = {}
     
     return context

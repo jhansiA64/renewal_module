@@ -1,0 +1,34 @@
+{
+ "content": null,
+ "creation": "2025-07-01 12:22:34.632088",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-07-01 12:22:34.632088",
+ "modified_by": "Administrator",
+ "module": "Custom Module",
+ "name": "review-dashboard",
+ "owner": "Administrator",
+ "page_name": "review-dashboard",
+ "roles": [
+  {
+   "role": "Administrator"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Geetha - Sales Manager"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0
+}

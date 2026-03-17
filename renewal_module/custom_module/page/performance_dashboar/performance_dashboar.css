@@ -1,0 +1,425 @@
+@media (min-width: 1200px) {
+
+    [data-route="performance-dashboar"] .container-xl,
+    [data-route="performance-dashboar"] .container-lg,
+    [data-route="performance-dashboar"] .container-md,
+    [data-route="performance-dashboar"] .container-sm,
+    [data-route="performance-dashboar"] .container {
+        max-width: 100% !important;
+        padding-left: 24px !important;
+        padding-right: 24px !important;
+    }
+}
+
+
+[data-route="performance-dashboar"] .hidden {
+    display: none !important;
+}
+
+[data-route="performance-dashboar"] .title5 {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+[data-route="performance-dashboar"] a {
+    text-decoration: none;
+    color: black !important;
+}
+
+[data-route="performance-dashboar"] .blue {
+    color: blue !important;
+}
+
+[data-route="performance-dashboar"] .green {
+    color: green !important;
+}
+
+[data-route="performance-dashboar"] .red {
+    color: red !important;
+}
+
+[data-route="performance-dashboar"] .orange {
+    color: orange !important;
+}
+
+[data-route="performance-dashboar"] .yellow {
+    color: #FCCD00 !important;
+}
+
+/* [data-route="performance-dashboar"] .box6 {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: repeat(1, 1fr);
+} */
+
+[data-route="performance-dashboar"] .box6 {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 20px;
+    overflow-x: visible;
+    white-space: normal;
+}
+
+[data-route="performance-dashboar"] .card-row {
+    display: contents;
+}
+
+[data-route="performance-dashboar"] .performance-period-card {
+    width: 100%;
+}
+
+[data-route="performance-dashboar"] #opportunity-table-container {
+    grid-column: 1 / -1;
+}
+
+@media (min-width: 600px) {
+    [data-route="performance-dashboar"] .box6 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 992px) {
+    [data-route="performance-dashboar"] .box6 {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+[data-route="performance-dashboar"] .widget-card1 {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #f3f3f3;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+[data-route="performance-dashboar"] .top-block1 {
+    padding: 12px 16px;
+    border: 1px solid #DDDAD0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 12px;
+    margin: 0px 2px;
+    border-radius: 10px;
+    background-color: #ffffff;
+}
+
+[data-route="performance-dashboar"] .bottom-blocks1 {
+    /* display: flex; */
+    height: 100%;
+    margin: 0px 2px;
+
+}
+
+[data-route="performance-dashboar"] .left-block1,
+[data-route="performance-dashboar"] .center-block1,
+[data-route="performance-dashboar"] .right-block1 {
+    flex: 1;
+    padding: 5px 2px;
+    border: 1px solid #DDDAD0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    font-size: 11px;
+    min-width: 0px;
+    border-radius: 10px;
+    background-color: #ffffff;
+}
+
+
+/* .right-block1 {
+    border-right: none;
+} */
+
+[data-route="performance-dashboar"] .left-block1 h6,
+[data-route="performance-dashboar"] .center-block1 h6,
+[data-route="performance-dashboar"] .right-block1 h6 {
+    margin: 0;
+    font-size: 12px;
+    color: #444444;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+}
+
+[data-route="performance-dashboar"] .left-block1 p,
+[data-route="performance-dashboar"] .center-block1 p,
+[data-route="performance-dashboar"] .right-block1 p {
+    margin: 4px 0 0 0;
+    font-weight: bold;
+    color: #111;
+    font-size: 18px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+}
+
+
+[data-route="performance-dashboar"] .top-block1 p,
+[data-route="performance-dashboar"] .top-block1 span {
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    color: orange;
+    text-align: center;
+}
+
+[data-route="performance-dashboar"] .top-block1 span {
+    font-size: 16px;
+    text-align: center;
+}
+
+[data-route="performance-dashboar"] .single-block {
+    border: 1px solid #DDDAD0;
+    border-radius: 10px;
+}
+
+[data-route="performance-dashboar"] .single-block h6 {
+    margin: 0;
+    font-size: 12px;
+    color: #444444;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+}
+
+[data-route="performance-dashboar"] .single-block p {
+    margin: 4px 0 0 0;
+    font-weight: bold;
+    color: #111;
+    font-size: 18px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+}
+
+[data-route="performance-dashboar"] .metric-btn {
+    background: #ffffff;
+    border: 1px solid #d5d5d5;
+    padding: 6px 12px !important;
+    border-radius: 10px !important;
+    font-weight: 500;
+    color: #555;
+    transition: 0.2s;
+}
+
+[data-route="performance-dashboar"] .metric-btn:hover {
+    background: #f5f5f5;
+    cursor: pointer;
+}
+
+[data-route="performance-dashboar"] .metric-active {
+    background: #007bff !important;
+    color: white !important;
+    border: 1px solid #007bff !important;
+}
+
+[data-route="performance-dashboar"] .metric-blue {
+    color: blue !important;
+}
+
+[data-route="performance-dashboar"] .metric-purple {
+    color: yellowgreen !important;
+}
+
+[data-route="performance-dashboar"] .metric-green {
+    color: #28a745 !important;
+}
+
+[data-route="performance-dashboar"] #opportunity-table-container table thead {
+    background-color: #FFFFFF !important;
+}
+
+/*css multiselect dropdown start*/
+[data-route="performance-dashboar"] .filter-section-responsive {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+[data-route="performance-dashboar"] .custom-dropdown-wrapper {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 100px;
+    max-width: 120px;
+}
+
+[data-route="performance-dashboar"] .select-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.4rem 1rem;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    border-radius: 20px;
+    cursor: pointer;
+    width: 100%;
+    min-width: 120px;
+    transition: all 0.2s ease;
+    box-shadow: none;
+}
+
+[data-route="performance-dashboar"] .select-btn:hover {
+    border-color: #aaa;
+    background-color: #f9f9f9;
+}
+
+[data-route="performance-dashboar"] .select-btn .btn-text {
+    font-size: 0.85rem;
+    color: #333;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+[data-route="performance-dashboar"] .select-btn .arrow-dwn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    color: #888;
+    margin-left: 0.5rem;
+    transition: transform 0.3s ease;
+}
+
+
+[data-route="performance-dashboar"] .select-btn.open .arrow-dwn {
+    transform: rotate(-180deg);
+}
+
+[data-route="performance-dashboar"] .custom-dropdown-wrapper .list-items {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    margin-top: 0.3rem;
+    border-radius: 8px;
+    background-color: #f3f3f3;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+    display: none;
+    margin: 2px;
+    width: 100%;
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+}
+
+[data-route="performance-dashboar"] .custom-dropdown-wrapper .select-btn.open~.list-items {
+    display: block;
+}
+
+[data-route="performance-dashboar"] .select-btn .items-list {
+    display: none;
+}
+
+[data-route="performance-dashboar"] .select-btn.open .items-list {
+    display: block;
+}
+
+[data-route="performance-dashboar"] .search-box {
+    padding: 0.5rem;
+    border-bottom: 1px solid #ccc;
+}
+
+[data-route="performance-dashboar"] .search-box input {
+    width: 100%;
+    padding: 0.5rem;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    outline: none;
+    font-size: 0.85rem;
+}
+
+[data-route="performance-dashboar"] .list-items ul {
+    padding: 5px !important;
+}
+
+[data-route="performance-dashboar"] .list-items .item {
+    display: flex;
+    padding: 0rem;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.3s;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 5px;
+}
+
+[data-route="performance-dashboar"] .list-items .item:hover {
+    background-color: #fff;
+}
+
+[data-route="performance-dashboar"] .item .item-text {
+    font-size: 0.9rem;
+    color: #333;
+    flex: 1;
+    padding: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+[data-route="performance-dashboar"] .item.checked {
+    background-color: #fff;
+}
+
+@media (max-width: 1024px) {
+    [data-route="performance-dashboar"] .custom-dropdown-wrapper {
+        flex: 1 1 33%;
+    }
+}
+
+@media (max-width: 768px) {
+    [data-route="performance-dashboar"] .custom-dropdown-wrapper {
+        flex: 1 1 33%;
+    }
+
+    [data-route="performance-dashboar"] .select-btn {
+        height: 2.6rem;
+        font-size: 0.85rem;
+    }
+
+    [data-route="performance-dashboar"] .btn-text {
+        font-size: 0.8rem;
+    }
+
+    [data-route="performance-dashboar"] .search-box input {
+        font-size: 0.8rem;
+    }
+
+    [data-route="performance-dashboar"] .item .item-text {
+        font-size: 0.8rem;
+    }
+}
+
+[data-route="performance-dashboar"] .btn.bl {
+    background-color: #aaa !important;
+    color: #000 !important;
+}
+
+[data-route="performance-dashboar"] .active-stage-card {
+    background-color: #f7bfbe !important;
+}
+
+
+[data-route="performance-dashboar"] .stage-card.active-stage-card h6,
+[data-route="performance-dashboar"] .stage-card.active-stage-card p {
+    color: #ffffff !important;
+}
+
+
+/*css multiselect dropdown ended*/

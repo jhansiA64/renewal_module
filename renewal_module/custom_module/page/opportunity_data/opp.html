@@ -1,0 +1,380 @@
+<div class="row g-3 mt-2 oppo-grid">
+          <!-- LEFT -->
+          <div class="col-12 col-lg-8">
+            <div class="card border-0 w-100">
+              <div class="card-header ticket-card-header p-3">
+                <!-- Opp ID (top) -->
+                
+                
+                <!-- Main title row with status and amount -->
+                <div class="d-flex align-items-center justify-content-between w-100 gap-3">
+                  <div class="d-flex align-items-center gap-2 flex-grow-1">
+                    <span id="hdr-subject" class="fs-5 fw-bold" title=""></span>
+                    <span class="separator">—</span>
+                    <span id="hdr-status-badge" class="badge" style="background-color: #6c757d; white-space: nowrap;">—</span>
+                  </div>
+                  <span id="hdr-amount-badge" class="fs-5 fw-bold text-end" style="white-space: nowrap;">—</span>
+                </div>
+              </div>
+
+              <div class="card-body">
+                <!-- Key Info Grid (3 columns) -->
+                <div class="row row-cols-lg-3 row-cols-md-3 row-cols-1 mb-4" id="key-info-section">
+                  <!-- Column 1 -->
+                  <div class="col">
+                    <div class="key-info-item">
+                      <div class="key-info-label">CUSTOMER</div>
+                      <div class="key-info-value" id="card-party">—</div>
+                    </div>
+                  </div>
+                  <!-- Column 2 -->
+                  <div class="col">
+                    <div class="key-info-item">
+                      <div class="key-info-label">STATUS</div>
+                      <div class="key-info-value" id="card-status">—</div>
+                    </div>
+                  </div>
+                  <!-- Column 3 -->
+                  <div class="col">
+                   <!-- Contact Persons -->
+                <div class="row mb-4" id="contacts-section">
+                  <div class="col-12">
+                    <div class="d-flex align-items-center gap-1">
+                      <h6 class="text-uppercase text-muted1 mb-0">Contact Persons</h6>
+                      <button id="add-contact-btn" class="btn btn-sm btn-outline-primary btn-default2" title="Add contact">
+                        <i class="fa fa-plus"></i>
+                      </button>
+                    </div>
+                    <div id="contact-list-details" class="mt-2 small">
+                      <span class="text-muted">No contacts yet</span>
+                    </div>
+                  </div>
+                </div>
+                  </div>
+                </div>
+
+                <div class="row row-cols-lg-3 row-cols-md-3 row-cols-1 mb-4">
+                  <!-- Column 1 -->
+                  <div class="col">
+                    <div class="key-info-item">
+                      <div class="key-info-label">OWNER</div>
+                      <div class="key-info-value" id="card-owner">—</div>
+                    </div>
+                  </div>
+                  <!-- Column 2 -->
+                  <div class="col">
+                    <div class="key-info-item">
+                      <div class="key-info-label">EXPECTED CLOSURE DATE</div>
+                      <div class="key-info-value" id="card-expected-close">—</div>
+                    </div>
+                  </div>
+                  <!-- Column 3 -->
+                  <div class="col">
+                    <div class="key-info-item">
+                      <div class="key-info-label">MOBILE</div>
+                      <div class="key-info-value" id="card-mobile">—</div>
+                    </div>
+                  </div>
+                
+
+                <!-- Attachments -->
+                <div class="row mb-4" id="attachments-section">
+                  <div class="col-12">
+                    <div class="d-flex align-items-center gap-1">
+                      <h6 class="text-uppercase text-muted1 mb-0">Attachments</h6>
+                      <button id="add-attachment-btn" class="btn btn-sm btn-outline-primary btn-default2" title="Add attachment">
+                        <i class="fa fa-plus"></i>
+                      </button>
+                    </div>
+                    <div id="issue-attachments-list" class="d-flex flex-wrap gap-1 mt-2 small text-muted">
+                      <span class="text-muted">No attachments yet</span>
+                    </div>
+                  </div>
+                </div>
+                </div>
+
+                
+
+                
+
+                <!-- Connections -->
+                <div class="mb-3">
+                  <h6 class="text-uppercase text-muted mb-2 connections">Connections</h6>
+                  <div class="d-flex flex-wrap gap-2">
+                    <div class="tag-item d-flex align-items-center">
+                      <span class="tag-texts fs-12 badge1 bg-light shadow-sm px-2 py-1 me-1 fw-semibold" style="cursor:pointer;">Quick Notes</span>
+                    </div>
+                    <div class="d-flex align-items-center" id="time-logs-btn">
+                      <span class="badge1 fs-12 bg-light shadow-sm px-2 py-1 me-1 fw-semibold" style="cursor:pointer;">Time logs</span>
+                    </div>
+                  </div>
+
+                  <!-- Line Items Table -->
+                  <div class="row row-cols-1 mt-3">
+                    <div class="col">
+                      <div class="card h-100 w-100">
+                        <div class="card-header">
+                          <div>Line Items</div>
+                        </div>
+                        <div class="card-body">
+                          <div class="table-responsive line-items-wrap scrolling">
+                            <table class="table table-sm" id="line-items">
+                              <thead class="table-light">
+                                <tr>
+                                  <th>Item Name</th>
+                                  <th>Brand</th>
+                                  <th>Qty</th>
+                                  <th>Price</th>
+                                  <th>Amount</th>
+                                  <th>Sales Stage</th>
+                                  <th>Opportunity Type</th>
+                                  <th>Renewal ID</th>
+                                </tr>
+                              </thead>
+                              <tbody></tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Charts Row -->
+                  <div class="row row-cols-lg-2 row-cols-md-2 row-cols-1 mt-3">
+                    <div class="col">
+                      <div class="card">
+                        <div class="card-header">
+                          <div>Brand-wise Value</div>
+                        </div>
+                        <div class="card-body">
+                          <div id="brand-pie"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col">
+                      <div class="card">
+                        <div class="card-header">
+                          <div>Profit Split</div>
+                        </div>
+                        <div class="card-body">
+                          <div id="profit-pie"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Activity Summary Card -->
+                  <div class="row row-cols-1 mt-3">
+                    <div class="col">
+                      <div class="card">
+                        <div class="card-header">
+                          <div>Activity Summary</div>
+                        </div>
+                        <div class="card-body">
+                          <!-- Tabs (same style as Activity) -->
+                          <ul id="activity-summary-tabs" class="activity-tabs">
+                            <li>
+                              <a href="#" class="tab-btn active" data-type="call" aria-selected="true">
+                                <span class="ico">
+                                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.08 4.18 2 2 0 0 1 4.06 2h3a2 2 0 0 1 2 1.72c.12.86.32 1.7.59 2.5a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.58-1.58a2 2 0 0 1 2.11-.45c.8.27 1.64.47 2.5.59A2 2 0 0 1 22 16.92z"/>
+                                  </svg>
+                                </span>
+                                <span>Call</span>
+                              </a>
+                            </li>
+                            <li>
+                              <a href="#" class="tab-btn" data-type="event">
+                                <span class="ico">
+                                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                  </svg>
+                                </span>
+                                <span>Appointment</span>
+                              </a>
+                            </li>
+                            <li>
+                              <a href="#" class="tab-btn" data-type="task">
+                                <span class="ico">
+                                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M9 11l3 3L22 4"></path>
+                                    <rect x="2" y="7" width="14" height="14" rx="2" ry="2"></rect>
+                                  </svg>
+                                </span>
+                                <span>Notes</span>
+                              </a>
+                            </li>
+                          </ul>
+
+                          <!-- Per-tab content -->
+                          <div id="activity-summary-tab-content" class="mt-3">
+                            <div data-panel="call">
+                              <div class="small text-muted mb-2">Recent Calls</div>
+                              <ul class="list-group small" id="summary-calls-list"></ul>
+                            </div>
+                            <div data-panel="event" class="d-none">
+                              <div class="small text-muted mb-2">Upcoming Appointments</div>
+                              <ul class="list-group small" id="summary-appointments-list"></ul>
+                            </div>
+                            <div data-panel="task" class="d-none">
+                              <div class="small text-muted mb-2">All Notes</div>
+                              <ul class="list-group small" id="summary-notes-list"></ul>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Comments -->
+                <div class="mb-4">
+                  <div class="comment-section mt-3">
+                    <div class="comment-box">
+                      <div class="comment-input-wrapper">
+                        <div class="comment-input-header"><span>Comments</span></div>
+                        <div class="comment-input-container">
+                          <span class="avatar avatar-medium" title="">
+                            <div id="owner_avatar" class="avatar-frame standard-image"></div>
+                          </span>
+                          <div class="frappe-control col" data-fieldtype="Comment" data-fieldname="comment">
+                            <span class="tooltip-content">comment</span>
+                            <div class="ql-container ql-bubble" style="position: relative;">
+                              <div id="new-comment-input" class="ql-editor ql-blank" data-gramm="false" contenteditable="true" data-placeholder="Type a reply / comment"><p><br></p></div>
+                              <div class="ql-mention-list-container" style="display: none; position: absolute;"><ul class="ql-mention-list"></ul></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="comment-actions d-flex justify-content-between gap-2 mt-2">
+                        <button id="add-comment-btn" class="btn btn-primary btn-default2 btn-comment btn-xs">Comment</button>
+                        <button class="btn btn-sm btn-primary btn-default2 btn-comment" id="email-send">+ New Email</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Activity -->
+                <div class="mb-1">
+                  <h6 class="text-uppercase text-muted mb-3 activity">Activity:</h6>
+                  <div class="timeline" id="activity-timeline">
+                    <p class="text-muted">No activity yet.</p>
+                  </div>
+                </div>
+              </div> <!-- /card-body -->
+            </div>
+          </div>
+          <!-- RIGHT (Call/Activity Panel) -->
+          <div class="col-12 col-lg-4">
+            <div class="card h-100 w-100">
+              <div class="card-header p-0">
+                <!-- Tabs: Call, Appointment, Task -->
+                <div class="d-flex" style="border-bottom: 2px solid #e9ecef;">
+                  <a href="javascript:void(0)" class="activity-tab-link active flex-grow-1 text-center py-3 text-decoration-none border-bottom border-danger" data-type="call" style="border-bottom-width: 3px !important; color: #dc3545; font-weight: 600;">
+                    <i class="fa fa-phone me-2"></i>
+                    <span>Call</span>
+                  </a>
+                  <a href="javascript:void(0)" class="activity-tab-link flex-grow-1 text-center py-3 text-decoration-none text-muted" data-type="appointment" style="font-weight: 600;">
+                    <i class="fa fa-calendar me-2"></i>
+                    <span>Appointment</span>
+                  </a>
+                  <a href="javascript:void(0)" class="activity-tab-link flex-grow-1 text-center py-3 text-decoration-none text-muted" data-type="task" style="font-weight: 600;">
+                    <i class="fa fa-check-square me-2"></i>
+                    <span>Task</span>
+                  </a>
+                </div>
+              </div>
+              <div class="card-body">
+                <!-- Call Tab -->
+                <div class="activity-tab-content" data-type="call">
+                  <div class="mb-3">
+                    <div class="small text-muted mb-2">Recent Calls</div>
+                    <div id="recent-calls-list" class="p-2 border rounded" style="background: #f8f9fa;">
+                      <span class="text-muted small">No calls</span>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-bold">Date / Time</label>
+                    <input type="text" class="form-control form-control-sm" placeholder="dd-mm-yyyy --:--" id="call-datetime">
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-bold">Assignee / Owner</label>
+                    <input type="email" class="form-control form-control-sm" placeholder="user@example.com" id="call-assignee">
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-bold">Notes</label>
+                    <textarea class="form-control form-control-sm" placeholder="Notes" id="call-notes" rows="4"></textarea>
+                  </div>
+
+                  <button class="btn btn-warning w-100 fw-bold" id="save-call-btn">Save</button>
+                  <div class="small text-muted mt-2" id="call-status">Creating: Call</div>
+                </div>
+
+                <!-- Appointment Tab -->
+                <div class="activity-tab-content d-none" data-type="appointment">
+                  <div class="mb-3">
+                    <div class="small text-muted mb-2">Upcoming Appointments</div>
+                    <div id="upcoming-appointments-list" class="p-2 border rounded" style="background: #f8f9fa;">
+                      <span class="text-muted small">No appointments</span>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-bold">Date / Time</label>
+                    <input type="text" class="form-control form-control-sm" placeholder="dd-mm-yyyy --:--" id="appointment-datetime">
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-bold">Assignee / Owner</label>
+                    <input type="email" class="form-control form-control-sm" placeholder="user@example.com" id="appointment-assignee">
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-bold">Notes</label>
+                    <textarea class="form-control form-control-sm" placeholder="Notes" id="appointment-notes" rows="4"></textarea>
+                  </div>
+
+                  <button class="btn btn-warning w-100 fw-bold" id="save-appointment-btn">Save</button>
+                  <div class="small text-muted mt-2" id="appointment-status">Creating: Appointment</div>
+                </div>
+
+                <!-- Task Tab -->
+                <div class="activity-tab-content d-none" data-type="task">
+                  <div class="mb-3">
+                    <div class="small text-muted mb-2">Tasks</div>
+                    <div id="tasks-list" class="p-2 border rounded" style="background: #f8f9fa;">
+                      <span class="text-muted small">No tasks</span>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-bold">Due Date</label>
+                    <input type="text" class="form-control form-control-sm" placeholder="dd-mm-yyyy --:--" id="task-duedate">
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-bold">Assigned To</label>
+                    <input type="email" class="form-control form-control-sm" placeholder="user@example.com" id="task-assigned">
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-bold">Notes</label>
+                    <textarea class="form-control form-control-sm" placeholder="Notes" id="task-notes" rows="4"></textarea>
+                  </div>
+
+                  <button class="btn btn-warning w-100 fw-bold" id="save-task-btn">Save</button>
+                  <div class="small text-muted mt-2" id="task-status">Creating: Task</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div> <!-- /row -->
+      </div> <!-- /container-fluid -->
+    </div>
+    <!-- ===================== /DETAILS VIEW ===================== -->

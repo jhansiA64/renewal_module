@@ -1,0 +1,136 @@
+
+
+
+
+    <!-- <link rel="stylesheet" href="/assets/renewal_module/css/issue_themes/support_theme.css"> -->
+
+
+
+    <div class="app" id="support-app-root">
+        <!-- TOPBAR -->
+        <header class="topbar" role="banner">
+            <div class="top-left">
+                <div class="brand">
+                    <div class="log">
+                        <a href="/app">
+                            <img src="/assets/renewal_module/images/logo.png" alt="" srcset="">
+                        </a>
+                    </div>
+                </div>
+                <button class="hamburger" aria-label="Toggle menu"><i class="fa fa-bars"></i></button>
+            </div>
+
+            <div class="top-right gap-1">
+                <div class="search-outer" title="Quick search">
+                    <i class="fa fa-magnifying-glass search-icon"></i>
+                    <input type="search" id="quickSearch" class="search-input" placeholder="Quick Search..." />
+                </div>
+
+
+                <!-- Notification Wrapper -->
+                <div class="notifications-wrapper">
+
+                    <!-- Bell Button -->
+                    <button class="icon-btn" id="notifBtn" aria-haspopup="true" aria-expanded="false">
+                        <i class="fa fa-bell"></i>
+                        <span class="badge" id="notifCount">3</span>
+                    </button>
+
+                    <!-- Dropdown -->
+                    <div class="notif-dropdown" id="notifDropdown" aria-hidden="true">
+
+                        <!-- Header -->
+                        <div class="notif-header">
+                            <span>Notifications</span>
+                            <span id="total-notifications">3</span>
+                        </div>
+
+                        <!-- Notification List -->
+                        <div class="notif-list" id="notification-list">
+                            <!-- JS injects notifications -->
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="notif-footer">
+                            <a href="#" id="seeMore">See more</a>
+                        </div>
+
+                    </div>
+                </div>
+
+
+
+
+                <!-- User menu -->
+                <div class="user-menu" id="userMenuBtn" tabindex="0" aria-haspopup="true" aria-expanded="false"
+                    role="button">
+                    <span id="topbar-user-avatar1"
+                        class="rounded-circle1 bg-primary1 text-white d-flex align-items-center justify-content-center"
+                        style="width: 32px; height: 32px; font-weight: 600; font-size: 14px;">
+                    </span>
+
+                    <div class="user-dropdown" id="userDropdown" role="menu" aria-hidden="true">
+
+                        <ul class="user-dropdown-list" role="none">
+                            <li role="none"><a role="menuitem" href="/app/user-profile" class="user-item">
+                                    <i class="fa fa-user-circle"></i> My Profile</a>
+                            </li>
+                            <li role="none"><a role="menuitem" href="javascript:void(0);"
+                                    onclick="frappe.set_route('Form', 'User', frappe.session.user)" class="user-item">
+                                    <i class="fa fa-cog"></i>My Settings</a>
+                            </li>
+                            <li role="none"><a role="menuitem" href="javascript:void(0);" class="user-item"
+                                    onclick="location.reload()"><i class="fa fa-refresh"></i>
+                                    Reload</a></li>
+                            <li role="none"><a role="menuitem" href="/apps" class="user-item">
+                                    <i class="fa fa-cubes"></i> Apps</a>
+                            </li>
+                            <li role="none"><a role="menuitem" href="/" class="user-item">
+                                    <i class="fa fa-eye"></i>View Website</a>
+                            </li>
+
+                            <li role="none"><a role="menuitem" href="javascript:void(0);" class="user-item danger"
+                                    onclick="frappe.app.logout()">
+                                    <i class="fa fa-power-off"></i> Log Out</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN -->
+        <div class="main">
+            <!-- SIDEBAR -->
+            <aside class="sidebar" aria-label="Main navigation">
+                <nav>
+                    <ul class="side-nav">
+
+                        <!-- SUPPORT CENTER (COLLAPSIBLE) -->
+                        <li class="side-nav-item has-submenu">
+                            <a href="javascript:void(0)" class="side-nav-link toggle-submenu">
+                                <i class="fa fa-headphones"></i>
+                                <span>Support</span>
+                                <i class="fa fa-chevron-down menu-arrow"></i>
+                            </a>
+
+                            <ul class="sub-menu">
+                                <li class="side-nav-item">
+                                    <a href="/app/support-dashboard" class="side-nav-link">Support Dashboard</a>
+                                </li>
+                                <li class="side-nav-item">
+                                    <a href="/app/tickets" class="side-nav-link">Ticket</a>
+                                </li>
+                            </ul>
+                        </li>
+
+                    </ul>
+                </nav>
+            </aside>
+            <!-- PAGE CONTENT -->
+        <div class="content1" id="support-page-content"></div>
+        </div>
+    </div>
+
+    
+

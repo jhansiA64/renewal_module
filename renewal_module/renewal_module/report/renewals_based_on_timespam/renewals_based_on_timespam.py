@@ -28,9 +28,22 @@ def execute(filters=None):
 	return columns, data, None, chart
 
 def get_columns(filters):
-	date_range = get_timespan_date_range(filters.get("timespan")) 
-	date1 = datetime.strptime(str(date_range[0]),"%Y-%m-%d").strftime("%d-%m-%Y")
-	date2 = datetime.strptime(str(date_range[1]),"%Y-%m-%d").strftime("%d-%m-%Y")
+	# date_range = get_timespan_date_range(filters.get("timespan")) 
+	# date1 = datetime.strptime(str(date_range[0]),"%Y-%m-%d").strftime("%d-%m-%Y")
+	# date2 = datetime.strptime(str(date_range[1]),"%Y-%m-%d").strftime("%d-%m-%Y")
+	date_range = ""
+	date1=""
+	date2=""
+	if filters.get("timespan") != "custom":
+		if filters.get("timespan") == "this year":
+			date = frappe.db.get_value("Fiscal Year",["year_start_date"])
+			# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date)))
+		date_range = get_timespan_date_range(filters.get("timespan")) 
+		date1 = datetime.strptime(str(date_range[0]),"%Y-%m-%d").date()
+		date2 = datetime.strptime(str(date_range[1]),"%Y-%m-%d").date()
+	else:
+		date1=f"%(from_date)s"
+		date2=	f"%(to_date)s"
 	columns = [
 		{
 			"label":_("Renewal({d1} to {d2})").format(d1=date1, d2=date2),
@@ -165,8 +178,8 @@ def get_conditions(filters):
 	if filters.get("sales_person"):
 		conditions.append(" and `tabRenewal List`.sales_user in %(sales_person)s")	
 
-	# if filters.get("opportunity_type"):
-	# 	conditions.append(" and `tabRenewal Item`.opportunity_type in %(opportunity_type)s")		
+	if filters.get("status"):
+		conditions.append(" and `tabRenewal List`.status in %(status)s")		
 
 	
 	return " ".join(conditions) if conditions else ""

@@ -63,6 +63,16 @@ frappe.query_reports["Renewal Report"] = {
 
 		},
 		{
+			"fieldname":"customer",
+			"label": __("Customer"),
+			"fieldtype": "MultiSelectList",
+			"options": "Customer",
+                        get_data: function(txt) {
+				return frappe.db.get_link_options('Customer', txt);
+			},	 
+
+		},
+		{
 			"fieldname":"renewal_list",
 			"label": __("Renewal List"),
 			"fieldtype": "MultiSelectList",
@@ -93,10 +103,34 @@ frappe.query_reports["Renewal Report"] = {
 			"default": "Renewals"
 		},
 		{
-			"fieldname": "item_group",
+			"fieldname":"item_group",
 			"label": __("Item Group"),
-			"fieldtype": "Link",
-			"options": "Item Group"
+			"fieldtype": "MultiSelectList",
+			"options": "Item Group",
+                        get_data: function(txt) {
+				return frappe.db.get_link_options('Item Group', txt);
+			},	 
+
+		},
+		{
+			"fieldname":"brand",
+			"label": __("Brand"),
+			"fieldtype": "MultiSelectList",
+			"options": "Brand",
+                        get_data: function(txt) {
+				return frappe.db.get_link_options('Brand', txt);
+			},	 
+
+		},
+		{
+			"fieldname":"item_code",
+			"label": __("Product"),
+			"fieldtype": "MultiSelectList",
+			"options": "Item",
+                        get_data: function(txt) {
+				return frappe.db.get_link_options('Item', txt);
+			},	 
+
 		},
 		{
 			"fieldname": "sales_person",

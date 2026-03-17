@@ -1,0 +1,190 @@
+[data-route="support-dashboard"] .sticky-top {
+    display: none !important;
+}
+
+[data-route="support-dashboard"] .page-head {
+    display: none !important;
+}
+
+[data-route="support-dashboard"] .layout-main {
+    padding: 0 !important;
+    background: #F3F4F6;
+    margin: 0px !important;
+    width: 100%;
+}
+
+[data-route="support-dashboard"] .layout-main-section-wrapper {
+    padding: 0 !important;
+}
+
+[data-route="support-dashboard"] .container,
+[data-route="support-dashboard"] .container-fluid,
+[data-route="support-dashboard"] .container-lg,
+[data-route="support-dashboard"] .container-md,
+[data-route="support-dashboard"] .container-sm,
+[data-route="support-dashboard"] .container-xl,
+[data-route="support-dashboard"] .container-xxl {
+    padding: 0px !important;
+    max-width: 100% !important;
+}
+
+/* [data-route="support-dashboard"] .content1 {
+    padding: 5px 10px;
+    width: 100%;
+} */
+
+[data-route="support-dashboard"] .page-title-head {
+    padding: 4px;
+}
+
+[data-route="support-dashboard"] .page-header {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 12px;
+    padding: 10px 0px;
+}
+
+[data-route="support-dashboard"] .page-header h2 {
+    margin: 0;
+    font-size: 20px
+}
+
+.kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+}
+
+/* KPI card */
+.kpi {
+    background: #ffffff;
+    padding: 18px;
+    border-radius: 10px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    box-shadow: 0 6px 20px rgba(2, 6, 23, 0.06);
+    height: 100%;
+}
+
+
+[data-route="support-dashboard"] .kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #f5f7ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px
+}
+
+[data-route="support-dashboard"] .kpi-num {
+    font-weight: 700;
+    font-size: 18px;
+    align-items: center;
+}
+
+[data-route="support-dashboard"] .kpi-label {
+    color: #4c4c5c;
+    font-size: 12px
+}
+
+
+/****/
+[data-route="support-dashboard"] .card {
+    /* width: 440px; */
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .08);
+}
+
+/* HEADER */
+[data-route="support-dashboard"] .card-header {
+    /* padding: 18px; */
+    padding: 5px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+[data-route="support-dashboard"] .card-header h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #2f3a4a;
+    margin-bottom: 0px;
+}
+
+[data-route="support-dashboard"] .header-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* BODY */
+[data-route="support-dashboard"] .card-body {
+    padding: 6px 0;
+}
+
+[data-route="support-dashboard"] .support-card .card-body {
+    min-height: 200px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+[data-route="support-dashboard"] .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+/* [data-route="support-dashboard"] .col {
+    padding: 4px;
+} */
+
+[data-route="support-dashboard"] [class^="col"],
+[data-route="support-dashboard"] [class*=" col"] {
+    padding: 4px;
+}
+
+/* FOOTER */
+[data-route="support-dashboard"] .card-footer {
+    padding: 5px;
+    border-top: 1px solid #eee;
+    text-align: center;
+    max-height: 30px;
+    min-height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+[data-route="support-dashboard"] .card-footer a {
+    font-size: 13px;
+    color: #5f6caf;
+    text-decoration: none;
+}
+
+/* [data-route="support-dashboard"] .load-more-btn.hidden {
+    visibility: hidden;
+} */
+
+[data-route="support-dashboard"] .hidden {
+    display: none;
+}
+
+[data-route="support-dashboard"] .new-row {
+    align-items: center;
+    padding: 5px 10px;
+    border-bottom: 1px solid #f0f2f6;
+}
+
+[data-route="support-dashboard"] .new-row {
+    transition: background 0.2s ease;
+    cursor: pointer;
+}
+
+[data-route="support-dashboard"] .new-row:hover {
+    background: #f6f8fc;
+}

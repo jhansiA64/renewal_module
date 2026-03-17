@@ -1,0 +1,591 @@
+@media (min-width: 1200px) {
+
+    .custom-sidebar {
+        width: 250px;
+        border-right: 1px solid #ddd;
+        padding-right: 10px;
+    }
+}
+
+.custom-main {
+    padding-left: 20px;
+}
+
+@media screen and (min-width: 1200px) {
+
+    .container-xl,
+    .container-lg,
+    .container-md,
+    .container-sm,
+    .container {
+        max-width: 100% !important;
+        padding-left: 24px !important;
+        padding-right: 24px !important;
+    }
+}
+
+.custom-issue-wrapper {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.custom-issue-sidebar {
+    width: 240px;
+    padding: 12px;
+    border-right: 1px solid #ddd;
+    background-color: #f9f9f9;
+}
+
+.custom-issue-main {
+    flex-grow: 1;
+}
+
+.issue-controls {
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.issue-row {
+    border-bottom: 1px solid #eaeaea;
+    padding: 12px;
+    cursor: pointer;
+}
+
+.issue-row:hover {
+    background-color: #f5f5f5;
+}
+
+.load-more {
+    margin: 16px 0;
+}
+
+.summary-cards {
+    /*background-color: #ffffff;*/
+    padding: 15px 10px;
+    border-radius: 10px;
+}
+
+.summary-cards .card {
+    padding: 5px;
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+    height: 100%;
+}
+
+.summary-cards .card:hover {
+    transform: scale(1.03);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.summary-cards .card-body {
+    padding: 0;
+    font-size: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: start;
+    height: 100%;
+}
+
+.badge.bg-success {
+    background-color: #28a745;
+}
+
+.badge.bg-danger {
+    background-color: #dc3545;
+}
+
+.page-form .form-group {
+    margin-bottom: 8px;
+}
+
+.page-form .form-control.input-xs {
+    padding: 4px 8px;
+    font-size: 13px;
+    height: 28px;
+}
+
+.filter-button,
+.filter-x-button {
+    margin-left: 8px;
+}
+
+.custom-issue-content {
+    border-radius: 10px;
+    border: 2px solid #f3f3f3;
+}
+
+.issue-list {
+    background-color: #ffffff;
+    padding: 0px 10px;
+    border-radius: 10px;
+    width: 100%;
+}
+
+.responsive-table table {
+    border-collapse: separate;
+    border-spacing: 0 10px;
+    width: 100% !important;
+    table-layout: fixed;
+}
+
+.responsive-table table tr {
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+}
+
+.responsive-table table tbody tr {
+    height: 100px;
+    vertical-align: middle;
+}
+
+.responsive-table table td,
+.responsive-table table th {
+    background: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle !important;
+    padding: 5px;
+}
+
+.responsive-table table thead th:first-child {
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+}
+
+.responsive-table table thead th:last-child {
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+.responsive-table table tr td:first-child {
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+}
+
+.responsive-table table tr td:last-child {
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+.priority-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+img.rounded-circle {
+    object-fit: fill !important;
+}
+
+.rounded-circle {
+    width: 40px;
+    height: 40px;
+}
+
+.ellipsis {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+}
+
+.avatar-placeholder {
+    font-size: 0.75rem;
+    font-weight: 600;
+    background-color: #ddd;
+    color: #555;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.bg-navy {
+    background-color: #012739;
+}
+
+.bg-primary {
+    background-color: #0d6efd;
+}
+
+.bg-success {
+    background-color: #198754;
+}
+
+@media (max-width: 767.98px) {
+
+    .responsive-table table,
+    .responsive-table thead,
+    .responsive-table tbody,
+    .responsive-table th,
+    .responsive-table td,
+    .responsive-table tr {
+        display: block;
+        width: 100%;
+    }
+
+    .responsive-table thead {
+        display: none;
+    }
+
+    .responsive-table table tbody tr {
+        margin-bottom: 15px;
+        background: #fff;
+        padding: 2px;
+        box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+        border-radius: 10px;
+        height: 100px !important;
+    }
+
+    .responsive-table table tbody td {
+        position: relative;
+        padding: 2px 5px !important;
+        border: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 11px !important;
+    }
+
+    .fontsmall {
+        font-size: 11px !important;
+    }
+
+    .priority-dot {
+        width: 8px !important;
+        height: 8px !important;
+    }
+
+    .bi {
+        font-size: 11px !important;
+    }
+
+    .avatar-placeholder {
+        font-size: 10px;
+        font-weight: 600;
+        background-color: #ddd;
+        color: #555;
+    }
+
+    .rounded-circle {
+        width: 30px;
+        height: 30px;
+    }
+
+}
+
+#main-wrapper {
+    display: flex;
+    width: 100%;
+}
+
+/* Desktop sidebar */
+#desktop-sidebar {
+    /* width: 260px; */
+    padding: 2px;
+    transition: all 0.3s ease;
+}
+
+/* Collapsed sidebar */
+#desktop-sidebar.hidden {
+    display: none !important;
+}
+
+/* Main content */
+#main-content {
+    flex-grow: 1;
+    padding: 5px;
+    width: 100%;
+    transition: all 0.3s ease;
+    border: 1px solid #dddad0;
+    border-radius: 10px;
+}
+
+/* Drawer sidebar for tablet/mobile */
+.custom-sidebar-drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 260px;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 1050;
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.custom-sidebar-drawer.open {
+    transform: translateX(0);
+}
+
+.custom-sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 1040;
+    display: none;
+}
+
+/* Tablet/mobile behavior */
+@media (max-width: 991px) {
+    #desktop-sidebar {
+        display: none !important;
+    }
+
+    .toggle-sidebar-btn {
+        display: inline-block !important;
+    }
+}
+
+/* Always show toggle icon */
+.toggle-sidebar-btn {
+    display: inline-block;
+    color: black;
+}
+
+.primary-action {
+    background-color: #012739 !important;
+}
+
+.primary-action:hover {
+    background-color: #012739 !important;
+}
+
+.primary-action:active,
+.primary-action:focus,
+.primary-action:focus:active {
+    background-color: #012739 !important;
+    color: white !important;
+}
+
+.btn-group .btn:nth-child(3),
+.btn-group .btn:nth-child(4) {
+    border-left: 1px solid #dddad0;
+}
+
+.menu-item-label {
+    margin-left: 2px !important;
+}
+
+.selected-row {
+    background-color: #f0f7ff !important;
+}
+
+.selected-row:hover {
+    background-color: #e0efff !important;
+}
+
+
+
+/* hide card-view by default, show only when compact-mode is active */
+.issue-list .card-view {
+    display: none;
+}
+
+/* Card row styles */
+.issue-list .card-view .issue-card {
+    padding: 12px;
+    cursor: pointer;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background: #fff;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+    height: 120px;
+}
+
+.cards-header {
+    padding: 8px 12px;
+    background: #fff;
+    font-weight: bold;
+    font-size: 12px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+}
+
+.cards-title {
+    flex: 1;
+    font-size: 12px;
+}
+
+.cards-header input[type="checkbox"] {
+    margin: 0;
+}
+
+.issue-list .card-view .issue-card .avatar-img,
+.issue-list .card-view .issue-card .avatar-placeholder {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    object-fit: cover;
+}
+
+/* Title + subject area */
+.issue-card .card-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.issue-card .title {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px !important;
+}
+
+.issue-card .subject {
+    color: #555;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px;
+}
+
+.card-checkbox {
+    display: flex;
+    align-items: center;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.card-checkbox input[type="checkbox"] {
+    width: 12px;
+    height: 12px;
+    cursor: pointer;
+}
+
+/* Meta rows: two per row (approx 45% each) */
+.issue-card .card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    color: #666;
+}
+
+.issue-card .meta-item {
+    flex: 1 1 45%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    font-size: 12px;
+}
+
+.issue-card .meta-item span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    min-width: 0;
+}
+
+/* show card-view when compact mode is toggled */
+.issue-list.compact-mode .table-view {
+    display: none;
+}
+
+.issue-list.compact-mode .card-view {
+    display: block;
+}
+
+/* Selection highlights */
+.issue-list tr.selected-row {
+    /* background: #f0f8ff; */
+    border: 4px solid #D4F4FC;
+}
+
+.issue-list .issue-card.selected-card {
+    /* background: #f0f8ff; */
+    border: 2px solid #57dafb;
+}
+
+/* small screens: show card view by default (optional) */
+@media (max-width: 767px) {
+    .issue-list .table-view {
+        display: none;
+    }
+
+    .issue-list .card-view {
+        display: block;
+    }
+}
+
+.custom-select-style {
+    background-color: transparent;
+    color: #ffffff;
+    border: 1px solid #ffffff;
+}
+
+/* Dropdown options */
+.custom-select-style option {
+    color: #000000;
+    background-color: #ffffff;
+}
+
+/* Make Frappe link control look same as normal inputs */
+/*.page-form .frappe-control input.input-with-feedback {
+    height: 32px;
+    font-size: 13px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    background-color: #f8f8f8;
+    box-shadow: none;
+}
+*/
+/* Hide labels inside your advanced filter form */
+.page-form .form-group label,
+.page-form .frappe-control .label-area {
+    display: none !important;
+}
+
+/* Make inputs smaller and uniform */
+/*.page-form .frappe-control input,
+.page-form .form-control {
+    height: 32px;
+    font-size: 13px;
+    padding: 4px 8px;
+}*/
+
+/*select.form-control {
+    appearance: auto;
+    -webkit-appearance: auto;
+    -moz-appearance: auto;
+}*/
+
+.filter-popover .empty-filters {
+    display: none !important;
+}
+
+/*.filter-area .filter-action-buttons {
+    display: none !important;
+}*/
+
+.status-card.active {
+    border: 2px solid #57dafb;
+    border-radius: 10px;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+    transform: scale(1.02);
+    transition: all 0.2s ease;
+}

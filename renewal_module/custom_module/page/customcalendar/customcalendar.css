@@ -1,0 +1,210 @@
+[data-route^="customcalendar"] .sticky-top {
+    display: none !important;
+}
+
+[data-route^="customcalendar"] .page-head {
+    display: none !important;
+}
+
+body[data-route^="customcalendar"] {
+    font-size: 12.25px !important;
+}
+
+
+[data-route^="customcalendar"] .layout-main {
+    padding: 0 !important;
+    background: #F3F4F6;
+    margin: 0px !important;
+    width: 100%;
+}
+
+
+[data-route^="customcalendar"] .layout-main-section-wrapper {
+    padding: 0 !important;
+}
+
+[data-route^="customcalendar"] .container,
+[data-route^="customcalendar"] .container-fluid,
+[data-route^="customcalendar"] .container-lg,
+[data-route^="customcalendar"] .container-md,
+[data-route^="customcalendar"] .container-sm,
+[data-route^="customcalendar"] .container-xl,
+[data-route^="customcalendar"] .container-xxl {
+    padding: 0px !important;
+    max-width: 100% !important;
+}
+
+[data-route^="customcalendar"] .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+[data-route^="customcalendar"] [class^="col"],
+[data-route^="customcalendar"] [class*=" col"] {
+    padding: 4px;
+}
+
+[data-route^="customcalendar"] .page-title-head {
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 8px;
+}
+
+[data-route^="customcalendar"] .customcalendar-page {
+    padding: 12px;
+}
+
+
+[data-route^="customcalendar"] .page-title {
+    font-size: 20px !important;
+    font-weight: 600;
+    margin: 0;
+}
+
+[data-route^="customcalendar"] .breadcrumb {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    font-size: 14px;
+    ;
+}
+
+/* Sidebar */
+[data-route^="customcalendar"] #external-events .external-event {
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 8px;
+    border: 1px solid rgba(0, 0, 0, .1);
+    font-weight: 600;
+}
+
+[data-route^="customcalendar"] .fc .fc-event.evt-holiday {
+    background-color: #fef3c7;
+    border-color: #f59e0b;
+    color: #92400e;
+}
+
+[data-route^="customcalendar"] .fc .fc-event.evt-appointment {
+    background-color: #dbeafe;
+    border-color: #2563eb;
+    color: #1e3a8a;
+}
+
+[data-route^="customcalendar"] .fc .fc-event.evt-call-list {
+    background-color: #dcfce7;
+    border-color: #16a34a;
+    color: #14532d;
+}
+
+[data-route^="customcalendar"] .fc .fc-event.evt-task {
+    background-color: #f3e8ff;
+    border-color: #9333ea;
+    color: #581c87;
+}
+
+/* Calendar box */
+[data-route^="customcalendar"] #calendar {
+    min-height: 650px;
+}
+
+[data-route^="customcalendar"] .customcalendar-content-row {
+    align-items: stretch;
+}
+
+[data-route^="customcalendar"] .customcalendar-left-panel {
+    width: 300px;
+    min-width: 280px;
+    flex: 0 0 300px;
+}
+
+[data-route^="customcalendar"] .customcalendar-right-panel {
+    min-width: 0;
+}
+
+[data-route^="customcalendar"] .customcalendar-right-panel .card-body,
+[data-route^="customcalendar"] .customcalendar-left-panel .card-body {
+    padding: 1rem;
+}
+
+@media (max-width: 991.98px) {
+    [data-route^="customcalendar"] .customcalendar-page {
+        padding: 10px;
+    }
+
+    [data-route^="customcalendar"] .page-title-head {
+        flex-wrap: wrap;
+        align-items: flex-start !important;
+        gap: .5rem;
+    }
+
+    [data-route^="customcalendar"] .page-title-head .text-end {
+        width: 100%;
+        text-align: left !important;
+    }
+
+    [data-route^="customcalendar"] .page-title-head .breadcrumb {
+        flex-wrap: wrap;
+    }
+
+    [data-route^="customcalendar"] .customcalendar-content-row {
+        flex-direction: column;
+        gap: 10px !important;
+    }
+
+    [data-route^="customcalendar"] .customcalendar-left-panel {
+        width: 100%;
+        min-width: 0;
+        flex: 1 1 100%;
+        border-radius: .375rem !important;
+    }
+
+    [data-route^="customcalendar"] .customcalendar-right-panel {
+        border-left: 0 !important;
+        border-radius: .375rem !important;
+    }
+
+    [data-route^="customcalendar"] .customcalendar-right-panel .card-body,
+    [data-route^="customcalendar"] .customcalendar-left-panel .card-body {
+        padding: .875rem;
+    }
+
+    [data-route^="customcalendar"] #calendar {
+        min-height: 520px;
+    }
+
+    [data-route^="customcalendar"] .fc .fc-toolbar {
+        flex-wrap: wrap;
+        gap: .5rem;
+    }
+
+    [data-route^="customcalendar"] .fc .fc-toolbar-title {
+        font-size: 1rem;
+    }
+
+    [data-route^="customcalendar"] .fc .fc-toolbar-chunk {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .35rem;
+        align-items: center;
+    }
+
+    [data-route^="customcalendar"] .fc .fc-button {
+        padding: .3rem .5rem;
+        font-size: .78rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    [data-route^="customcalendar"] .customcalendar-page {
+        padding: 8px;
+    }
+
+    [data-route^="customcalendar"] .customcalendar-left-panel .card-body,
+    [data-route^="customcalendar"] .customcalendar-right-panel .card-body {
+        padding: .75rem;
+    }
+
+    [data-route^="customcalendar"] #calendar {
+        min-height: 460px;
+    }
+}

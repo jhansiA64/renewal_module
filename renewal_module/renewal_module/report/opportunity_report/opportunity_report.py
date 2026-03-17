@@ -529,7 +529,7 @@ class GrossProfitGenerator(object):
 			# name1 = ""
 
 		for row in reversed(self.si_list):
-			# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(row)))
+			frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(row)))
 			if self.filters.get("group_by") == "Monthly":
 				row.monthly = formatdate(row.creation, "MMM YYYY")
 
@@ -564,7 +564,7 @@ class GrossProfitGenerator(object):
 			else:
 				if self.is_not_opportunity_row(row):
 					row.buying_rate, row.base_rate = 0.0, 0.0
-			# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(row.buying_amount)))		
+			frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(row.buying_amount)))		
 
 			# calculate gross profit
 			row.gross_profit = flt((flt(row.margin)- flt(row.orc)), self.currency_precision)
@@ -583,6 +583,7 @@ class GrossProfitGenerator(object):
 
 	def get_average_rate_based_on_group_by(self):
 		for key in list(self.grouped):
+			total_parent_selling_amount = 0
 			if self.filters.get("group_by") == "Opportunity":
 				for i, row in enumerate(self.grouped[key]):
 					if row.indent == 1.0:
@@ -604,6 +605,10 @@ class GrossProfitGenerator(object):
 						if flt(row.qty) or row.base_amount:
 							row = self.set_average_rate(row)
 							self.grouped_data.append(row)
+							# ✅ Sum "Parent Selling Amount" (assumed as row.base_amount here)
+							total_parent_selling_amount += flt(row.base_amount, self.currency_precision)
+							self.total_parent_selling_amount = total_parent_selling_amount
+
 			elif self.filters.get("group_by") == "Payment Term":
 				for i, row in enumerate(self.grouped[key]):
 					opportunity_portion = 0
@@ -877,7 +882,7 @@ class GrossProfitGenerator(object):
 				else 0.0 END) as orc,
 				`tabOpportunity Item`.name as "item_row"
 			from
-				`tabOpportunity Item` Inner join `tabOpportunity` on `tabOpportunity`.name = `tabOpportunity Item`.parent 
+				`tabOpportunity Item` left join `tabOpportunity` on `tabOpportunity`.name = `tabOpportunity Item`.parent 
 				left join (SELECT tsq.name as name  , tsqi.item_code as item_code , tsqi.rate as rate, tsqi.description as description ,
 				 tsqi.qty as qty, tsqi.amount as amount, tsq.opportunity as opportunity
 				from `tabSupplier Quotation` tsq  
@@ -944,6 +949,13 @@ class GrossProfitGenerator(object):
 			self.si_list.extend(items)
 
 	def get_opportunity_row(self, row):
+
+		# Calculate sum of base_amount for item rows under this opportunity
+		item_total = sum(
+			flt(r.base_amount, self.currency_precision)
+			for r in self.grouped[key]
+			if r.indent == 1.0 and r.base_amount  # Only item rows with amounts
+		)
 		# header row format
 		return frappe._dict(
 			{
@@ -968,6 +980,7 @@ class GrossProfitGenerator(object):
 				"qty": None,
 				"item_row": None,
 				"base_net_amount": frappe.db.get_value("Opportunity", row.parent, "total"),
+				# "base_net_amount": item_total,
 			}
 		)
 

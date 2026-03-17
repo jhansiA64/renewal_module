@@ -17,15 +17,30 @@ app_license = "MIT"
 # app_include_js = "/assets/renewal_module/js/renewal_module.js"
 
 # Include your JavaScript file
-app_include_js = "/assets/renewal_module/js/target_page.js"
+#app_include_js = "/assets/renewal_module/js/target_page.js"
 
-app_include_css = "/assets/renewal_module/css/desk_custom.css"
+#app_include_css = "/assets/renewal_module/css/desk_custom.css"
+
+#app_include_css = "/assets/renewal_module/public/css/custom_desk.css"
+
+#app_include_js = "/assets/renewal_module/public/js/custom_desk.js"
+
+app_include_js = [
+    #"https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js",
+    # "https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js",
+     "/assets/renewal_module/js/issue_themes/brandlogo.js",
+]
+
+app_include_css = [
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+]
 
 
 # include js, css files in header of web template
 # web_include_css = "/assets/renewal_module/css/renewal_module.css"
 # web_include_js = "/assets/renewal_module/js/renewal_module.js"
-web_include_css = "assets/renewal_module/css/renewal_module_website.css"
+web_include_css = "/assets/renewal_module/css/renewal_module_website.css"
+#web_include_css ="renewal_module/renewal_module/public/renewal_module_website.css"
 # include custom scss in every website theme (without file extension ".scss")
 # website_theme_scss = "renewal_module/public/scss/website"
 
@@ -70,6 +85,10 @@ fixtures = [{"dt": "Custom Field", "filters": [["name", "in", [
     ]},"Server Script","Client Script","Property Setter"
 ]
 
+page_js = {
+    "issue_theme": "public/js/issue_theme.js"
+}
+
 # Home Pages
 # ----------
 
@@ -82,10 +101,12 @@ fixtures = [{"dt": "Custom Field", "filters": [["name", "in", [
 # }
 
 role_home_page = {
-    "Customer": "/me"
-      # Redirect users with the "Customer" role to the /me page
+    "Customer": "/me",
+    # Redirect users with the "Customer" role to the /me page
 }
 
+#when the custom pages to redirect after login
+auth_hooks = ["renewal_module.api.redirect_after_login"]
 
 # website_route_rules = [
 #     {"from_route": "/job-opening/<name>", "to_route": "job_opening"}
@@ -177,6 +198,26 @@ website_context = {
 }
 
 
+has_permission = {
+    "Call List": "renewal_module.user_permissions.calllist_has_permission",
+    "Opportunity": "renewal_module.user_permissions.opportunity_has_permission",
+    "Quotation": "renewal_module.user_permissions.quotation_has_permission",
+    "Customer Order Form": "renewal_module.user_permissions.cof_has_permission",
+    "ORC List": "renewal_module.user_permissions.orc_has_permission",
+    "Contact": "renewal_module.user_permissions.contact_has_permission",
+    "Address": "renewal_module.user_permissions.address_has_permission",
+}
+ 
+permission_query_conditions = {
+    "Call List": "renewal_module.user_permissions.calllist_permission_query",
+    "Opportunity": "renewal_module.user_permissions.opportunity_permission_query",
+    "Quotation": "renewal_module.user_permissions.quotation_permission_query",
+    "Customer Order Form": "renewal_module.user_permissions.cof_permission_query",
+    "ORC List": "renewal_module.user_permissions.orc_permission_query",
+    "Contact": "renewal_module.user_permissions.contact_permission_query",
+    "Address": "renewal_module.user_permissions.address_permission_query",
+}
+
 # Generators
 # ----------
 
@@ -233,7 +274,8 @@ website_context = {
 # }
 
 override_doctype_class = {
-	"Employee": "renewal_module.overrides.EmployeeStatus"
+	"Employee": "renewal_module.overrides.EmployeeStatus",
+    "Appointment":"renewal_module.appointment_override.CustomAppointment"
 }
 
 # Document Events
@@ -258,12 +300,45 @@ doc_events = {
 	# "Event Registration": {
 	# 	"on_update":"renewal_module.api.email_on_approval"
 	# },
-	"Event Registration" : {
-		"on_update":"renewal_module.custom_website.doctype.event_registration.event_registration.email_on_approval"
-	},
+	# "Event Registration" : {
+	# 	"on_update":"renewal_module.custom_website.doctype.event_registration.event_registration.email_on_approval"
+	# },
 	"Customer Order Form":{
 		"on_update":"renewal_module.api.update_margin_table"
-	}
+	},
+    "Issue": {
+        "before_save": "renewal_module.issues.before_save",
+        # "before_save": "renewal_module.issue_hooks.track_user_time_log",
+        # "before_save": "renewal_module.custom_issue.before_save_issue",
+        #"after_insert": "renewal_module.api.send_issue_email"
+    },
+    "ToDo":{
+        "after_insert": "renewal_module.issues.after_insert",
+
+    },
+
+    # "Issue Time Log": {
+    #     "before_save": "renewal_module.custom_issue.calculate_working_hours_duration"
+    # },
+    "Issue": {
+        "after_insert": "renewal_module.api.send_issue_email",
+        "before_save": "renewal_module.api.send_issue_email_on_agent_change"
+    },
+
+    "Employee": {
+        # "on_update": "renewal_module.asset_allocation.update_assets_on_employee_save",
+        "onload":"renewal_module.asset_allocation.load_asset_details"
+    },
+    "Asset Allocation":{
+        "after_save":"renewal_module.asset_allocation.update_assets_on_employee_save",
+        "on_update":"renewal_module.asset_allocation.update_assets_on_employee_save"
+    },
+    "Appointment":{
+        "after_insert": "renewal_module.appointment_notifications.appointment_after_insert",
+        "on_update": "renewal_module.appointment_notifications.appointment_on_update"
+    }
+
+   
 	
 }
 
@@ -277,13 +352,30 @@ scheduler_events = {
 			"renewal_module.tasks.cron"
 		]
 	},
+    "cron": {
+        "*/1 * * * *": [
+            "renewal_module.tasks.send_calendar_notifications"
+        ],
+        "*/1 * * * *": [
+            "renewal_module.reminder.check_due_notifications"
+        ]
+    },
 
 	"all": [
-		"renewal_module.tasks.send_call_reminders"
+		"renewal_module.tasks.send_call_reminders",
+        "renewal_module.reminder.send_reminders"
 	],
-	# "daily": [
-	# 	"renewal_module.tasks.daily"
-	# ],
+    "cron": {
+        "* * * * *": [  
+            "renewal_module.appointment_notifications.check_and_send_reminders"
+        ]
+    },
+
+
+
+	"daily": [
+		"renewal_module.custom_issue.close_resolved_issues"
+	],
 	# "hourly": [
 	# 	"renewal_module.tasks.hourly"
 	# ],
@@ -293,7 +385,32 @@ scheduler_events = {
 	# "monthly": [
 	# 	"renewal_module.tasks.monthly"
 	# ]
+
+    
+
+    "cron": {
+        "*/15 * * * *":
+        [
+            "renewal_module.microsoft_oauth.sync_microsoft_events_to_erpnext"
+        ]
+        },
+
+    "cron": {
+        "*/15 * * * *":
+        [
+            "renewal_moodule.microsoft_oauth.sync_erpnext_events_to_microsoft"
+        ]
+    },
 }
+
+scheduler_events = {
+    "cron": {
+        "* * * * *": [
+            "renewal_module.api.test_cron_job"
+        ]
+    }
+}
+
 
 # Testing
 # -------

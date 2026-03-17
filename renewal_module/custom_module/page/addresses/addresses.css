@@ -1,0 +1,1070 @@
+[data-route^="addresses"] .sticky-top {
+    display: none !important;
+}
+
+[data-route^="addresses"] .page-head {
+    display: none !important;
+}
+
+body[data-route^="addresses"] {
+    font-size: 14px !important;
+}
+
+[data-route^="addresses"] .layout-main {
+    padding: 0 !important;
+    background: #F3F4F6;
+    margin: 0px !important;
+    width: 100%;
+}
+
+[data-route^="addresses"] .layout-main-section-wrapper {
+    padding: 0 !important;
+}
+
+[data-route^="addresses"] .container,
+[data-route^="addresses"] .container-fluid,
+[data-route^="addresses"] .container-lg,
+[data-route^="addresses"] .container-md,
+[data-route^="addresses"] .container-sm,
+[data-route^="addresses"] .container-xl,
+[data-route^="addresses"] .container-xxl {
+    padding: 0px !important;
+    max-width: 100% !important;
+}
+
+[data-route^="addresses"] .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+[data-route^="addresses"] [class^="col"],
+[data-route^="addresses"] [class*=" col"] {
+    padding: 4px;
+}
+
+
+[data-route="addresses"] .ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+[data-route="addresses"] .gap-1 {
+    gap: 0.25rem !important;
+}
+
+[data-route="addresses"] .gap-2 {
+    gap: 0.75rem !important;
+}
+
+[data-route="addresses"] .gap-3 {
+    gap: 1rem !important;
+}
+
+[data-route="addresses"] .btn-default2 {
+    font-size: 12px;
+}
+
+/*List View*/
+
+
+[data-route^="addresses"] .page-title-head {
+    padding: 4px;
+}
+
+/* controls */
+[data-route^="addresses"] .controls-wrapper {
+    padding: 4px 0px;
+}
+
+[data-route^="addresses"] .breadcrumb {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    font-size: 14px;
+}
+
+/* Main layout */
+[data-route^="addresses"] .controls {
+    display: flex;
+    /* align-items: center; */
+    justify-content: space-between;
+    gap: 12px;
+}
+
+/* Left controls */
+[data-route^="addresses"] .left-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Select styling */
+/* Equal width for left controls (Desktop / Tablet) */
+[data-route^="addresses"] .left-controls .control-select {
+    width: 150px;
+    flex: 0 0 150px;
+    padding: 4px 32px 4px 10px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    background-color: #fff;
+}
+
+[data-route^="addresses"] .left-controls select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%239ca3af' d='M7 10l5-5 5 5H7zm0 4h10l-5 5-5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px;
+    padding-right: 32px;
+}
+
+
+[data-route^="addresses"] .left-controls .control-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+[data-route^="addresses"] .left-controls .control-select.placeholder {
+    color: #9ca3af !important;
+}
+
+/* black when a real value is selected */
+[data-route^="addresses"] .left-controls .control-select:not(.placeholder) {
+    color: #000 !important;
+}
+
+/* dropdown items stay black */
+[data-route^="addresses"] .left-controls .control-select option {
+    color: #000 !important;
+}
+
+/* Remove default black focus border */
+[data-route^="addresses"] .left-controls .control-select:focus,
+[data-route^="addresses"] .left-controls .control-select:active,
+[data-route^="addresses"] .left-controls .control-select:focus-visible {
+    outline: none;
+    border-color: #d1d5db;
+    box-shadow: none;
+}
+
+/* Right controls */
+[data-route^="addresses"] .right-controls {
+    display: flex;
+    /* align-items: center; */
+    gap: 10px;
+    height: fit-content;
+}
+
+/* Filter buttons */
+[data-route^="addresses"] .filter-actions .btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #fff;
+}
+
+[data-route^="addresses"] .filter-actions .button-label {
+    font-size: 14px;
+}
+
+[data-route^="addresses"] #new-addresses-btn {
+    font-size: 14px;
+}
+
+[data-route^="addresses"] #actions-dropdown .btn {
+    font-size: 14px;
+    background: #fff;
+}
+
+[data-route^="addresses"] #actions-dropdown .user-action {
+    font-size: 14px;
+}
+
+/* --------------------- */
+/* Tablet view */
+@media (max-width: 991px) {
+    [data-route^="addresses"] .controls {
+        gap: 10px;
+    }
+}
+
+/* Mobile view */
+@media (max-width: 767px) {
+    [data-route^="addresses"] .controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    [data-route^="addresses"] .left-controls,
+    [data-route^="addresses"] .right-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    [data-route^="addresses"] .left-controls {
+        gap: 8px;
+    }
+
+    [data-route^="addresses"] .left-controls .control-select {
+        width: 100%;
+        max-width: 100%;
+        flex: 1 1 100%;
+    }
+}
+
+[data-route^="addresses"] .filter-area .empty-filters {
+    display: none !important;
+}
+
+@media (max-width: 767.98px) {
+    [data-route^="addresses"] .filter-popover {
+        min-width: 95%;
+        /* margin-left: -5px; */
+    }
+}
+
+@media (min-width:768px) {
+    [data-route^="addresses"] .filter-popover {
+        min-width: 300px !important;
+    }
+
+    [data-route^="addresses"] .datepicker {
+        width: 200px !important;
+    }
+}
+
+[data-route^="addresses"] .popover.filter-popover .popover-body {
+    padding: 4px !important;
+}
+
+/*table*/
+[data-route^="addresses"] .table-container {
+    position: relative;
+    max-height: 70vh;
+    min-height: 70vh;
+    overflow: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+}
+
+[data-route^="addresses"] .addresses-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 1100px;
+}
+
+[data-route^="addresses"] .addresses-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #fff;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    min-width: 0px;
+    max-width: 180px;
+    font-size: 14px;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+
+[data-route^="addresses"] .addresses-table th:first-child,
+[data-route^="addresses"] .addresses-table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 4;
+    background: #fff;
+}
+
+[data-route^="addresses"] .addresses-table thead th:first-child {
+    z-index: 6;
+}
+
+[data-route^="addresses"] .addresses-table th:last-child,
+[data-route^="addresses"] .addresses-table td:last-child {
+    position: sticky;
+    right: 0;
+    z-index: 4;
+    background: #fff;
+}
+
+[data-route^="addresses"] .addresses-table thead th:last-child {
+    z-index: 6;
+}
+
+[data-route^="addresses"] .addresses-table tbody td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+    vertical-align: middle;
+    min-width: 0px;
+    max-width: 180px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    font-size: 14px;
+    color: #111827;
+}
+
+[data-route^="addresses"] .addresses-table tbody tr:hover td {
+    background: #f8fafc;
+}
+
+[data-route^="addresses"] .addresses-table tbody tr:hover td:first-child,
+[data-route^="addresses"] .addresses-table tbody tr:hover td:last-child {
+    background: #f8fafc;
+}
+
+[data-route^="addresses"] .addresses-table td:first-child,
+[data-route^="addresses"] .addresses-table th:first-child {
+    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.03);
+}
+
+[data-route^="addresses"] .addresses-table th:first-child,
+[data-route^="addresses"] .addresses-table td:first-child {
+    width: 50px;
+    min-width: 35px;
+    max-width: 35px;
+    padding: 0;
+    text-align: center;
+    vertical-align: middle;
+    position: sticky;
+    left: 0;
+    background: #fff;
+    z-index: 4;
+}
+
+[data-route^="addresses"] .addresses-table thead th:first-child {
+    z-index: 6;
+}
+
+[data-route^="addresses"] .addresses-table td:first-child input[type="checkbox"],
+[data-route^="addresses"] .addresses-table th:first-child input[type="checkbox"] {
+    display: block;
+    margin: 0 auto;
+}
+
+[data-route^="addresses"] .addresses-table td:last-child,
+[data-route^="addresses"] .addresses-table th:last-child {
+    box-shadow: -2px 0 6px rgba(0, 0, 0, 0.03);
+}
+
+[data-route^="addresses"] .addresses-table img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle
+}
+
+@media (max-width: 767px) {
+    [data-route^="addresses"] .table-container {
+        max-height: 60vh;
+        min-height: 60vh;
+    }
+
+    [data-route^="addresses"] .addresses-table {
+        min-width: 1000px;
+    }
+}
+
+
+@media (max-width:1000px) {
+    [data-route^="addresses"] .table-container {
+        max-height: 70vh;
+        min-height: 70vh;
+    }
+
+    [data-route^="addresses"] .addresses-table {
+        min-width: 700px
+    }
+}
+
+[data-route^="addresses"] .pill {
+    display: inline-block;
+    padding: 6px 8px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 10px
+}
+
+[data-route^="addresses"] .addresses-name {
+    color: #3b82f6;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+
+/**Details view styles**/
+[data-route^="addresses"] .text-muted1 {
+    color: #111 !important;
+    font-weight: 600;
+}
+
+[data-route^="addresses"] .address-info-card {
+    border-radius: 12px;
+    border: 1px solid #eef0f6;
+}
+
+[data-route^="addresses"] .corporate-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: none;
+    transition: all 0.2s ease-in-out;
+}
+
+[data-route^="addresses"] .corporate-card:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+[data-route^="addresses"] .bg-success-subtle {
+    background-color: #d1e7dd !important;
+}
+
+[data-route^="addresses"] .border-success-subtle {
+    border-color: #a3cfbb !important;
+}
+
+[data-route^="addresses"] .bg-info-subtle {
+    background-color: #cff4fc !important;
+}
+
+[data-route^="addresses"] .border-info-subtle {
+    border-color: #9eeaf9 !important;
+}
+
+[data-route^="addresses"] .hover-shadow-sm:hover {
+    box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075) !important;
+    transform: translateY(-1px);
+}
+
+[data-route^="addresses"] .transition-all {
+    transition: all .2s ease-in-out;
+}
+
+[data-route^="addresses"] .btn-icon {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+[data-route^="addresses"] .btn-white {
+    background-color: #fff;
+    border: 1px solid #e5e7eb;
+}
+
+[data-route^="addresses"] .btn-white:hover {
+    background-color: #f8fafc;
+}
+
+[data-route^="addresses"] .address-info-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+[data-route^="addresses"] .address-info-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+[data-route^="addresses"] .address-info-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+[data-route^="addresses"] .bg-primary-subtle {
+    background-color: #cfe2ff !important;
+}
+
+[data-route^="addresses"] .bg-danger-subtle {
+    background-color: #f8d7da !important;
+}
+
+[data-route^="addresses"] .address-info-icon--phone {
+    background: #e0f2fe;
+    color: #0284c7;
+}
+
+[data-route^="addresses"] .address-info-icon--email {
+    background: #ffedd5;
+    color: #ea580c;
+}
+
+[data-route^="addresses"] .address-info-icon--link {
+    background: #ecf7f2;
+    color: #1f8f6b;
+}
+
+[data-route^="addresses"] .address-info-item--link {
+    background: #f5fbf8;
+    border: 1px solid #e4f2ec;
+}
+
+[data-route^="addresses"] .address-info-link {
+    display: flex;
+    flex-direction: column;
+}
+
+[data-route^="addresses"] .address-info-count {
+    font-weight: 600;
+}
+
+[data-route^="addresses"] .address-info-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 10px;
+}
+
+[data-route^="addresses"] .address-info-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+[data-route^="addresses"] .address-info-action-btn {
+    padding: 2px 8px;
+    line-height: 1.4;
+}
+
+[data-route^="addresses"] .address-info-item--phone {
+    background: #f8f9fd;
+    border: 1px solid #eef0f6;
+    margin-bottom: 10px;
+}
+
+[data-route^="addresses"] .address-info-item--email {
+    background: #fff9f4;
+    border: 1px solid #f1e7de;
+    margin-bottom: 10px;
+}
+
+[data-route^="addresses"] .address-info-value {
+    color: #2c3e50;
+}
+
+[data-route^="addresses"] .footer-text {
+    font-size: 13px !important;
+}
+
+
+
+
+
+
+/* new address form styles */
+[data-route^="addresses"] .address-phone-entry,
+[data-route^="addresses"] .address-person-entry,
+[data-route^="addresses"] .reference-link-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* white-space: nowrap; */
+}
+
+@media (max-width: 575.98px) {
+
+    [data-route^="addresses"] .address-phone-entry,
+    [data-route^="addresses"] .address-person-entry,
+    [data-route^="addresses"] .reference-link-entry {
+        display: block;
+    }
+}
+
+/* Address Details View - Activity & Comment Styling */
+.addresses-details-view #activity-timeline {
+    width: 100% !important;
+}
+
+.addresses-details-view .comment-box .comment-input-container {
+    align-items: center;
+}
+
+.addresses-details-view .ql-container {
+    font-size: 14px;
+}
+
+.addresses-details-view .timeline-time {
+    width: 120px;
+    text-align: right;
+}
+
+@media(max-width:428px) {
+    .addresses-details-view .timeline-time {
+        width: 100%;
+        text-align: left;
+    }
+}
+
+.addresses-details-view .timeline-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    -ms-flex-negative: 0;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.addresses-details-view .timeline-content {
+    -webkit-box-flex: 1;
+    -ms-flex: 1;
+    flex: 1;
+    position: relative;
+    word-wrap: break-word;
+}
+
+
+/* iframe wrapper & iframe styling */
+.addresses-details-view .iframe-wrapper {
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    padding: 0;
+    border: 0;
+
+}
+
+.addresses-details-view .email-iframe {
+    width: 100%;
+    height: 400px;
+    border: 0;
+    display: block;
+    overflow: auto;
+    box-sizing: border-box;
+}
+
+.addresses-details-view .timeline-item,
+.addresses-details-view .timeline-content {
+    min-width: 0;
+}
+
+.addresses-details-view h3 {
+    font-size: 16px !important;
+}
+
+.addresses-details-view p {
+    font-size: 14px !important;
+}
+
+.addresses-details-view .ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.addresses-details-view .label-col {
+    font-weight: 600;
+    color: #9BA6B7;
+    word-break: break-word;
+    max-width: 120px;
+    font-size: 14px;
+}
+
+.addresses-details-view .colon {
+    color: #4c4c5c;
+    text-align: center;
+}
+
+/* Comment Section Enhanced Styling */
+[data-route^="addresses"] .comment-section {
+    margin-top: 16px;
+}
+
+[data-route^="addresses"] .comment-section .comment-box {
+    margin-top: 0px !important;
+}
+
+[data-route^="addresses"] .comment-box {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 16px;
+}
+
+[data-route^="addresses"] .comment-box .btn-comment {
+    margin-top: 0px !important;
+}
+
+[data-route^="addresses"] .comment-input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+[data-route^="addresses"] .comment-input-header {
+    font-weight: 600;
+    font-size: 13px;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+[data-route^="addresses"] .comment-input-container {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+[data-route^="addresses"] .avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    background: #d1d5db;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+[data-route^="addresses"] .ql-editor {
+    min-height: 50px;
+    font-size: 14px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* ---- timeline-specific tweaks ---- */
+[data-route^="addresses"] .timeline-content .ql-editor {
+    /* remove the input-style box so timeline HTML blends into the card */
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    min-height: 0;
+    max-height: none;
+}
+
+[data-route^="addresses"] .timeline-content .ql-editor+.ql-editor {
+    /* if there are two editor blocks, collapse the gap between them */
+    margin-top: 0;
+}
+
+[data-route^="addresses"] .ql-editor.ql-blank::before {
+    content: attr(data-placeholder);
+    color: #9ca3af;
+}
+
+[data-route^="addresses"] .comment-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+[data-route^="addresses"] .btn-comment {
+    font-size: 13px;
+    padding: 8px 16px;
+    min-width: 100px;
+}
+
+/* Activity Timeline Enhanced Styling */
+[data-route^="addresses"] #activity-timeline {
+    position: relative;
+    padding: 12px 0;
+}
+
+[data-route^="addresses"] .timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 12px;
+}
+
+[data-route^="addresses"] .timeline-time {
+    width: 120px;
+    text-align: right;
+}
+
+[data-route^="addresses"] .timeline-dot {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+}
+
+[data-route^="addresses"] .timeline-content {
+    flex: 1;
+    position: relative;
+    word-wrap: break-word;
+    min-width: 0;
+}
+
+[data-route^="addresses"] .timeline-content span {
+    display: block;
+}
+
+[data-route^="addresses"] .timeline-content .fs-sm {
+    font-size: 12px;
+    line-height: 1.5;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+[data-route^="addresses"] .scrollable-description {
+    max-height: 300px;
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.6;
+    word-wrap: break-word;
+    color: #6b7280;
+    /* remove default vertical gap to match ticket page layout */
+    margin: 0;
+}
+
+/* paragraphs inside a notification should not add extra spacing either */
+[data-route^="addresses"] .scrollable-description p {
+    margin: 0;
+}
+
+[data-route^="addresses"] .scrollable-description::-webkit-scrollbar {
+    width: 6px;
+}
+
+[data-route^="addresses"] .scrollable-description::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+[data-route^="addresses"] .scrollable-description::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+[data-route^="addresses"] .scrollable-description::-webkit-scrollbar-thumb:hover {
+    background: #888;
+}
+
+[data-route^="addresses"] .text-primary {
+    color: #3b82f6 !important;
+    font-size: 12px !important;
+    margin-top: 8px;
+}
+
+/* Timeline Responsive Design */
+@media (max-width: 767px) {
+    [data-route^="addresses"] .timeline-item {
+        flex-direction: column;
+    }
+
+    [data-route^="addresses"] .timeline-time {
+        text-align: left;
+        margin-bottom: 4px;
+    }
+
+    [data-route^="addresses"] .timeline-dot {
+        order: 2;
+        margin-top: 4px;
+    }
+
+    [data-route^="addresses"] .avatar {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        font-size: 12px;
+    }
+
+    [data-route^="addresses"] .comment-box {
+        padding: 12px;
+    }
+
+    [data-route^="addresses"] .comment-input-header {
+        font-size: 12px;
+    }
+
+}
+
+/* Mention dropdown styling */
+[data-route^="addresses"] .mention-dropdown {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+[data-route^="addresses"] .mention-item {
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #374151;
+    transition: all 0.15s ease;
+}
+
+[data-route^="addresses"] .mention-item:hover {
+    background: #f3f4f6;
+    color: #1f2937;
+}
+
+[data-route^="addresses"] .mention-item.active {
+    background: #dbeafe;
+    color: #0369a1;
+}
+
+[data-route^="addresses"] .address-info-list {
+    overflow-x: auto;
+}
+
+[data-route^="addresses"] .address-number-card,
+[data-route^="addresses"] .address-email-card,
+[data-route^="addresses"] .address-link-card {
+    min-width: max-content;
+}
+
+/* ── Inline-style replacements ── */
+
+/* Profile avatar circle in the details sidebar */
+[data-route^="addresses"] .address-profile-avatar {
+    width: 72px;
+    height: 72px;
+}
+
+/* Address-row link in list table */
+[data-route^="addresses"] .address-row-link {
+    cursor: pointer;
+}
+
+/* Smaller address-info-icon variant (plain bg-light icons) */
+[data-route^="addresses"] .address-info-icon--sm {
+    border-radius: 8px;
+    width: 28px;
+    height: 28px;
+}
+
+/* Info-link text size inside profile cards */
+[data-route^="addresses"] .address-info-text {
+    font-size: 13px;
+}
+
+/* Scrollable links list inside the detail card */
+[data-route^="addresses"] .address-info-list--scrollable {
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+/* Comment box – removes border when nested inside a corporate-card */
+[data-route^="addresses"] .comment-box--borderless {
+    border: none !important;
+}
+
+/* Avatar inside the comment/activity area */
+[data-route^="addresses"] .avatar--md {
+    width: 40px;
+    height: 40px;
+}
+
+/* Avatar frame Frappe theming variables */
+[data-route^="addresses"] .avatar-frame--themed {
+    background-color: var(--dark-green-avatar-bg);
+    color: var(--dark-green-avatar-color);
+}
+
+/* Quill editor container used in the comment section */
+[data-route^="addresses"] .ql-container--comment {
+    position: relative;
+    background: #fdfdfd;
+}
+
+/* Quill mention list container */
+[data-route^="addresses"] .ql-mention-list-container--hidden {
+    display: none;
+    position: absolute;
+}
+
+/* Mention dropdown floating element */
+[data-route^="addresses"] .mention-dropdown--float {
+    position: absolute;
+    z-index: 10000;
+    min-width: 220px;
+    max-height: 220px;
+    overflow: auto;
+    padding: 4px;
+}
+
+/* Details card shell – transparent card for the details section */
+[data-route^="addresses"] .address-details-card {
+    min-height: 80vh;
+    background-color: transparent;
+    border: none;
+}
+
+/* New Addresses form card shell */
+[data-route^="addresses"] .new-address-card {
+    min-height: 80vh;
+}
+
+/* New Addresses card body tight padding */
+[data-route^="addresses"] .new-address-card-body {
+    padding: 5px;
+}
+
+/* Breadcrumb – transparent background */
+[data-route^="addresses"] .breadcrumb--transparent {
+    background-color: transparent;
+}
+
+/* Count header column – default (non-sortable) */
+[data-route^="addresses"] #count-header {
+    cursor: default;
+}
+
+/* Required asterisk in form labels */
+[data-route^="addresses"] .required-star {
+    color: #eb9091;
+}
+
+/* Clickable icon button (e.g. add reference link) */
+[data-route^="addresses"] .icon-btn--clickable {
+    cursor: pointer;
+}
+
+/* Email subject helper text */
+[data-route^="addresses"] .email-subject-hint {
+    margin-top: -10px;
+    font-size: 12px;
+}
+
+/* Address-info two-column label row label width */
+[data-route^="addresses"] .addr-label-col {
+    min-width: 90px;
+}
+
+[data-route^="addresses"] .addr-label-col--tax {
+    min-width: 100px;
+}

@@ -1,0 +1,228 @@
+[data-route="issue-theme"] .fss-24 {
+    font-size: 24px !important;
+}
+
+[data-route="issue-theme"] .list-paging-area,
+[data-route="issue-theme"] .footnote-area {
+    border-top: none !important;
+}
+
+[data-route="issue-theme"] .card-footer {
+    padding: 0px !important;
+}
+
+[data-route="issue-theme"] .table tfoot>tr>th:first-child,
+[data-route="issue-theme"] .table thead>tr>th:first-child,
+[data-route="issue-theme"] .table tr td:first-child,
+[data-route="issue-theme"] .table tr th:first-child {
+    border-top-left-radius: 10px !important;
+    border-bottom-left-radius: 10px !important;
+}
+
+[data-route="issue-theme"] .table tfoot>tr>th:last-child,
+[data-route="issue-theme"] .table thead>tr>th:last-child,
+[data-route="issue-theme"] .table tr td:last-child,
+[data-route="issue-theme"] .table tr th:last-child {
+    border-top-right-radius: 10px !important;
+    border-bottom-right-radius: 10px !important;
+}
+
+
+[data-route="issue-theme"] .badge-label {
+    border-radius: 5px !important;
+}
+
+[data-route="issue-theme"] .search-results-dropdown mark {
+    background-color: #fada5e;
+    color: #000;
+    padding: 0 2px;
+    border-radius: 2px;
+}
+
+[data-route="issue-theme"] .avatar-xs {
+    width: 36px;
+    /* slightly larger for better clarity */
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center;
+    border: 1px solid #ccc;
+    transition: all 0.2s ease-in-out;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    backface-visibility: hidden;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.15);
+}
+
+[data-route="issue-theme"] .avatar-xs:hover {
+    transform: scale(1.15);
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.25);
+    z-index: 5;
+    position: relative;
+}
+
+[data-route="issue-theme"] a {
+    text-decoration: none !important;
+}
+
+/* For tablets and small desktops (Bootstrap lg breakpoint: ≥992px) */
+@media screen and (min-width: 992px) {
+    [data-route="issue-theme"] .f-24 {
+        font-size: 16px !important;
+    }
+
+    [data-route="issue-theme"] .avatar-title {
+        width: 75% !important;
+        height: 75% !important;
+    }
+
+    [data-route="issue-theme"] .fss-24 {
+        font-size: 18px !important;
+    }
+}
+
+/* For large desktops (Bootstrap xxl breakpoint: ≥1400px) */
+@media screen and (min-width: 1400px) {
+    [data-route="issue-theme"] .f-24 {
+        font-size: 24px !important;
+    }
+
+    [data-route="issue-theme"] .avatar-title {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    [data-route="issue-theme"] .fss-24 {
+        font-size: 24px !important;
+    }
+}
+
+[data-route="issue-theme"] .active-status-card {
+    transform: scale(1.03);
+    transition: 0.2s ease;
+}
+
+[data-route="issue-theme"] .ticket-status-card {
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+[data-route="issue-theme"] .ticket-status-card:hover {
+    transform: scale(1.02);
+}
+
+[data-route="issue-theme"] .filter-area .empty-filters {
+    display: none !important;
+}
+
+[data-route="issue-theme"] .flatpickr-calendar {
+    z-index: 99999 !important;
+    position: absolute !important;
+}
+
+[data-route="issue-theme"] .dropdown-menu.notifications-dropdown {
+    min-width: 280px;
+    max-height: 320px;
+    overflow-y: auto;
+    background-color: #fff !important;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    padding: 0.5rem;
+    z-index: 1051;
+}
+
+/* Notification container inside dropdown */
+[data-route="issue-theme"] #notification-list {
+    max-height: 300px;
+    overflow-y: auto;
+    background: #fff !important;
+    display: block !important;
+    padding: 8px;
+}
+
+/* Each notification item */
+[data-route="issue-theme"] #notification-list .dropdown-item {
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: #333;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+/* Hover effect */
+[data-route="issue-theme"] #notification-list .dropdown-item:hover {
+    background-color: #e8f0fe;
+    color: #000;
+}
+
+/* Divider between items */
+[data-route="issue-theme"] #notification-list .dropdown-item:not(:last-child) {
+    border-bottom: 1px solid #eee;
+}
+
+/* Scrollbar customization */
+[data-route="issue-theme"] #notification-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+[data-route="issue-theme"] #notification-list::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+
+[data-route="issue-theme"] #notification-list::-webkit-scrollbar-thumb:hover {
+    background: #aaa;
+}
+
+/* Keep topbar alignment intact */
+[data-route="issue-theme"] .app-topbar .topbar-menu .topbar-item .topbar-link {
+    position: relative;
+}
+
+/* Notification badge on bell icon */
+[data-route="issue-theme"] .app-topbar .topbar-menu .topbar-item .topbar-badge {
+    background: #f44336;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 5px;
+    border-radius: 10px;
+    position: absolute;
+    top: -6px;
+    right: -2px;
+}
+
+/* Ensure dropdown animation appears above content */
+[data-route="issue-theme"] .dropdown-menu.show {
+    display: block;
+    animation: fadeIn 0.15s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (min-width:768px) {
+    [data-route="issue-theme"] .filter-popover {
+        min-width: 350px !important;
+    }
+
+    [data-route="issue-theme"] .datepicker {
+        width: 200px !important;
+    }
+}
+
+[data-route="issue-theme"] .popover.filter-popover .popover-body {
+    padding: 4px !important;
+}

@@ -1,0 +1,20 @@
+/* Change sidebar background */
+.desk-sidebar {
+    background-color: #1e293b !important;
+    color: #fff !important;
+}
+
+/* Change module card style */
+.workspace .widget.shortcut-widget {
+    border-radius: 16px !important;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* Change top navbar */
+.navbar {
+    background-color: #111827 !important;
+    font-size: 15px !important;
+    font-weight: 600;
+}

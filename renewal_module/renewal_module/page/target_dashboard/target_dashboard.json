@@ -1,0 +1,31 @@
+{
+ "content": null,
+ "creation": "2025-05-02 10:29:42.537127",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-05-02 10:29:42.537127",
+ "modified_by": "Administrator",
+ "module": "Renewal Module",
+ "name": "target-dashboard",
+ "owner": "Administrator",
+ "page_name": "target-dashboard",
+ "roles": [
+  {
+   "role": "Administrator"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "System Manager"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0
+}

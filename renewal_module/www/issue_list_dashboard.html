@@ -1,0 +1,30 @@
+{% if data %}
+<div class="frappe-control card mb-3" style="padding:5px 20px;border:1px solid #EDEDED">
+    <div class="form-section mb-1 pb-0 pt-0">
+        <div class="section-head mb-1 mt-0 p-2" style="font-size: 14px; font-weight: 600;">Plan Summary</div>
+        <div class="table-responsive m-0 p-0" style="border-radius: 10px;border: 1px solid #EDEDED;">
+            <table class="table table-bordered table-sm m-0">
+                <thead class="m-0 p-0" style="background-color:#f3f3f3;">
+                    <tr>
+                        <th class="py-1" style="font-weight:normal;color:#7c7c7c;">Plan</th>
+                        <th class="py-1" style="font-weight:normal;color:#7c7c7c;">Tickets</th>
+                        <th class="py-1" style="font-weight:normal;color:#7c7c7c;">Used</th>
+                        <th class="py-1" style="font-weight:normal;color:#7c7c7c;">Available</th>
+                    </tr>
+                </thead>
+                <tbody class="m-0 p-0">
+                    {% for d in data %}
+                    <tr>
+                        <td class="py-1" style="color:#525252;">{{ d.plan }}</td>
+                        <td class="py-1" style="color:#525252;">{{ d.tickets }}</td>
+                        <td class="py-1" style="color:#525252;">{{ d.used }}</td>
+                        <td class="py-1" style="color:#525252;">{{ d.available }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endif %}

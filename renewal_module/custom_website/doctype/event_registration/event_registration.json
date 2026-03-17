@@ -23,7 +23,16 @@
   "link",
   "section_break_impir",
   "sales_team_details",
-  "captcha"
+  "captcha",
+  "section_break_csfj",
+  "event_start_date",
+  "event_start_time",
+  "event_end_date",
+  "event_end_time",
+  "column_break_xqrt",
+  "event_mode",
+  "event_address",
+  "event_link"
  ],
  "fields": [
   {
@@ -109,11 +118,65 @@
    "fieldname": "captcha",
    "fieldtype": "Data",
    "label": "Captcha"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_csfj",
+   "fieldtype": "Section Break",
+   "label": "Event Details"
+  },
+  {
+   "fetch_from": "event_name.starts_on",
+   "fieldname": "event_start_date",
+   "fieldtype": "Date",
+   "label": "Event start Date"
+  },
+  {
+   "fetch_from": "event_name.starts_on",
+   "fieldname": "event_start_time",
+   "fieldtype": "Time",
+   "label": "Event Start Time"
+  },
+  {
+   "fetch_from": "event_name.ends_on",
+   "fieldname": "event_end_date",
+   "fieldtype": "Date",
+   "label": "Event End Date"
+  },
+  {
+   "fetch_from": "event_name.ends_on",
+   "fieldname": "event_end_time",
+   "fieldtype": "Time",
+   "label": "Event End Time"
+  },
+  {
+   "fieldname": "column_break_xqrt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "event_name.custom_event_mode",
+   "fieldname": "event_mode",
+   "fieldtype": "Data",
+   "label": "Event Mode"
+  },
+  {
+   "depends_on": "eval:doc.event_mode==\"Offline\"",
+   "fetch_from": "event_name.custom_venue",
+   "fieldname": "event_address",
+   "fieldtype": "Small Text",
+   "label": "Event Address"
+  },
+  {
+   "fetch_from": "event_name.custom_event_link",
+   "fieldname": "event_link",
+   "fieldtype": "Small Text",
+   "label": "Event Link",
+   "mandatory_depends_on": "eval:doc.event_mode == \"Online\""
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-11-28 11:17:01.779952",
+ "modified": "2025-09-26 11:53:03.769122",
  "modified_by": "Administrator",
  "module": "Custom Website",
  "name": "Event Registration",
@@ -133,6 +196,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

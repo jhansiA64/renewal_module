@@ -1,0 +1,75 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-02-13 17:33:17.988689",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "role_in_team",
+  "is_primary",
+  "can_read",
+  "can_write",
+  "can_share"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": " User",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "role_in_team",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Role in Team",
+   "options": "Member\nTeam Lead"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_primary",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Primary"
+  },
+  {
+   "default": "0",
+   "fieldname": "can_read",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Can Read"
+  },
+  {
+   "default": "0",
+   "fieldname": "can_write",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Can Write"
+  },
+  {
+   "default": "0",
+   "fieldname": "can_share",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Can Share"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-02-24 11:32:56.176230",
+ "modified_by": "Administrator",
+ "module": "Custom Module",
+ "name": "Team Members",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

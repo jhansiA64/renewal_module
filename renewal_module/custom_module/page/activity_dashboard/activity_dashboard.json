@@ -1,0 +1,34 @@
+{
+ "content": null,
+ "creation": "2025-07-13 10:51:43.330141",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-07-13 10:51:43.330141",
+ "modified_by": "Administrator",
+ "module": "Custom Module",
+ "name": "activity-dashboard",
+ "owner": "Administrator",
+ "page_name": "activity-dashboard",
+ "roles": [
+  {
+   "role": "Administrator"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Geetha - Sales Manager"
+  },
+  {
+   "role": "Sales User"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0
+}

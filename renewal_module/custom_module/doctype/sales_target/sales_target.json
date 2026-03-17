@@ -28,7 +28,9 @@
   "rgt",
   "is_group",
   "old_parent",
-  "parent_target_list"
+  "parent_target_list",
+  "activity_target_details_section",
+  "activity_target_details"
  ],
  "fields": [
   {
@@ -103,7 +105,7 @@
   },
   {
    "fieldname": "bottomline_target",
-   "fieldtype": "Data",
+   "fieldtype": "Currency",
    "label": "Bottomline Target"
   },
   {
@@ -155,12 +157,23 @@
    "fieldtype": "Link",
    "label": "Parent Target List",
    "options": "Sales Target"
+  },
+  {
+   "fieldname": "activity_target_details_section",
+   "fieldtype": "Section Break",
+   "label": "Activity Target Details"
+  },
+  {
+   "fieldname": "activity_target_details",
+   "fieldtype": "Table",
+   "label": "Activity Target Details",
+   "options": "Activity Target Details"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_tree": 1,
  "links": [],
- "modified": "2024-11-07 11:37:29.624407",
+ "modified": "2025-05-07 10:55:18.407137",
  "modified_by": "Administrator",
  "module": "Custom Module",
  "name": "Sales Target",
@@ -182,6 +195,7 @@
   }
  ],
  "quick_entry": 1,
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

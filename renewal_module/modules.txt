@@ -3,3 +3,4 @@ sales Reports
 Custom Module
 Custom Website
 Custom Api
+Asset Management

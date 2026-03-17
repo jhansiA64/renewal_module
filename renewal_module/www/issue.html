@@ -41,22 +41,53 @@ import frappe
 
                 </div>
 
+
                 <main class="container">
                     <div class="page_content" style="background-color: white;">
+                        <div class="row justify-content-center p-2">
+                            <div class="col-2 col-md-2 mb-2 mb-md-0 text-center text-white rounded-left-lg status-filter-box"
+                                style="background-color: #4F8390;" data-status="Open">
+                                <p class="mb-0 mt-1 ellipsis dname font-weight-bold">Open</p>
+                                <p class="mb-0 list-item-name">{{ status_counts.open or 0 }}</p>
+                            </div>
+                            <div class="col-2 col-md-2 mb-2 mb-md-0 text-center text-white status-filter-box"
+                                style="background-color: #5EC8CE;" data-status="Replied">
+                                <p class="mb-0 mt-1 ellipsis dname font-weight-bold">Replied</p>
+                                <p class="mb-0 list-item-name" id="fixed-amount">{{ status_counts.replied or 0 }}</p>
+                            </div>
+                            <div class="col-2 col-md-2 mb-2 mb-md-0 text-center text-white status-filter-box"
+                                style="background-color: #D7C7BA;" data-status="On Hold">
+                                <p class="mb-0 mt-1 ellipsis dname font-weight-bold">On Hold</p>
+                                <p class="mb-0 list-item-name" id="variable-amount">{{ status_counts.on_hold or 0 }}</p>
+                            </div>
+                            <div class="col-2 col-md-2 mb-2 mb-md-0 text-center text-white status-filter-box"
+                                style="background-color: #E8B7A0;" data-status="Resolved">
+                                <p class="mb-0 mt-1 ellipsis dname font-weight-bold">Resolved</p>
+                                <p class="mb-0 list-item-name">{{ status_counts.resolved or 0 }}</p>
+                            </div>
+                            <div class="col-2 col-md-2  mb-2 mb-md-0 text-center text-white status-filter-box"
+                                style="background-color: #bdb76b;border-radius:0 20px 20px 0;" data-status="Closed">
+                                <p class="mb-0 mt-1 ellipsis dname font-weight-bold">Closed</p>
+                                <p class="mb-0 list-item-name">{{ status_counts.closed or 0 }}</p>
+                            </div>
+                            <div class="col-1 col-md-1 mb-2 mb-md-0">
+                                <button class="btn btn-sm mt-1 mb-0 p-1" onclick="location.reload();"
+                                    style="background-color:#5EC8CE">
+                                    <span class="d-none d-md-inline text-white">Refresh</span>
+                                    <span class="d-inline d-md-none">
+                                        <i class="fa fa-sync" style="color:white !important;font-size:18px;"></i>
+                                    </span>
+                                </button>
+                            </div>
+
+                        </div>
 
                         <div class="website-list" data-doctype="Issue" data-txt="None"
                             style="min-height:90vh;padding-left: 0rem;">
                             <div class="website-list-filters mb-3">
                                 <div class="dropdown-container">
-                                    <select id="status-filter" class="form-control mb-1" placeholder="status.."
-                                        onchange="filterRows()" style="width:100%;border-radius:10px;">
-                                        <option value="" disabled selected hidden>Status ..</option>
-                                        <option value=""></option>
-                                        <option value="Open">Open</option>
-                                        <option value="Replied">Replied</option>
-                                        <option value="Pending">On Hold</option>
-                                        <option value="Resolved">Resolved</option>
-                                        <option value="Closed">Closed</option>
+                                    <select id="agent-filter" class="form-control mb-1" placeholder="agent..."
+                                        style="width:100%;border-radius:10px;">
                                     </select>
                                     <span class="dropdown-icon1 fa fa-angle-down"></span>
                                 </div>
@@ -134,12 +165,11 @@ import frappe
                                 </div>
                             </div>
                             <div class="level-right">
-                                <button class="btn btn-sm " onclick="loadMoreRows()">
+                                <button class="btn btn-sm " id="load-more-btn" onclick="loadMoreRows()">
                                     Load More
                                 </button>
                             </div>
                         </div>
-
 
                     </div>
                 </main>
@@ -222,6 +252,7 @@ import frappe
     });
 </script>
 
+
 <script>
     rowsPerPage = 20;
     originalRowsPerPage = rowsPerPage;
@@ -243,13 +274,6 @@ import frappe
         const buttons = document.querySelectorAll(".btn-group .btn");
         buttons.forEach(btn => btn.classList.remove("active"));
         if (button) button.classList.add("active");
-
-        const loadMoreButton = document.getElementById("load-more-btn");
-        if (currentlyVisibleRows >= rows.length || isFiltered) {
-            loadMoreButton.style.display = "none";
-        } else {
-            loadMoreButton.style.display = "block";
-        }
 
         if (!isFiltered) {
             originalRowsPerPage = count;
@@ -277,11 +301,13 @@ import frappe
         }
     }
 
-    function applyFilter(count) {
-        const searchInput = document.getElementById("search-bar").value.toLowerCase();
-        const selectedStatus = document.getElementById("status-filter").value.toLowerCase();
-        const rows = document.querySelectorAll("#row-container .web-list-item");
 
+    function applyFilter(count, selectedStatus = "") {
+        const searchInput = document.getElementById("search-bar")?.value.toLowerCase() || "";
+        const selectedAgent = (document.getElementById("agent-filter")?.value || "").toLowerCase();
+        const raisedByEmail = document.querySelector(".items-name").textContent.toLowerCase();
+
+        const rows = document.querySelectorAll("#row-container .web-list-item");
         let visibleCount = 0;
 
         rows.forEach(row => {
@@ -297,9 +323,10 @@ import frappe
                 raisedBy.includes(searchInput) ||
                 priority.includes(searchInput);
 
-            const matchesStatus = selectedStatus === "" || status === selectedStatus;
+            const matchesStatus = selectedStatus === "" || status === selectedStatus.toLowerCase();
+            const matchesAgent = selectedAgent === "" || raisedBy.includes(selectedAgent);
 
-            if (matchesSearch && matchesStatus && visibleCount < count) {
+            if (matchesSearch && matchesStatus && matchesAgent && visibleCount < count) {
                 row.style.display = "block";
                 visibleCount++;
             } else {
@@ -309,12 +336,9 @@ import frappe
 
         currentlyVisibleRows = visibleCount;
         const loadMoreButton = document.getElementById("load-more-btn");
-        if (visibleCount >= rows.length) {
-            loadMoreButton.style.display = "none";
-        } else {
-            loadMoreButton.style.display = "block";
-        }
+        loadMoreButton.style.display = visibleCount >= rows.length ? "none" : "block";
     }
+
 
     function filterRows() {
         isFiltered = true;
@@ -343,7 +367,52 @@ import frappe
     document.addEventListener("DOMContentLoaded", () => {
         const defaultButton = document.querySelector(".btn-group .btn");
         showRows(rowsPerPage, defaultButton);
+
+        let selectedStatus = "";
+
+        const statusBoxes = document.querySelectorAll(".status-filter-box");
+
+        statusBoxes.forEach(box => {
+            box.addEventListener("click", () => {
+                const status = box.getAttribute("data-status");
+                selectedStatus = status;
+                isFiltered = true;
+                applyFilter(rowsPerPage, status);
+            });
+        });
+
+        // Fetch agents dynamically from Frappe
+        frappe.call({
+            method: "renewal_module.api.get_support_users"
+        }).then(r => {
+            const agentFilter = document.getElementById("agent-filter");
+            const agents = r.message;
+            agentFilter.innerHTML = '<option value="" disabled selected hidden>agent..</option>';
+            agents.forEach(user => {
+                const option = document.createElement("option");
+                option.value = `${user.email}`;
+                option.textContent = `${user.email}`;
+                agentFilter.appendChild(option);
+            });
+        });
+
+        document.getElementById("agent-filter").addEventListener("change", () => {
+            isFiltered = true;
+            applyFilter(rowsPerPage);
+        });
+
     });
 
 </script>
+
+<style>
+    .status-filter-box {
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .status-filter-box:hover {
+        transform: scale(1.03);
+    }
+</style>
 {% endblock %}

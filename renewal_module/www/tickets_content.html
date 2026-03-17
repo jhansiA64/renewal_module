@@ -1,0 +1,124 @@
+<!-- PAGE CONTENT -->
+<div class="list-content">
+  <div class="page-header">
+    <h2>Tickets</h2>
+
+  
+
+  <div class="controls">
+    <div class="left-controls">
+      <input id="tableSearch" type="search" placeholder="Search tickets..." />
+      <button id="newTicket" class="btn primary">+ New Ticket</button>
+    </div>
+
+    <div class="right-controls">
+      <label>Filter:
+        <select id="filterStatus">
+          <option value="all">Status</option>
+          <option value="open">Open</option>
+          <option value="in-progress">In Progress</option>
+          <option value="pending">Pending</option>
+          <option value="resolved">Resolved</option>
+          <option value="escalated">Escalated</option>
+          <option value="closed">Closed</option>
+        </select>
+      </label>
+      <label>
+        <select id="filterPriority">
+          <option value="all">Priority</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <div class="list-card">
+    <div class="table-wrapper"></div>
+    <table id="ticketsTable" class="tickets-table" aria-describedby="tickets-desc">
+      <caption id="tickets-desc" class="visually-hidden">List of support tickets</caption>
+      <thead>
+        <tr>
+          <th><input id="selectAll" type="checkbox" aria-label="Select all"></th>
+          <th>ID</th>
+          <th>Requested By</th>
+          <th>Ticket Subject</th>
+          <th>Assigned Agent</th>
+          <th>Priority</th>
+          <th>Status</th>
+          <th>Date Created</th>
+          <th>Due Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+
+      <!-- <tbody>
+        <tr data-status="pending" data-priority="high">
+          <td><input class="row-check" type="checkbox"></td>
+          <td class="id">#SUP-2451</td>
+          <td class="requester"><img src="https://i.pravatar.cc/32?img=32" alt="R"> Emily Clark</td>
+          <td>Unable to login with 2FA</td>
+          <td>Daniel Ray</td>
+          <td><span class="pill priority high">High</span></td>
+          <td><span class="pill status pending">Pending</span></td>
+          <td>04 Aug, 2025 11:30 AM</td>
+          <td>08 Aug, 2025</td>
+          <td class="actions">
+            <button class="icon view" title="View"><i class="fa fa-eye"></i></button>
+            <button class="icon edit" title="Edit"><i class="fa fa-pen"></i></button>
+            <button class="icon del" title="Delete"><i class="fa fa-trash"></i></button>
+          </td>
+        </tr>
+
+        <tr data-status="in-progress" data-priority="medium">
+          <td><input class="row-check" type="checkbox"></td>
+          <td class="id">#SUP-2517</td>
+          <td class="requester"><img src="https://i.pravatar.cc/32?img=12" alt="R"> Lucas Graham</td>
+          <td>Cannot upload profile image</td>
+          <td>Sarah Lee</td>
+          <td><span class="pill priority medium">Medium</span></td>
+          <td><span class="pill status in-progress">In Progress</span></td>
+          <td>05 Aug, 2025 2:05 PM</td>
+          <td>10 Aug, 2025</td>
+          <td class="actions">
+            <button class="icon view"><i class="fa fa-eye"></i></button>
+            <button class="icon edit"><i class="fa fa-pen"></i></button>
+            <button class="icon del"><i class="fa fa-trash"></i></button>
+          </td>
+        </tr>
+
+        <tr data-status="resolved" data-priority="low">
+          <td><input class="row-check" type="checkbox"></td>
+          <td class="id">#SUP-2519</td>
+          <td class="requester"><img src="https://i.pravatar.cc/32?img=22" alt="R"> Michael Foster</td>
+          <td>Website not loading on Safari</td>
+          <td>Jessica Hughes</td>
+          <td><span class="pill priority low">Low</span></td>
+          <td><span class="pill status resolved">Resolved</span></td>
+          <td>04 Aug, 2025 6:20 PM</td>
+          <td>06 Aug, 2025</td>
+          <td class="actions">
+            <button class="icon view"><i class="fa fa-eye"></i></button>
+            <button class="icon edit"><i class="fa fa-pen"></i></button>
+            <button class="icon del"><i class="fa fa-trash"></i></button>
+          </td>
+        </tr>
+      </tbody> -->
+        <tbody></tbody>
+    </table>
+    <div class="pagination"></div> <!-- pagination buttons will go here -->
+  </div>
+</div>
+
+<!-- <div class="pagination">
+  <button class="page-btn" disabled><i class="fa fa-chevron-left"></i></button>
+  <button class="page-btn active">1</button>
+  <button class="page-btn">2</button>
+  <button class="page-btn">3</button>
+  <button class="page-btn"><i class="fa fa-chevron-right"></i></button>
+</div> -->
+
+
+<div id="toast-container"></div>
+</div><!-- /.content -->

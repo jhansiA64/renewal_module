@@ -39,15 +39,15 @@ def send_approval_email(doc):
     recipients = [doc.email]  # Add the recipient email addresses here
     subject = f"Event Approved: {event_subject}"
 
-    ics_content= create_ics_event(event_subject,starts_on)
+    # ics_content= create_ics_event(event_subject,starts_on)
 
-    frappe.msgprint(f"ICS content:\n{ics_content}")
+    # frappe.msgprint(f"ICS content:\n{ics_content}")
 
-    ics_file_name = f"{event_subject.replace(' ','_')}.ics"
-    ics_file_path = f"/tmp/{ics_file_name}"
+    # ics_file_name = f"{event_subject.replace(' ','_')}.ics"
+    # ics_file_path = f"/tmp/{ics_file_name}"
 
-    with open(ics_file_path,"w") as ics_file:
-        ics_file.write(ics_content)
+    # with open(ics_file_path,"w") as ics_file:
+    #     ics_file.write(ics_content)
 
 
     message = f"""
@@ -84,10 +84,10 @@ def send_approval_email(doc):
         recipients=recipients,
         subject=subject,
         message=message,
-        attachment=[{
-            'fname':ics_file_name,
-            'fcontent':ics_content,
-        }]
+        # attachment=[{
+        #     'fname':ics_file_name,
+        #     'fcontent':ics_content,
+        # }]
     )
     
 # def create_ics_event(subject,start):

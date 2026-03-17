@@ -1,0 +1,31 @@
+[data-route="tickets"] .sticky-top {
+    display: none !important;
+}
+
+[data-route="tickets"] .page-head {
+    display: none !important;
+}
+
+[data-route="tickets"] .layout-main {
+    background-color: #F3F4F6;
+    padding: 0px;
+}
+
+[data-route="tickets"] .layout-main-section-wrapper {
+    padding: 0 !important;
+}
+
+[data-route="tickets"] .container,
+[data-route="tickets"] .container-fluid,
+[data-route="tickets"] .container-lg,
+[data-route="tickets"] .container-md,
+[data-route="tickets"] .container-sm,
+[data-route="tickets"] .container-xl,
+[data-route="tickets"] .container-xxl {
+    padding: 0px !important;
+    max-width: 100% !important;
+}
+[data-route="tickets"] .content1 {
+    padding: 5px 10px;
+    width: 100%;
+}

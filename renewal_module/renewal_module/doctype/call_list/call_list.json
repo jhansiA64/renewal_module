@@ -85,7 +85,7 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Held\nScheduled\nCancelled"
+   "options": "Held\nScheduled\nCancelled\nNot Responding"
   },
   {
    "fieldname": "start_timing",
@@ -181,7 +181,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2022-11-30 14:27:56.385624",
+ "modified": "2026-02-03 17:49:28.926369",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Call List",
@@ -200,10 +200,12 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "search_fields": "name1,start_date,end_date",
  "show_name_in_global_search": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
+ "states": [],
  "title_field": "name1",
  "track_changes": 1,
  "track_seen": 1

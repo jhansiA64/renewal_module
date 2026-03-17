@@ -1,0 +1,572 @@
+
+# import frappe
+# from frappe.utils import nowdate, getdate
+# from datetime import date
+ 
+# @frappe.whitelist()
+# def get_non_billing_customers(filters=None, page=1, page_size=10):
+#     filters = frappe.parse_json(filters) if filters else {}
+#     page = int(page)
+#     page_size = int(page_size)
+
+#     offset = (page - 1) * page_size
+
+#     where_clause, values = build_where_clause(filters)
+
+#     columns, data = get_customers_data(filters, page_size, offset, where_clause, values)
+
+#     total = frappe.db.sql(
+#         f"""
+#         SELECT COUNT(DISTINCT tc.name) FROM `tabCustomer` tc
+#         LEFT JOIN `tabSales Team` tst ON tst.parent = tc.name
+#         WHERE {where_clause}
+#         """,
+#         values,
+#     )[0][0]
+
+#     return {
+#         "columns": columns,
+#         "data": data,
+#         "total": total,
+#         "page": page,
+#         "page_size": page_size,
+#     }
+ 
+ 
+ 
+# def get_customers_data(filters, page_size, offset, where_clause=None, values=None):
+#     where_clause, values = build_where_clause(filters) if not where_clause else (where_clause, values or {})
+
+#     data = frappe.db.sql(
+#         f"""
+#         SELECT
+#             tc.name AS customer,
+#             tc.owner AS owner,
+#             GROUP_CONCAT(DISTINCT tst.sales_person) AS sales_person,
+#             tc.employees,
+#             tc.gstin,
+#             tc.industry,
+#             tc.territory
+#         FROM `tabCustomer` tc
+#         LEFT JOIN `tabSales Team` tst ON tst.parent = tc.name
+#         WHERE {where_clause}
+#         GROUP BY tc.name
+#         ORDER BY tc.name
+#         LIMIT %(limit)s OFFSET %(offset)s
+#         """,
+#         {**values, "limit": page_size, "offset": offset},
+#         as_dict=True,
+#     )
+ 
+#     # Compute gap_years (years since last invoice) for display *only* (we don't use
+#     # last invoice date to filter — filtering was done in SQL via NOT EXISTS above)
+#     for row in data:
+#         last_invoice = frappe.db.sql(
+#             """
+#             SELECT MAX(posting_date) FROM `tabSales Invoice`
+#             WHERE customer=%s AND docstatus=1
+#             """,
+#             row.customer
+#         )
+#         last_invoice_date = last_invoice[0][0] if last_invoice and last_invoice[0][0] else None
+ 
+#         if last_invoice_date:
+#             row["gap_years"] = get_financial_year_gap(last_invoice_date)
+#         else:
+#             row["gap_years"] = None
+ 
+#     return get_columns(), data
+
+
+# def build_where_clause(filters):
+#     base_conditions, values = get_conditions(filters)
+#     sub_conditions = []
+
+#     if filters.get("contacts") == "Customers With Contacts":
+#         sub_conditions.append(
+#             """
+#             EXISTS (
+#                 SELECT 1 FROM `tabDynamic Link` tdl
+#                 JOIN tabContact c ON tdl.parent = c.name
+#                 WHERE tdl.link_doctype = 'Customer' AND tdl.link_name = tc.name
+#             )
+#             """
+#         )
+#     elif filters.get("contacts") == "Customers Without Contacts":
+#         sub_conditions.append(
+#             """
+#             NOT EXISTS (
+#                 SELECT 1 FROM `tabDynamic Link` tdl
+#                 JOIN tabContact c ON tdl.parent = c.name
+#                 WHERE tdl.link_doctype = 'Customer' AND tdl.link_name = tc.name
+#             )
+#             """
+#         )
+
+#     if filters.get("renewals") == "Customers With Renewals":
+#         sub_conditions.append(
+#             """
+#             EXISTS (
+#                 SELECT 1 FROM `tabRenewal List` r
+#                 WHERE r.customer_name = tc.name AND r.status = "Active"
+#             )
+#             """
+#         )
+#     elif filters.get("renewals") == "Customers Without Renewals":
+#         sub_conditions.append(
+#             """
+#             NOT EXISTS (
+#                 SELECT 1 FROM `tabRenewal List` r
+#                 WHERE r.customer_name = tc.name
+#             )
+#             """
+#         )
+
+#     billing_gap = filters.get("billing_gap")
+#     if billing_gap:
+#         fy_start, fy_end = get_recent_fy_range(billing_gap)
+#         if fy_start and fy_end:
+#             sub_conditions.append(
+#                 """
+#                 NOT EXISTS (
+#                     SELECT 1 FROM `tabSales Invoice` si
+#                     WHERE si.customer = tc.name
+#                     AND si.docstatus = 1
+#                     AND si.posting_date BETWEEN %(billing_gap_start)s AND %(billing_gap_end)s
+#                 )
+#                 """
+#             )
+#             values["billing_gap_start"] = fy_start
+#             values["billing_gap_end"] = fy_end
+#         elif billing_gap == "Never":
+#             sub_conditions.append(
+#                 """
+#                 NOT EXISTS (
+#                     SELECT 1 FROM `tabSales Invoice` si
+#                     WHERE si.customer = tc.name
+#                     AND si.docstatus = 1
+#                 )
+#                 """
+#             )
+
+#     clause_parts = []
+#     if base_conditions:
+#         clause_parts.append(base_conditions.strip())
+#     if sub_conditions:
+#         clause_parts.append(" AND ".join(sub_conditions))
+
+#     where_clause = "1=1"
+#     if clause_parts:
+#         where_clause = where_clause + " AND " + " AND ".join(clause_parts)
+
+#     return where_clause, values
+ 
+ 
+# def get_recent_fy_range(billing_gap_label):
+#     """Return a (start_date, end_date) string tuple for the period we want to check
+#     for invoices. For labels like '1 Year', '2 Years', '3+ Years' we return the range
+#     covering the most recent N financial years (including current FY).
+#     For 'Never' return (None, None) because we handle it separately.
+#     Dates are returned as 'YYYY-MM-DD' strings.
+#     """
+#     today = getdate(nowdate())
+#     today_fy_start = today.year if today.month >= 4 else today.year - 1
+ 
+#     if billing_gap_label == "Never":
+#         return None, None
+ 
+#     # handle labels like '3+ Years'
+#     if billing_gap_label.endswith("+ Years"):
+#         try:
+#             n = int(billing_gap_label.split("+")[0].strip())
+#         except Exception:
+#             n = None
+#         if n is None:
+#             return None, None
+#         # start from fy_start of (today_fy_start - (n-1)) to end of current FY
+#         start_fy = today_fy_start - (n - 1)
+#     else:
+#         # expected format 'X Year' or 'X Years'
+#         try:
+#             n = int(billing_gap_label.split()[0])
+#         except Exception:
+#             return None, None
+#         start_fy = today_fy_start - (n - 1)
+ 
+#     start_date = date(start_fy, 4, 1).isoformat()
+#     end_date = date(today_fy_start + 1, 3, 31).isoformat()
+#     return start_date, end_date
+ 
+# def get_financial_year_gap(last_invoice_date):
+#     if not last_invoice_date:
+#         return None
+ 
+#     invoice_year = getdate(last_invoice_date).year
+#     invoice_month = getdate(last_invoice_date).month
+ 
+#     invoice_fy_start = invoice_year if invoice_month >= 4 else invoice_year - 1
+ 
+#     today = getdate(nowdate())
+#     today_fy_start = today.year if today.month >= 4 else today.year - 1
+ 
+#     return today_fy_start - invoice_fy_start
+ 
+ 
+# def get_conditions(filters):
+#     conditions = []
+#     values = {}
+ 
+#     user = frappe.session.user
+#     selected_sales_persons = filters.get("sales_person")
+ 
+#     if not selected_sales_persons:
+#         allowed_salespersons = get_allowed_sales_persons(user)
+#         if allowed_salespersons is not None:
+#             conditions.append("tst.sales_person IN %(allowed_sales_persons)s")
+#             values["allowed_sales_persons"] = tuple(allowed_salespersons)
+#     else:
+#         conditions.append("tst.sales_person IN %(sales_person)s")
+#         values["sales_person"] = tuple(selected_sales_persons)
+   
+#     if filters.get("territory"):
+#         conditions.append("tc.territory IN %(territory)s")
+#         values["territory"] = tuple(filters.get("territory"))
+ 
+#     if filters.get("industry"):
+#         conditions.append("tc.industry IN %(industry)s")
+#         values["industry"] = tuple(filters.get("industry"))
+ 
+#     if filters.get("created_by"):
+#         conditions.append("tc.owner IN %(created_by)s")
+#         values["created_by"] = tuple(filters.get("created_by"))
+ 
+#     if filters.get("starts_with"):
+#         letters = filters.get("starts_with")
+#         like_conditions = []
+#         for i, letter in enumerate(letters):
+#             key = f"starts_with_{i}"
+#             like_conditions.append(f"tc.name LIKE %({key})s")
+#             values[key] = f"{letter}%"
+#         if like_conditions:
+#             conditions.append("(" + " OR ".join(like_conditions) + ")")
+ 
+#     return " AND ".join(conditions), values
+ 
+ 
+# def get_allowed_sales_persons(user):
+#     if user == "Administrator" or "System Manager" in frappe.get_roles(user):
+#         return None  # Means unrestricted access (show all)
+#     employee = frappe.db.get_value("Employee", {"user_id": user}, "name")
+#     if not employee:
+#         return []
+#     sales_person_doc = frappe.get_all("Sales Person", filters={"employee": employee}, fields=["name", "is_group"])
+#     if not sales_person_doc:
+#         return []
+#     sales_person = sales_person_doc[0]["name"]
+#     is_group = sales_person_doc[0]["is_group"]
+#     if is_group:
+#         children = frappe.get_all("Sales Person", filters={"parent_sales_person": sales_person}, pluck="name")
+#         return [sales_person] + children
+#     else:
+#         return [sales_person]
+ 
+ 
+# def get_columns():
+#     return [
+#         #{"label": "Select", "fieldname": "select_row", "fieldtype": "Check", "width": 60},
+#         {"label": "Customer", "fieldname": "customer", "fieldtype": "Link", "options": "Customer", "width": 300},
+#         {"label": "Employees", "fieldname": "employees", "fieldtype": "Data", "width": 80},
+#         {"label": "Industry", "fieldname": "industry", "fieldtype": "Data", "width": 200},
+#         {"label": "Territory", "fieldname": "territory", "fieldtype": "Data", "width": 200},
+#         {"label": "Sales Person", "fieldname": "sales_person", "fieldtype": "Data", "width": 200},
+#         {"label": "Created By", "fieldname": "owner", "fieldtype": "Data", "width": 200},
+#         {"label": "Billing Gap (Years)", "fieldname": "gap_years", "fieldtype": "Data", "width": 130}
+#     ]
+
+
+
+import frappe
+from frappe.utils import nowdate, getdate
+from datetime import date
+ 
+@frappe.whitelist()
+def get_non_billing_customers(filters=None, page=1, page_size=10):
+    filters = frappe.parse_json(filters) if filters else {}
+    page = int(page)
+    page_size = int(page_size)
+
+    offset = (page - 1) * page_size
+
+    where_clause, values = build_where_clause(filters)
+
+    columns, data = get_customers_data(filters, page_size, offset, where_clause, values)
+
+    total = frappe.db.sql(
+        f"""
+        SELECT COUNT(DISTINCT tc.name) FROM `tabCustomer` tc
+        LEFT JOIN `tabSales Team` tst ON tst.parent = tc.name
+        WHERE {where_clause}
+        """,
+        values,
+    )[0][0]
+
+    return {
+        "columns": columns,
+        "data": data,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
+ 
+ 
+ 
+def get_customers_data(filters, page_size, offset, where_clause=None, values=None):
+    where_clause, values = build_where_clause(filters) if not where_clause else (where_clause, values or {})
+
+    data = frappe.db.sql(
+        f"""
+        SELECT
+            tc.name AS customer,
+            tc.owner AS owner,
+            GROUP_CONCAT(DISTINCT tst.sales_person) AS sales_person,
+            tc.employees,
+            tc.gstin,
+            tc.industry,
+            tc.territory
+        FROM `tabCustomer` tc
+        LEFT JOIN `tabSales Team` tst ON tst.parent = tc.name
+        WHERE {where_clause}
+        GROUP BY tc.name
+        ORDER BY tc.name
+        LIMIT %(limit)s OFFSET %(offset)s
+        """,
+        {**values, "limit": page_size, "offset": offset},
+        as_dict=True,
+    )
+ 
+    # Compute gap_years (years since last invoice) for display *only* (we don't use
+    # last invoice date to filter — filtering was done in SQL via NOT EXISTS above)
+    for row in data:
+        last_invoice = frappe.db.sql(
+            """
+            SELECT MAX(posting_date) FROM `tabSales Invoice`
+            WHERE customer=%s AND docstatus=1
+            """,
+            row.customer
+        )
+        last_invoice_date = last_invoice[0][0] if last_invoice and last_invoice[0][0] else None
+ 
+        if last_invoice_date:
+            row["gap_years"] = get_financial_year_gap(last_invoice_date)
+        else:
+            row["gap_years"] = None
+ 
+    return get_columns(), data
+
+
+def build_where_clause(filters):
+    base_conditions, values = get_conditions(filters)
+    sub_conditions = []
+
+    if filters.get("contacts") == "Customers With Contacts":
+        sub_conditions.append(
+            """
+            EXISTS (
+                SELECT 1 FROM `tabDynamic Link` tdl
+                JOIN tabContact c ON tdl.parent = c.name
+                WHERE tdl.link_doctype = 'Customer' AND tdl.link_name = tc.name
+            )
+            """
+        )
+    elif filters.get("contacts") == "Customers Without Contacts":
+        sub_conditions.append(
+            """
+            NOT EXISTS (
+                SELECT 1 FROM `tabDynamic Link` tdl
+                JOIN tabContact c ON tdl.parent = c.name
+                WHERE tdl.link_doctype = 'Customer' AND tdl.link_name = tc.name
+            )
+            """
+        )
+
+    if filters.get("renewals") == "Customers With Renewals":
+        sub_conditions.append(
+            """
+            EXISTS (
+                SELECT 1 FROM `tabRenewal List` r
+                WHERE r.customer_name = tc.name AND r.status = "Active"
+            )
+            """
+        )
+    elif filters.get("renewals") == "Customers Without Renewals":
+        sub_conditions.append(
+            """
+            NOT EXISTS (
+                SELECT 1 FROM `tabRenewal List` r
+                WHERE r.customer_name = tc.name
+            )
+            """
+        )
+
+    billing_gap = filters.get("billing_gap")
+    if billing_gap:
+        fy_start, fy_end = get_recent_fy_range(billing_gap)
+        if fy_start and fy_end:
+            sub_conditions.append(
+                """
+                NOT EXISTS (
+                    SELECT 1 FROM `tabSales Invoice` si
+                    WHERE si.customer = tc.name
+                    AND si.docstatus = 1
+                    AND si.posting_date BETWEEN %(billing_gap_start)s AND %(billing_gap_end)s
+                )
+                """
+            )
+            values["billing_gap_start"] = fy_start
+            values["billing_gap_end"] = fy_end
+        elif billing_gap == "Never":
+            sub_conditions.append(
+                """
+                NOT EXISTS (
+                    SELECT 1 FROM `tabSales Invoice` si
+                    WHERE si.customer = tc.name
+                    AND si.docstatus = 1
+                )
+                """
+            )
+
+    clause_parts = []
+    if base_conditions:
+        clause_parts.append(base_conditions.strip())
+    if sub_conditions:
+        clause_parts.append(" AND ".join(sub_conditions))
+
+    where_clause = "1=1"
+    if clause_parts:
+        where_clause = where_clause + " AND " + " AND ".join(clause_parts)
+
+    return where_clause, values
+ 
+ 
+def get_recent_fy_range(billing_gap_label):
+    """Return a (start_date, end_date) string tuple for the period we want to check
+    for invoices. For labels like '1 Year', '2 Years', '3+ Years' we return the range
+    covering the most recent N financial years (including current FY).
+    For 'Never' return (None, None) because we handle it separately.
+    Dates are returned as 'YYYY-MM-DD' strings.
+    """
+    today = getdate(nowdate())
+    today_fy_start = today.year if today.month >= 4 else today.year - 1
+ 
+    if billing_gap_label == "Never":
+        return None, None
+ 
+    # handle labels like '3+ Years'
+    if billing_gap_label.endswith("+ Years"):
+        try:
+            n = int(billing_gap_label.split("+")[0].strip())
+        except Exception:
+            n = None
+        if n is None:
+            return None, None
+        # start from fy_start of (today_fy_start - (n-1)) to end of current FY
+        start_fy = today_fy_start - (n - 1)
+    else:
+        # expected format 'X Year' or 'X Years'
+        try:
+            n = int(billing_gap_label.split()[0])
+        except Exception:
+            return None, None
+        start_fy = today_fy_start - (n - 1)
+ 
+    start_date = date(start_fy, 4, 1).isoformat()
+    end_date = date(today_fy_start + 1, 3, 31).isoformat()
+    return start_date, end_date
+ 
+def get_financial_year_gap(last_invoice_date):
+    if not last_invoice_date:
+        return None
+ 
+    invoice_year = getdate(last_invoice_date).year
+    invoice_month = getdate(last_invoice_date).month
+ 
+    invoice_fy_start = invoice_year if invoice_month >= 4 else invoice_year - 1
+ 
+    today = getdate(nowdate())
+    today_fy_start = today.year if today.month >= 4 else today.year - 1
+ 
+    return today_fy_start - invoice_fy_start
+ 
+ 
+def get_conditions(filters):
+    conditions = []
+    values = {}
+ 
+    user = frappe.session.user
+    selected_sales_persons = filters.get("sales_person")
+ 
+    if not selected_sales_persons:
+        allowed_salespersons = get_allowed_sales_persons(user)
+        if allowed_salespersons is not None and len(allowed_salespersons) > 0:
+            conditions.append("tst.sales_person IN %(allowed_sales_persons)s")
+            values["allowed_sales_persons"] = tuple(allowed_salespersons)
+    else:
+        if len(selected_sales_persons) > 0:
+            conditions.append("tst.sales_person IN %(sales_person)s")
+            values["sales_person"] = tuple(selected_sales_persons)
+   
+    if filters.get("territory") and len(filters.get("territory")) > 0:
+        conditions.append("tc.territory IN %(territory)s")
+        values["territory"] = tuple(filters.get("territory"))
+ 
+    if filters.get("industry") and len(filters.get("industry")) > 0:
+        conditions.append("tc.industry IN %(industry)s")
+        values["industry"] = tuple(filters.get("industry"))
+ 
+    if filters.get("created_by") and len(filters.get("created_by")) > 0:
+        conditions.append("tc.owner IN %(created_by)s")
+        values["created_by"] = tuple(filters.get("created_by"))
+ 
+    if filters.get("starts_with"):
+        letters = filters.get("starts_with")
+        like_conditions = []
+        for i, letter in enumerate(letters):
+            key = f"starts_with_{i}"
+            like_conditions.append(f"tc.name LIKE %({key})s")
+            values[key] = f"{letter}%"
+        if like_conditions:
+            conditions.append("(" + " OR ".join(like_conditions) + ")")
+ 
+    return " AND ".join(conditions), values
+ 
+ 
+def get_allowed_sales_persons(user):
+    if user == "Administrator" or "System Manager" in frappe.get_roles(user):
+        return None  # Means unrestricted access (show all)
+    employee = frappe.db.get_value("Employee", {"user_id": user}, "name")
+    if not employee:
+        return []
+    sales_person_doc = frappe.get_all("Sales Person", filters={"employee": employee}, fields=["name", "is_group"])
+    if not sales_person_doc:
+        return []
+    sales_person = sales_person_doc[0]["name"]
+    is_group = sales_person_doc[0]["is_group"]
+    if is_group:
+        children = frappe.get_all("Sales Person", filters={"parent_sales_person": sales_person}, pluck="name")
+        return [sales_person] + children
+    else:
+        return [sales_person]
+ 
+ 
+def get_columns():
+    return [
+        #{"label": "Select", "fieldname": "select_row", "fieldtype": "Check", "width": 60},
+        {"label": "Customer", "fieldname": "customer", "fieldtype": "Link", "options": "Customer", "width": 300},
+        {"label": "Employees", "fieldname": "employees", "fieldtype": "Data", "width": 80},
+        {"label": "Industry", "fieldname": "industry", "fieldtype": "Data", "width": 200},
+        {"label": "Territory", "fieldname": "territory", "fieldtype": "Data", "width": 200},
+        {"label": "Sales Person", "fieldname": "sales_person", "fieldtype": "Data", "width": 200},
+        {"label": "Created By", "fieldname": "owner", "fieldtype": "Data", "width": 200},
+        {"label": "Amount", "fieldname": "amount", "fieldtype": "Currency", "width": 200},
+        {"label": "Billing Gap (Years)", "fieldname": "gap_years", "fieldtype": "Data", "width": 130}
+    ]

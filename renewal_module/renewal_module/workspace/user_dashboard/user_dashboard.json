@@ -33,7 +33,7 @@
  "is_hidden": 0,
  "label": "User Dashboard",
  "links": [],
- "modified": "2024-03-04 13:25:23.945861",
+ "modified": "2025-09-10 12:41:50.466739",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "User Dashboard",
@@ -64,7 +64,7 @@
  "public": 1,
  "quick_lists": [],
  "roles": [],
- "sequence_id": 33.0,
+ "sequence_id": 40.0,
  "shortcuts": [],
  "title": "User Dashboard"
 }

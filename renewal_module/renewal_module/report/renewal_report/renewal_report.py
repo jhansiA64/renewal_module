@@ -418,8 +418,8 @@ class GrossProfitGenerator(object):
 
 		# conditions += " and (is_return = 0 or (is_return=1 and return_against is null))"
 
-		if self.filters.item_group:
-			conditions += " and {0}".format(get_item_group_condition(self.filters.item_group))
+		# if self.filters.item_group:
+		# 	conditions += " and {0}".format(get_item_group_condition(self.filters.item_group))
 
 		if self.filters.get("sales_person"):
 			conditions += "and `tabRenewal List`.sales_user = %(sales_person)s"
@@ -435,7 +435,13 @@ class GrossProfitGenerator(object):
 			conditions += " and `tabRenewal List`.customer_name in %(customer)s"	
 
 		if self.filters.get("item_code"):
-			conditions += " and `tabSales Invoice Item`.item_code = %(item_code)s"
+			conditions += " and tsii.item_code in %(item_code)s"
+
+		if self.filters.get("item_group"):
+			conditions += " and tsii.item_group in %(item_group)s"
+
+		if self.filters.get("brand"):
+			conditions += " and tsii.brand in %(brand)s"		
 
 		
 		self.rl_list = frappe.db.sql(

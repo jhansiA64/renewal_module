@@ -59,11 +59,23 @@ frappe.query_reports["Target Details Based On Invoice"] = {
 			"depends_on": "eval:doc.timespan == 'custom'",
 			"reqd": 1
 		},
+		// {
+		// 	"fieldname": "sales_person",
+		// 	"label": __("Sales Person"),
+		// 	"fieldtype": "Link",
+		// 	"options": "Sales Person"
+		// },
+
 		{
-			"fieldname": "sales_person",
+			"fieldname":"sales_person",
 			"label": __("Sales Person"),
-			"fieldtype": "Link",
-			"options": "Sales Person"
+			"fieldtype": "MultiSelectList",
+	       	"options": "Sales Person",
+                        get_data: function(txt) {
+							
+				return frappe.db.get_link_options('Sales Person', txt);
+			},
+			
 		},
 		{
 			"fieldname": "group_by",

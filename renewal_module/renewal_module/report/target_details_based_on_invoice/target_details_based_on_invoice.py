@@ -21,7 +21,7 @@ from renewal_module.renewal_module.report.sales_data_based_on_invoice.sales_data
 	get_data,
 )
 from renewal_module.renewal_module.report.sales_target_based_on_invoice.sales_target_based_on_invoice import (
-get_target_data,
+get_category_target_data,
 )
 
 
@@ -41,7 +41,7 @@ def execute(filters=None):
 			"sales_person": [
 				"sales_person_or_item",
 				"category",
-				"category_type",
+				# "category_type",
 				"target_uom",
 				"sales_person",
 				"topline_target",
@@ -385,11 +385,12 @@ class GrossProfitGenerator(object):
 		session_user = frappe.session.user
 		self.sales_data = get_data(self.filters)
 		if self.sales_data:
-			frappe.msgprint("sales data found")
+			pass
+			# frappe.msgprint("sales data found")
 		# else:
 			# frappe.msgprint("sales data not found")	
-		self.rows = get_target_data(self.filters, self.sales_data)
-		# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(self.sales_data)))
+		self.rows = get_category_target_data(self.filters, self.sales_data)
+		# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(self.rows)))
 
 		if not self.rows:
 			return self.si_list
