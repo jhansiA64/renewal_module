@@ -586,6 +586,7 @@ def get_enabled_users():
         "User",
         filters={"enabled": 1},
         fields=["name", "full_name", "email"],
-        order_by="full_name asc"
+        order_by="full_name asc",
+        ignore_permissions=True
     )
     return users

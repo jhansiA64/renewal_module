@@ -1,6 +1,7 @@
 import frappe
 import json
 from frappe import _
+from renewal_module.user_permissions import appointment_permission_query
 
 
 @frappe.whitelist()
@@ -143,6 +144,11 @@ def get_list_data(start=0, page_length=20, status=None, id=None, filters=None):
                     conditions.append(f"(`{field}` IS NOT NULL AND `{field}` != '')")
                 elif val_lower in ("not set", "null"):
                     conditions.append(f"(`{field}` IS NULL OR `{field}` = '')")
+
+    # ---- Permission constraint ----
+    # permission_clause = appointment_permission_query(frappe.session.user)
+    # if permission_clause:
+    #     conditions.append(f"({permission_clause})")
 
     # ---- Build final query ----
     where_clause = " AND ".join(conditions)

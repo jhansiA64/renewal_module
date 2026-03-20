@@ -490,11 +490,73 @@ def opportunity_permission_query(user):
     return "(" + " OR ".join(conditions) + ")" if conditions else "1=0"
 
 
+def _get_appointment_custom_participants(doc):
+    users = set()
+    for row in getattr(doc, "custom_participants", []) or []:
+        if not row:
+            continue
+
+        if isinstance(row, dict):
+            user_id = row.get("user") or row.get("participant_name")
+        else:
+            user_id = getattr(row, "user", None) or getattr(row, "participant_name", None)
+
+        if user_id:
+            users.add(user_id)
+    return users
 
 
+def _has_docshare_for_appointment(doc, user):
+    if not doc or not getattr(doc, "name", None):
+        return False
+
+    return frappe.db.exists(
+        "DocShare",
+        {
+            "user": user,
+            "share_doctype": "Appointment",
+            "share_name": doc.name,
+        },
+    )
 
 
+def appointment_has_permission(doc, ptype, user):
+    if not user:
+        user = frappe.session.user
 
+    if "System Manager" in frappe.get_roles(user):
+        return True
+
+    if doc.owner == user:
+        return True
+
+    if _is_owner_or_assigned(doc, user):
+        return True
+
+    if user in _get_appointment_custom_participants(doc):
+        return True
+
+    if _has_docshare_for_appointment(doc, user):
+        return True
+
+    return False
+
+
+def appointment_permission_query(user):
+    if "System Manager" in frappe.get_roles(user):
+        return ""
+
+    user_esc = frappe.db.escape(user).strip("'")
+
+    conditions = [
+        f"`tabAppointment`.owner = {frappe.db.escape(user)}",
+        _assigned_to_exists_sql("Appointment", user),
+        f"`tabAppointment`._assign LIKE '%\"{user_esc}\"%'",
+        f"EXISTS (SELECT 1 FROM `tabMultiselect Users` mu WHERE mu.parenttype = 'Appointment' AND mu.parent = `tabAppointment`.name AND mu.parentfield = 'custom_participants' AND mu.user = {frappe.db.escape(user)})",
+        f"EXISTS (SELECT 1 FROM `tabDocShare` ds WHERE ds.user = {frappe.db.escape(user)} AND ds.share_doctype = 'Appointment' AND ds.share_name = `tabAppointment`.name)",
+    ]
+
+    return "(" + " OR ".join(conditions) + ")" if conditions else "1=0"
 
 
 def quotation_has_permission(doc, ptype, user):

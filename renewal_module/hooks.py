@@ -204,6 +204,7 @@ has_permission = {
     "Quotation": "renewal_module.user_permissions.quotation_has_permission",
     "Customer Order Form": "renewal_module.user_permissions.cof_has_permission",
     "ORC List": "renewal_module.user_permissions.orc_has_permission",
+    "Appointment": "renewal_module.user_permissions.appointment_has_permission",
     "Contact": "renewal_module.user_permissions.contact_has_permission",
     "Address": "renewal_module.user_permissions.address_has_permission",
 }
@@ -214,6 +215,7 @@ permission_query_conditions = {
     "Quotation": "renewal_module.user_permissions.quotation_permission_query",
     "Customer Order Form": "renewal_module.user_permissions.cof_permission_query",
     "ORC List": "renewal_module.user_permissions.orc_permission_query",
+    "Appointment": "renewal_module.user_permissions.appointment_permission_query",
     "Contact": "renewal_module.user_permissions.contact_permission_query",
     "Address": "renewal_module.user_permissions.address_permission_query",
 }

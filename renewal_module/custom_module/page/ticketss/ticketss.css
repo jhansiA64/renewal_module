@@ -1956,6 +1956,10 @@ body[data-route^="ticketss"] {
     background-color: #28a745;
 }
 
+.ticket-details-view .clearfix {
+    display:none;
+}
+
 .ticket-details-view .sla-circle.danger {
     background-color: #dc3545;
 }

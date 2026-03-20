@@ -162,15 +162,28 @@ class customcalendarpage {
 			.replace(/\"/g, "&quot;")
 			.replace(/'/g, "&#039;");
 
+		const sourceLabelMap = {
+			holiday: "Holiday",
+			appointment: "Appointment",
+			call_list: "Call",
+			task: "Task"
+		};
+
 		list.innerHTML = sorted.map((ev) => {
 			const route = ev.extendedProps?.route || "";
+			const source = ev.extendedProps?.source || "";
+			const sourceLabel = sourceLabelMap[source] || "Event";
 			const dt = new Date(ev.start);
-			const when = isNaN(dt.getTime())
-				? ""
-				: dt.toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false });
+			const hasTime = !!(ev.start && String(ev.start).includes("T"));
+			const when = isNaN(dt.getTime()) ? "" : (hasTime
+				? dt.toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false })
+				: dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }));
 			return `
 				<div class="external-event dynamic-calendar-event" data-route="${esc(route)}" title="${esc(ev.title)}">
-					<div class="fw-semibold">${esc(ev.title)}</div>
+					<div class="calendar-upcoming-topline">
+						<span class="calendar-source-badge src-${esc(source)}">${esc(sourceLabel)}</span>
+					</div>
+					<div class="fw-semibold calendar-upcoming-title">${esc(ev.title)}</div>
 					<div class="text-muted small">${esc(when)}</div>
 				</div>
 			`;
@@ -253,7 +266,36 @@ class customcalendarpage {
 			initialView: "dayGridMonth",
 			editable: false,
 			droppable: false,
+			nowIndicator: true,
+			expandRows: true,
 			height: "auto",
+			dayMaxEvents: true,
+			dayMaxEventRows: 3,
+			moreLinkClick: "popover",
+			slotEventOverlap: false,
+			eventMaxStack: 2,
+			eventTimeFormat: {
+				hour: "2-digit",
+				minute: "2-digit",
+				hour12: false,
+				meridiem: false
+			},
+			views: {
+				dayGridMonth: {
+					dayMaxEvents: 3,
+					dayMaxEventRows: 3,
+				},
+				timeGridWeek: {
+					slotMinTime: "07:00:00",
+					slotMaxTime: "21:00:00",
+					dayMaxEvents: 4,
+				},
+				timeGridDay: {
+					slotMinTime: "07:00:00",
+					slotMaxTime: "21:00:00",
+					dayMaxEvents: 5,
+				}
+			},
 			headerToolbar: {
 				left: "prev,next today",
 				center: "title",
@@ -267,6 +309,10 @@ class customcalendarpage {
 				if (props.route) {
 					window.location.href = props.route;
 				}
+			},
+			eventDidMount: (info) => {
+				const startText = info.event.start ? frappe.datetime.str_to_user(info.event.start) : "";
+				info.el.setAttribute("title", `${info.event.title}${startText ? `\n${startText}` : ""}`);
 			}
 		});
 

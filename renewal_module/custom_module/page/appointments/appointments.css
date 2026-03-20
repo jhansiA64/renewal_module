@@ -2250,6 +2250,10 @@ body[data-route^="appointments"] {
     justify-content: flex-end;
 }
 
+[data-route^="appointments"] .panel__form .clearfix {
+    display:none !important;
+}
+
 [data-route^="appointments"] .btn-comment {
     font-size: 13px;
     padding: 8px 16px;

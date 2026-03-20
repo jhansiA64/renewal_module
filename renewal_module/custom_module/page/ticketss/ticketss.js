@@ -5909,43 +5909,55 @@ class ticketspage {
 				silent: true
 			});
 			const default_customer = issue.message?.customer || "";
-			const d = frappe.prompt([
-				{ label: "Subject", fieldname: "subject", fieldtype: "Data", reqd: true },
-				{ fieldtype: "Section Break" },
+			let selected_customer = default_customer;
+			let callNameControl = null;
 
-				{ label: "Related To", fieldname: "related_to", fieldtype: "Select", options: ["Customer", "Contact"], default: "Customer" },
-				{ fieldtype: "Column Break" },
+			const d = new frappe.ui.Dialog({
+				title: "New Call List",
+				fields: [
+					{ label: "Subject", fieldname: "subject", fieldtype: "Data", reqd: true },
+					{ fieldtype: "Section Break" },
+					{ label: "Related To", fieldname: "related_to", fieldtype: "Select", options: ["Customer", "Contact"], default: "Customer" },
+					{ fieldtype: "Column Break" },
+					{ label: "Full Name", fieldname: "name1_html", fieldtype: "HTML" },
+					{ fieldtype: "Section Break" },
+					{ label: "Start Date", fieldname: "start_date", fieldtype: "Date" },
+					{ fieldtype: "Column Break" },
+					{ label: "Start Time", fieldname: "start_timing", fieldtype: "Time" },
+					{ fieldtype: "Section Break" },
+					{ label: "End Date", fieldname: "end_date", fieldtype: "Date" },
+					{ fieldtype: "Column Break" },
+					{ label: "End Time", fieldname: "end_timing", fieldtype: "Time" },
+					{ fieldtype: "Section Break" },
+					{ label: "Status", fieldname: "status", fieldtype: "Select", options: ["Held", "Scheduled", "Cancelled"], default: "Held" },
+					{ fieldtype: "Section Break" },
+					{ label: "Description", fieldname: "description", fieldtype: "Small Text" }
+				],
+				primary_action_label: "Create",
+				primary_action: async () => {
+					const v = d.get_values();
+					if (!v) return;
 
-				{ label: "Full Name", fieldname: "name1", fieldtype: "Dynamic Link", options: "related_to", reqd: true, default: default_customer },
+					const related_to = v.related_to || "Customer";
+					const name1 = callNameControl?.get_value?.() || "";
+					const customer_name = related_to === "Customer" ? name1 : (selected_customer || default_customer || "");
 
-				{ fieldtype: "Section Break" },
-				{ label: "Start Date", fieldname: "start_date", fieldtype: "Date" },
-				{ fieldtype: "Column Break" },
-				{ label: "Start Time", fieldname: "start_timing", fieldtype: "Time" },
+					if (!v.subject || !name1) {
+						frappe.msgprint(__((related_to === "Contact")
+							? "Please select a contact."
+							: "Please select a customer."));
+						return;
+					}
 
-				{ fieldtype: "Section Break" },
-				{ label: "End Date", fieldname: "end_date", fieldtype: "Date" },
-				{ fieldtype: "Column Break" },
-				{ label: "End Time", fieldname: "end_timing", fieldtype: "Time" },
-
-				{ fieldtype: "Section Break" },
-				{ label: "Status", fieldname: "status", fieldtype: "Select", options: ["Held", "Scheduled", "Cancelled"], default: "Held" },
-
-				{ fieldtype: "Section Break" },
-				{ label: "Description", fieldname: "description", fieldtype: "Small Text" }
-			],
-				async function (v) {
-
-					// Find sales person for customer
-					const sales_person = (v.related_to === "Customer" && v.name1)
-						? await getCustomerSalesPerson(v.name1)
+					const sales_person = (related_to === "Customer" && customer_name)
+						? await getCustomerSalesPerson(customer_name)
 						: "";
 
 					const doc = {
 						doctype: "Call List",
 						subject: v.subject,
-						name1: v.name1,
-						related_to: v.related_to,
+						name1,
+						related_to,
 						status: v.status,
 						description: v.description,
 						reference: "Issue",
@@ -5958,7 +5970,6 @@ class ticketspage {
 						custom_sales_person: sales_person
 					};
 
-					// Insert call
 					const insert = await frappe.call({
 						method: "frappe.client.insert",
 						args: { doc }
@@ -5966,7 +5977,6 @@ class ticketspage {
 
 					const callName = insert.message.name;
 
-					// Add Sales Team child row
 					const userInfo = await frappe.call({
 						method: "frappe.client.get_value",
 						args: {
@@ -5993,49 +6003,73 @@ class ticketspage {
 						}
 					});
 
+					d.hide();
 					frappe.show_alert("Call created", "green");
 					self.bindcallcardsEvents(issue_name);
-				},
-				"New Call List");
-
-			setTimeout(() => {
-				const callDefaults = getActivityDateTimeDefaults("Calls");
-				d?.set_value?.("start_date", callDefaults.start_date);
-				d?.set_value?.("start_timing", callDefaults.start_time);
-				d?.set_value?.("end_date", callDefaults.end_date);
-				d?.set_value?.("end_timing", callDefaults.end_time);
-			}, 50);
-
-			setTimeout(() => {
-				const related_to_field = d.fields_dict.related_to.$input;
-				const name1_field = d.fields_dict.name1;
-
-				related_to_field.on("change", function () {
-					const val = related_to_field.val();
-
-					if (val === "Customer") {
-						// Set issue customer
-						name1_field.set_value(default_customer);
-					} else {
-						// Clear for Contact
-						name1_field.set_value("");
-					}
-				});
-			}, 300);
-			setTimeout(() => {
-				try {
-					if (d && d.get_close_btn) {
-						d.get_close_btn().off("click").on("click", () => d.hide());
-					} else {
-						$(".modal:visible .btn-modal-close").off("click").on("click", () => {
-							$(".modal:visible").modal("hide");
-							$(".modal-backdrop").remove();
-						});
-					}
-				} catch (err) {
-					console.error("Failed to bind dialog close:", err);
 				}
-			}, 50);
+			});
+
+			const renderDialogNameControl = () => {
+				const related_to = d.get_value("related_to") || "Customer";
+				const $wrapper = $(d.fields_dict.name1_html.wrapper);
+				$wrapper.empty();
+
+				callNameControl = frappe.ui.form.make_control({
+					parent: d.fields_dict.name1_html.wrapper,
+					df: {
+						fieldtype: "Link",
+						fieldname: "name1",
+						label: "",
+						options: related_to,
+						reqd: true,
+						onchange: () => {
+							if (related_to === "Customer") {
+								selected_customer = callNameControl?.get_value?.() || selected_customer;
+							}
+						}
+					},
+					render_input: true,
+				});
+
+				if (callNameControl?.refresh) {
+					callNameControl.refresh();
+				}
+
+				if (related_to === "Contact") {
+					callNameControl.get_query = function () {
+						return {
+							query: "frappe.contacts.doctype.contact.contact.contact_query",
+							filters: {
+								link_doctype: "Customer",
+								link_name: selected_customer || default_customer || ""
+							}
+						};
+					};
+					callNameControl.set_value("");
+				} else {
+					callNameControl.set_value(selected_customer || default_customer || "");
+				}
+			};
+
+			d.show();
+
+			const callDefaults = getActivityDateTimeDefaults("Calls");
+			d.set_value("start_date", callDefaults.start_date);
+			d.set_value("start_timing", callDefaults.start_time);
+			d.set_value("end_date", callDefaults.end_date);
+			d.set_value("end_timing", callDefaults.end_time);
+
+			d.fields_dict.related_to.$input.on("change", function () {
+				if ((d.get_value("related_to") || "Customer") === "Contact") {
+					const current_customer = callNameControl?.get_value?.();
+					if (current_customer) {
+						selected_customer = current_customer;
+					}
+				}
+				renderDialogNameControl();
+			});
+
+			renderDialogNameControl();
 
 		}
 
@@ -6427,6 +6461,8 @@ class ticketspage {
 		let defaultCustomer = "";
 		let panelTaskAssignControl = null;
 		let panelAppointmentParticipantsControl = null;
+		let panelCallNameControl = null;
+		let panelCallSelectedCustomer = "";
 
 		const callApi = (options) => new Promise((resolve, reject) => {
 			frappe.call({
@@ -6554,6 +6590,26 @@ class ticketspage {
 			return control;
 		};
 
+		const renderLinkControl = (hostSelector, df) => {
+			const $host = $(hostSelector);
+			if (!$host.length || !frappe?.ui?.form?.make_control) {
+				return null;
+			}
+
+			$host.empty();
+			const control = frappe.ui.form.make_control({
+				parent: $host,
+				df,
+				render_input: true,
+			});
+
+			if (control?.refresh) {
+				control.refresh();
+			}
+
+			return control;
+		};
+
 		const hidePanelForm = () => {
 			$("#ticket-panel-form-section").addClass("d-none");
 			$("#ticket-panel-cards-section").removeClass("d-none");
@@ -6561,6 +6617,8 @@ class ticketspage {
 			$(".ticket-detail-panel .panel__header").show();
 			panelTaskAssignControl = null;
 			panelAppointmentParticipantsControl = null;
+			panelCallNameControl = null;
+			panelCallSelectedCustomer = "";
 		};
 
 		const showPanelForm = async (type) => {
@@ -6598,11 +6656,12 @@ class ticketspage {
 			if (type === "Calls") {
 				$("#ticket-panel-form-title").text("New Call");
 				$("#ticket-panel-save-btn").text("Save Call");
+				panelCallSelectedCustomer = defaultCustomer || "";
 				$("#ticket-panel-form-body").html(`
 					<div class="ticket-form-grid">
 						<div class="mb-2"><label class="form-label">Subject *</label><input type="text" id="ticket-call-subject" class="form-control" /></div>
 						<div class="mb-2"><label class="form-label">Related To</label><select id="ticket-call-related-to" class="form-control"><option value="Customer" selected>Customer</option><option value="Contact">Contact</option></select></div>
-						<div class="mb-2"><label class="form-label">Full Name *</label><input type="text" id="ticket-call-name1" class="form-control" value="${esc(defaultCustomer)}" /></div>
+						<div class="mb-2"><label class="form-label">Full Name *</label><div id="ticket-call-name1-control"></div></div>
 						<div class="row g-2">
 							<div class="col-6 mb-2"><label class="form-label">Start Date</label><input type="date" id="ticket-call-start-date" class="form-control" /></div>
 							<div class="col-6 mb-2"><label class="form-label">Start Time</label><input type="time" id="ticket-call-start-time" class="form-control" /></div>
@@ -6622,16 +6681,64 @@ class ticketspage {
 				$("#ticket-call-end-date").val(callDefaults.end_date);
 				$("#ticket-call-end-time").val(callDefaults.end_time);
 
+				const renderPanelCallNameControl = () => {
+					const relatedTo = ($("#ticket-call-related-to").val() || "Customer").toString();
+					panelCallNameControl = renderLinkControl("#ticket-call-name1-control", {
+						fieldtype: "Link",
+						fieldname: "ticket_call_name1",
+						label: "",
+						options: relatedTo,
+						reqd: true,
+						onchange: () => {
+							if (relatedTo === "Customer") {
+								panelCallSelectedCustomer = panelCallNameControl?.get_value?.() || panelCallSelectedCustomer;
+							}
+						}
+					});
+
+					// Keep Link autocomplete, but hide and block open-document arrow for this panel field.
+					const $callNameHost = $("#ticket-call-name1-control");
+					$callNameHost.find(".link-btn")
+						.addClass("d-none")
+						.attr("tabindex", "-1")
+						.attr("aria-hidden", "true");
+					$callNameHost
+						.off("click.ticket_call_name_link", ".link-btn")
+						.on("click.ticket_call_name_link", ".link-btn", function (e) {
+							e.preventDefault();
+							e.stopPropagation();
+							return false;
+						});
+
+					if (relatedTo === "Contact") {
+						panelCallNameControl.get_query = function () {
+							return {
+								query: "frappe.contacts.doctype.contact.contact.contact_query",
+								filters: {
+									link_doctype: "Customer",
+									link_name: panelCallSelectedCustomer || defaultCustomer || "",
+								}
+							};
+						};
+						panelCallNameControl?.set_value?.("");
+					} else {
+						panelCallNameControl?.set_value?.(panelCallSelectedCustomer || defaultCustomer || "");
+					}
+				};
+
 				$("#ticket-call-related-to")
 					.off("change.ticketPanelCallRelated")
 					.on("change.ticketPanelCallRelated", function () {
-						const relatedTo = ($(this).val() || "").toString();
-						if (relatedTo === "Customer") {
-							$("#ticket-call-name1").val(defaultCustomer || "");
-						} else {
-							$("#ticket-call-name1").val("");
+						if (($(this).val() || "Customer").toString() === "Contact") {
+							const currentCustomer = panelCallNameControl?.get_value?.();
+							if (currentCustomer) {
+								panelCallSelectedCustomer = currentCustomer;
+							}
 						}
+						renderPanelCallNameControl();
 					});
+
+				renderPanelCallNameControl();
 				return;
 			}
 
@@ -6641,8 +6748,8 @@ class ticketspage {
 				$("#ticket-panel-form-body").html(`
 					<div class="ticket-form-grid">
 						<div class="mb-2"><label class="form-label">Appointment With</label><select id="ticket-appointment-with" class="form-control"><option value="Customer" selected>Customer</option><option value="Lead">Lead</option></select></div>
-						<div class="mb-2"><label class="form-label">Subject *</label><input type="text" id="ticket-appointment-subject" class="form-control" /></div>
 						<div class="mb-2"><label class="form-label">Party</label><input type="text" id="ticket-appointment-party" class="form-control" value="${esc(defaultCustomer)}" /></div>
+						<div class="mb-2"><label class="form-label">Subject *</label><input type="text" id="ticket-appointment-subject" class="form-control" /></div>
 						<div class="mb-2"><label class="form-label">Name *</label><input type="text" id="ticket-appointment-name" class="form-control" /></div>
 						<div class="mb-2"><label class="form-label">Email *</label><input type="email" id="ticket-appointment-email" class="form-control" /></div>
 						<div class="mb-2"><label class="form-label">Phone Number</label><input type="text" id="ticket-appointment-phone" class="form-control" /></div>
@@ -6750,7 +6857,8 @@ class ticketspage {
 				if (activeType === 'Calls') {
 					const subject = ($('#ticket-call-subject').val() || '').trim();
 					const related_to = ($('#ticket-call-related-to').val() || 'Customer').trim();
-					const name1 = ($('#ticket-call-name1').val() || '').trim();
+					const name1 = panelCallNameControl?.get_value?.() || '';
+					const customer_name = related_to === 'Customer' ? name1 : (panelCallSelectedCustomer || defaultCustomer || '');
 					const start_date = ($('#ticket-call-start-date').val() || '').trim();
 					const start_timing = ($('#ticket-call-start-time').val() || '').trim();
 					const end_date = ($('#ticket-call-end-date').val() || '').trim();
@@ -6764,11 +6872,11 @@ class ticketspage {
 					}
 
 					let custom_sales_person = '';
-					if (related_to === 'Customer' && name1) {
+					if (related_to === 'Customer' && customer_name) {
 						try {
 							const salesRes = await callApi({
 								method: 'renewal_module.custom_module.page.ticketss.ticketss.get_customer_sales_person',
-								args: { customer: name1 },
+								args: { customer: customer_name },
 								silent: true,
 							});
 							custom_sales_person = salesRes?.message || '';

@@ -320,13 +320,26 @@ def today_appointments(offset=0, limit=5):
     query = f"""
         SELECT a.*
         FROM `tabAppointment` a
-        LEFT JOIN `tabMultiselect Users` mu
-            ON mu.parent = a.name
-            AND mu.parentfield = 'custom_participants'
         WHERE
             a.custom_start_date = %(today)s
             AND a.status != 'Completed'
-            AND mu.user = %(user)s
+            AND (
+                a.owner = %(user)s
+                OR a._assign LIKE %(assign_like)s
+                OR EXISTS (
+                    SELECT 1 FROM `tabMultiselect Users` mu
+                    WHERE mu.parenttype = 'Appointment'
+                    AND mu.parent = a.name
+                    AND mu.parentfield = 'custom_participants'
+                    AND mu.user = %(user)s
+                )
+                OR EXISTS (
+                    SELECT 1 FROM `tabDocShare` ds
+                    WHERE ds.user = %(user)s
+                    AND ds.share_doctype = 'Appointment'
+                    AND ds.share_name = a.name
+                )
+            )
         ORDER BY a.custom_start_time ASC
         {limit_clause}
     """
@@ -334,24 +347,39 @@ def today_appointments(offset=0, limit=5):
     data = frappe.db.sql(query, {
         "today": today,
         "user": user,
+        "assign_like": f'%"{user}"%'
     }, as_dict=True)
 
     # Count total
     count_query = """
         SELECT COUNT(*)
         FROM `tabAppointment` a
-        LEFT JOIN `tabMultiselect Users` mu
-            ON mu.parent = a.name
-            AND mu.parentfield = 'custom_participants'
         WHERE
             a.custom_start_date = %(today)s
             AND a.status != 'Completed'
-            AND mu.user = %(user)s
+            AND (
+                a.owner = %(user)s
+                OR a._assign LIKE %(assign_like)s
+                OR EXISTS (
+                    SELECT 1 FROM `tabMultiselect Users` mu
+                    WHERE mu.parenttype = 'Appointment'
+                    AND mu.parent = a.name
+                    AND mu.parentfield = 'custom_participants'
+                    AND mu.user = %(user)s
+                )
+                OR EXISTS (
+                    SELECT 1 FROM `tabDocShare` ds
+                    WHERE ds.user = %(user)s
+                    AND ds.share_doctype = 'Appointment'
+                    AND ds.share_name = a.name
+                )
+            )
     """
 
     total_count = frappe.db.sql(count_query, {
         "today": today,
-        "user": user
+        "user": user,
+        "assign_like": f'%"{user}"%'
     })[0][0]
 
     return {

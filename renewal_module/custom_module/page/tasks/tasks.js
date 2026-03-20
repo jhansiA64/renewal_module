@@ -44,6 +44,9 @@ class taskspage {
 		this._tasks_enabled_users_cache = null;
 		this._task_panel_assign_control = null;
 		this._task_panel_apt_participants_control = null;
+		this._task_panel_call_name_control = null;
+		this._task_panel_call_selected_customer = "";
+		this._current_task_details = null;
 	}
 
 	render() {
@@ -980,6 +983,7 @@ class taskspage {
 				args: { task_name: task_id }
 			});
 			if (r.message) {
+				this._current_task_details = r.message;
 				this.render_details_view(r.message, canEdit);
 				this.bindTaskDetailEvents(r.message, canEdit);
 			}
@@ -1189,6 +1193,8 @@ class taskspage {
 		$(wrapper).find(".tasks-detail-panel .panel__header").show();
 		this._task_panel_assign_control = null;
 		this._task_panel_apt_participants_control = null;
+		this._task_panel_call_name_control = null;
+		this._task_panel_call_selected_customer = "";
 	}
 
 	async showTaskPanelForm(type, taskName, wrapper) {
@@ -1265,6 +1271,48 @@ class taskspage {
 		}
 
 		if (type === "Calls") {
+			const activeTaskDoc = this._current_task_details && this._current_task_details.name === taskName
+				? this._current_task_details
+				: {};
+
+			const refDoctype = String(activeTaskDoc.reference || activeTaskDoc.reference_type || "").trim();
+			const refName = String(activeTaskDoc.reference_to || activeTaskDoc.reference_name || "").trim();
+
+			let defaultRelatedTo = "Customer";
+			let defaultCustomer = "";
+			let defaultContact = "";
+
+			if (refDoctype === "Contact" && refName) {
+				defaultRelatedTo = "Contact";
+				defaultContact = refName;
+			} else if (refDoctype === "Customer" && refName) {
+				defaultRelatedTo = "Customer";
+				defaultCustomer = refName;
+			}
+
+			this._task_panel_call_selected_customer = defaultCustomer;
+
+			const getContactLinkedCustomer = async (contactName) => {
+				const name = String(contactName || "").trim();
+				if (!name) return "";
+				try {
+					const res = await frappe.call({
+						method: "frappe.client.get",
+						args: { doctype: "Contact", name },
+						silent: true,
+					});
+					const links = res?.message?.links || [];
+					const customerLink = links.find((l) => l.link_doctype === "Customer" && l.link_name);
+					return customerLink?.link_name || "";
+				} catch (e) {
+					return "";
+				}
+			};
+
+			if (!this._task_panel_call_selected_customer && defaultContact) {
+				this._task_panel_call_selected_customer = await getContactLinkedCustomer(defaultContact);
+			}
+
 			$(wrapper).find("#tasks-panel-form-title").text("New Call");
 			$(wrapper).find("#tasks-panel-save-btn").text("Save Call");
 			$(wrapper).find("#tasks-panel-form-body").html(`
@@ -1280,12 +1328,69 @@ class taskspage {
 						<div class="col-6 mb-2"><label class="form-label">End Time</label><input type="time" id="task-call-end-time" class="form-control" /></div>
 					</div>
 					<div class="row g-2">
-						<div class="col-6 mb-2"><label class="form-label">Related To</label><select id="task-call-related-to" class="form-control"><option value="Customer" selected>Customer</option><option value="Contact">Contact</option></select></div>
-						<div class="col-6 mb-2"><label class="form-label">Full Name *</label><input type="text" id="task-call-name1" class="form-control" /></div>
+						<div class="col-6 mb-2"><label class="form-label">Related To</label><select id="task-call-related-to" class="form-control"><option value="Customer">Customer</option><option value="Contact">Contact</option></select></div>
+						<div class="col-6 mb-2"><label class="form-label">Full Name *</label><div id="task-call-name1-control"></div></div>
 					</div>
 					<div class="mb-2"><label class="form-label">Description</label><textarea id="task-call-description" class="form-control" rows="3"></textarea></div>
 				</div>
 			`);
+
+			$(wrapper).find("#task-call-related-to").val(defaultRelatedTo);
+
+			const renderCallNameControl = async () => {
+				const relatedTo = String($(wrapper).find("#task-call-related-to").val() || "Customer").trim();
+				const $host = $(wrapper).find("#task-call-name1-control");
+				$host.empty();
+
+				this._task_panel_call_name_control = frappe.ui.form.make_control({
+					parent: $host[0],
+					df: {
+						fieldtype: "Link",
+						fieldname: "task_call_name1",
+						label: "",
+						options: relatedTo,
+						reqd: 1,
+						onchange: () => {
+							if (relatedTo === "Customer") {
+								this._task_panel_call_selected_customer = this._task_panel_call_name_control?.get_value?.() || this._task_panel_call_selected_customer;
+							}
+						},
+					},
+					render_input: true,
+				});
+
+				this._task_panel_call_name_control.refresh();
+				// Keep the Link field search/autocomplete, but disable the open-document arrow button.
+				$host.find(".link-btn")
+					.addClass("d-none")
+					.attr("tabindex", "-1")
+					.attr("aria-hidden", "true");
+				$host.off("click.task_call_name_link", ".link-btn").on("click.task_call_name_link", ".link-btn", function (e) {
+					e.preventDefault();
+					e.stopPropagation();
+					return false;
+				});
+
+				if (relatedTo === "Contact") {
+					this._task_panel_call_name_control.get_query = () => {
+						const selectedCustomer = String(this._task_panel_call_selected_customer || "").trim();
+						if (!selectedCustomer) {
+							return {};
+						}
+						return {
+							query: "frappe.contacts.doctype.contact.contact.contact_query",
+							filters: {
+								link_doctype: "Customer",
+								link_name: selectedCustomer,
+							},
+						};
+					};
+					this._task_panel_call_name_control.set_value(defaultContact || "");
+				} else {
+					this._task_panel_call_name_control.set_value(this._task_panel_call_selected_customer || defaultCustomer || "");
+				}
+				
+			};
 
 			const pad2 = (value) => String(value).padStart(2, "0");
 			const toInputDate = (dt) => `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())}`;
@@ -1298,6 +1403,17 @@ class taskspage {
 			$(wrapper).find("#task-call-start-time").val(toInputTime(now));
 			$(wrapper).find("#task-call-end-date").val(toInputDate(end));
 			$(wrapper).find("#task-call-end-time").val(toInputTime(end));
+
+			$(wrapper).find("#task-call-related-to").off("change").on("change", async () => {
+				const relatedTo = String($(wrapper).find("#task-call-related-to").val() || "Customer").trim();
+				if (relatedTo === "Contact") {
+					const currentCustomer = this._task_panel_call_name_control?.get_value?.();
+					if (currentCustomer) this._task_panel_call_selected_customer = currentCustomer;
+				}
+				await renderCallNameControl();
+			});
+
+			await renderCallNameControl();
 			return;
 		}
 
@@ -1404,7 +1520,14 @@ class taskspage {
 
 			if (type === "Calls") {
 				const subject = ($(wrapper).find("#task-call-subject").val() || "").trim();
-				const name1 = ($(wrapper).find("#task-call-name1").val() || "").trim();
+				const relatedTo = ($(wrapper).find("#task-call-related-to").val() || "Customer").trim();
+				let name1 = this._task_panel_call_name_control?.get_value?.() || "";
+				if (!name1) {
+					name1 = ($(wrapper).find("#task-call-name1").val() || "").trim();
+				}
+				if (!name1 && relatedTo === "Customer") {
+					name1 = String(this._task_panel_call_selected_customer || "").trim();
+				}
 				if (!subject || !name1) {
 					frappe.msgprint(__("Please fill required call fields"));
 					return;
@@ -1416,7 +1539,7 @@ class taskspage {
 							doctype: "Call List",
 							subject,
 							name1,
-							related_to: $(wrapper).find("#task-call-related-to").val() || "Customer",
+							related_to: relatedTo,
 							status: $(wrapper).find("#task-call-status").val() || "Held",
 							description: $(wrapper).find("#task-call-description").val() || "",
 							start_date: $(wrapper).find("#task-call-start-date").val() || "",

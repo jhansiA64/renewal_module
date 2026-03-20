@@ -1,0 +1,2218 @@
+/* ================== PREMIUM JOB POSTING DESIGN ================== */
+
+[data-route^="job-recruitment"] :root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --primary-light: #ebf8ff;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --dark: #0f172a;
+    --light: #f8fafc;
+    --border: #e2e8f0;
+    --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.12);
+}
+
+[data-route^="job-recruitment"] * {
+    box-sizing: border-box;
+}
+
+/* Disable transitions/animations for this page (removes all transitions) */
+[data-route^="job-recruitment"] *,
+[data-route^="job-recruitment"] *::before,
+[data-route^="job-recruitment"] *::after {
+    transition: none !important;
+    -webkit-transition: none !important;
+    -moz-transition: none !important;
+    -o-transition: none !important;
+    animation: none !important;
+    -webkit-animation: none !important;
+}
+
+/* Force primary text color to black for clarity */
+[data-route^="job-recruitment"] .job-recruitment-container {
+    color: #000000;
+}
+
+[data-route^="job-recruitment"] .jp-title,
+[data-route^="job-recruitment"] .card-header h3,
+[data-route^="job-recruitment"] .req-item .title,
+[data-route^="job-recruitment"] .req-item .muted,
+[data-route^="job-recruitment"] .candidate-title,
+[data-route^="job-recruitment"] .candidate-meta,
+[data-route^="job-recruitment"] .nav-tab,
+[data-route^="job-recruitment"] .nav-label,
+[data-route^="job-recruitment"] .jp-empty-state p,
+[data-route^="job-recruitment"] .metric-label,
+[data-route^="job-recruitment"] .metric-value {
+    color: #000000 !important;
+}
+
+[data-route^="job-recruitment"] .sticky-top {
+    display: none !important;
+}
+
+[data-route^="job-recruitment"] .page-head {
+    display: none !important;
+}
+
+[data-route^="job-recruitment"] body[data-route^="job-recruitment"] {
+    font-size: 12px !important;
+}
+
+[data-route^="job-recruitment"] .job-recruitment-container,
+[data-route^="job-recruitment"] .job-recruitment-container * {
+    font-size: 12px !important;
+}
+
+[data-route^="job-recruitment"] h1,
+[data-route^="job-recruitment"] h2,
+[data-route^="job-recruitment"] h3,
+[data-route^="job-recruitment"] h4,
+[data-route^="job-recruitment"] h5,
+[data-route^="job-recruitment"] h6,
+[data-route^="job-recruitment"] .jp-title,
+[data-route^="job-recruitment"] .card-header h3,
+[data-route^="job-recruitment"] .req-item .title,
+[data-route^="job-recruitment"] .candidate-title,
+[data-route^="job-recruitment"] .metric-value,
+[data-route^="job-recruitment"] .metric-label {
+    font-size: 14px !important;
+}
+
+
+[data-route^="job-recruitment"] .layout-main {
+    padding: 0 !important;
+    background: #ffffff;
+    margin: 0px !important;
+    width: 100%;
+}
+
+
+[data-route^="job-recruitment"] .layout-main-section-wrapper {
+    padding: 0 !important;
+}
+
+[data-route^="job-recruitment"] .container,
+[data-route^="job-recruitment"] .container-fluid,
+[data-route^="job-recruitment"] .container-lg,
+[data-route^="job-recruitment"] .container-md,
+[data-route^="job-recruitment"] .container-sm,
+[data-route^="job-recruitment"] .container-xl,
+[data-route^="job-recruitment"] .container-xxl {
+    padding: 0px !important;
+    max-width: 100% !important;
+}
+
+[data-route^="job-recruitment"] .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+[data-route^="job-recruitment"] [class^="col"],
+[data-route^="job-recruitment"] [class*=" col"] {
+    padding: 4px;
+}
+
+[data-route^="job-recruitment"] .job-recruitment-container {
+    /* background: linear-gradient(135deg, #f0f9ff 0%, #f5f3ff 100%); */
+    min-height: 100vh;
+    padding: 3px 6px;
+    /* font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; */
+    color: var(--dark);
+}
+
+/* ============ NAVIGATION BAR ============ */
+[data-route^="job-recruitment"] .jp-nav-bar {
+    background: linear-gradient(180deg, rgba(247, 247, 245, 0.98) 0%, rgba(255, 255, 255, 0.96) 100%);
+    border: none;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(12px);
+    padding: 8px 0;
+}
+
+/* Design 2: Pill Buttons */
+[data-route^="job-recruitment"] .jp-nav-bar.design-2 {
+    background: linear-gradient(180deg, rgba(247, 247, 245, 0.98) 0%, rgba(255, 255, 255, 0.96) 100%) !important;
+    padding: 12px 0 !important;
+}
+
+[data-route^="job-recruitment"] .design-2 .nav-container {
+    gap: 10px;
+    border-radius: 0;
+}
+
+[data-route^="job-recruitment"] .nav-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 12px;
+}
+
+[data-route^="job-recruitment"] .nav-tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    cursor: pointer;
+    font-weight: 600;
+    color: #64748b;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: relative;
+    box-shadow: none;
+    flex: 0 1 auto;
+    overflow: visible;
+}
+
+/* Design 2: Pill Buttons Style */
+[data-route^="job-recruitment"] .design-2 .nav-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 8px 16px;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 13px;
+    box-shadow: none;
+    flex: 0 1 auto;
+    position: relative;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    overflow: visible;
+}
+
+[data-route^="job-recruitment"] .design-2 .nav-tab:hover {
+    background: transparent;
+    color: #2563eb;
+    transform: none;
+    box-shadow: none;
+    border-bottom: 3px solid rgba(37, 99, 235, 0.4);
+}
+
+[data-route^="job-recruitment"] .design-2 .nav-tab.active {
+    background: transparent;
+    color: #0f172a;
+    font-weight: 700;
+    box-shadow: none;
+    transform: none;
+    border-bottom: 3px solid #2563eb;
+}
+
+/* Spacer for create button */
+[data-route^="job-recruitment"] .nav-spacer {
+    flex: 1;
+    display: flex;
+}
+
+/* Create Job Button */
+[data-route^="job-recruitment"] .btn-create-job {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 700;
+    color: #ffffff;
+    background: #0f172a;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 13px;
+    text-transform: none;
+    letter-spacing: 0;
+    position: relative;
+    overflow: visible;
+}
+
+[data-route^="job-recruitment"] .btn-create-job:hover {
+    background: #1e293b;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.25);
+    transform: translateY(-2px);
+}
+
+[data-route^="job-recruitment"] .btn-create-job:active {
+    transform: translateY(0);
+}
+
+/* Add Candidate Button - Same style but can have different color if needed */
+[data-route^="job-recruitment"] .btn-add-candidate {
+    background: #10b981;
+}
+
+[data-route^="job-recruitment"] .btn-add-candidate:hover {
+    background: #059669;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+    transform: translateY(-2px);
+}
+
+[data-route^="job-recruitment"] .nav-tab::before {
+    display: none;
+}
+
+[data-route^="job-recruitment"] .nav-tab::after {
+    display: none;
+}
+
+[data-route^="job-recruitment"] .nav-tab:hover {
+    color: #2563eb;
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+}
+
+[data-route^="job-recruitment"] .nav-tab:hover::before {
+    display: none;
+}
+
+[data-route^="job-recruitment"] .nav-tab:hover::after {
+    display: none;
+}
+
+[data-route^="job-recruitment"] .nav-tab.active {
+    color: #0f172a !important;
+    border-color: transparent !important;
+    border-bottom: 3px solid #2563eb !important;
+    background: transparent !important;
+    font-weight: 700;
+    box-shadow: none !important;
+    transform: none;
+    border-radius: 0;
+    position: relative;
+    z-index: 10;
+}
+
+[data-route^="job-recruitment"] .nav-tab.active::before {
+    display: none;
+}
+
+[data-route^="job-recruitment"] .nav-tab.active::after {
+    display: none;
+}
+
+[data-route^="job-recruitment"] .nav-icon {
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-style: normal;
+    transform: none;
+    letter-spacing: 0;
+    line-height: 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+
+[data-route^="job-recruitment"] .nav-label {
+    display: inline;
+    white-space: nowrap;
+}
+
+/* ============ SCREEN MANAGEMENT ============ */
+[data-route^="job-recruitment"] .jp-screen {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+[data-route^="job-recruitment"] .jp-screen.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+[data-route^="job-recruitment"] .candidate-screen-content {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 28px;
+}
+
+@media (max-width: 1024px) {
+    [data-route^="job-recruitment"] .nav-label {
+        display: inline;
+    }
+
+    [data-route^="job-recruitment"] .nav-tab {
+        padding: 10px 18px;
+        font-size: 12px;
+        gap: 6px;
+    }
+
+    [data-route^="job-recruitment"] .nav-container {
+        gap: 12px;
+    }
+
+    [data-route^="job-recruitment"] .nav-icon {
+        font-size: 14px;
+    }
+}
+
+/* ============ HEADER ============ */
+[data-route^="job-recruitment"] .jp-header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    border-radius: 18px;
+    padding: 24px 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
+    color: white;
+    overflow: hidden;
+    position: relative;
+}
+
+[data-route^="job-recruitment"] .jp-header::before {
+    content: '';
+    position: absolute;
+    top: -40%;
+    right: -5%;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+    border-radius: 50%;
+}
+
+[data-route^="job-recruitment"] .jp-header::after {
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    left: -10%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.1) 0%, transparent 70%);
+    border-radius: 50%;
+}
+
+[data-route^="job-recruitment"] .jp-header-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+}
+
+[data-route^="job-recruitment"] .jp-title {
+    font-size: 18px;
+    font-weight: 900;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.8px;
+}
+
+[data-route^="job-recruitment"] .jp-subtitle {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.75);
+    margin: 0;
+    font-weight: 500;
+}
+
+/* ============ MAIN GRID ============ */
+[data-route^="job-recruitment"] .jp-grid {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 8px;
+    align-items: start;
+    margin-top: 6px;
+}
+
+/* Candidate detail panel (right side) */
+[data-route^="job-recruitment"] #candidate-detail-panel {
+    position: sticky;
+    top: 88px;
+    height: calc(100vh - 140px);
+    overflow-y: auto;
+}
+
+[data-route^="job-recruitment"] #candidate-detail-panel .card-body {
+    padding: 16px;
+}
+
+/* ===== Simplify candidate area: remove heavy premium visuals ===== */
+[data-route^="job-recruitment"] .candidate-screen-content .jp-card-premium {
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border: 1px solid #e6eef6 !important;
+}
+
+[data-route^="job-recruitment"] .candidate-screen-content .jp-card-premium::before {
+    display: none !important;
+}
+
+[data-route^="job-recruitment"] .candidate-screen-content .card-header {
+    background: transparent !important;
+    padding: 8px 10px !important;
+    border-bottom: 1px solid #b0b0b0 !important;
+}
+
+[data-route^="job-recruitment"] .candidate-screen-content .card-body {
+    padding: 8px 10px !important;
+}
+
+[data-route^="job-recruitment"] .candidate-list,
+[data-route^="job-recruitment"] #candidate-detail-body {
+    background: transparent;
+}
+
+[data-route^="job-recruitment"] .candidate-card {
+    padding: 6px !important;
+    border-radius: 6px !important;
+    margin-bottom: 6px;
+}
+
+[data-route^="job-recruitment"] .candidate-card .candidate-head {
+    align-items: center;
+}
+
+[data-route^="job-recruitment"] .jp-toolbar .toolbar-group .input {
+    height: 38px;
+}
+
+[data-route^="job-recruitment"] .btn.btn-lg {
+    padding: 6px 10px;
+}
+
+/* make candidate detail panel visually match candidate cards */
+[data-route^="job-recruitment"] #candidate-detail-panel {
+    border-radius: 6px;
+}
+
+[data-route^="job-recruitment"] #candidate-detail-panel .card-header {
+    padding: 8px 10px;
+}
+
+[data-route^="job-recruitment"] #candidate-detail-panel .card-body {
+    padding: 8px;
+}
+
+[data-route^="job-recruitment"] .jp-side {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+[data-route^="job-recruitment"] .jp-main {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* ============ CARDS ============ */
+[data-route^="job-recruitment"] .card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+
+[data-route^="job-recruitment"] .jp-card-premium {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+    position: relative;
+}
+
+[data-route^="job-recruitment"] .jp-card-premium::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 0;
+    background: none;
+    opacity: 0;
+    display: none;
+}
+
+[data-route^="job-recruitment"] .card-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid #b0b0b0;
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+[data-route^="job-recruitment"] .jp-header-sidebar,
+[data-route^="job-recruitment"] .jp-header-detail,
+[data-route^="job-recruitment"] .jp-header-pipeline,
+[data-route^="job-recruitment"] .jp-header-candidates {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+[data-route^="job-recruitment"] .card-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--dark);
+}
+
+[data-route^="job-recruitment"] .card-header p {
+    margin: 4px 0 0 0;
+    font-size: 14px;
+    color: #000000;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+[data-route^="job-recruitment"] .header-icon {
+    font-size: 20px;
+    display: inline-block;
+}
+
+[data-route^="job-recruitment"] .card-body {
+    padding: 16px;
+}
+
+/* ============ INPUTS ============ */
+[data-route^="job-recruitment"] .input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    background: white;
+    font-size: 14px;
+    /* font-family: inherit; */
+    transition: all 0.2s;
+    margin-bottom: 10px;
+}
+
+[data-route^="job-recruitment"] .input:hover {
+    border-color: #999999;
+    background: #f8fafc;
+}
+
+[data-route^="job-recruitment"] .input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+[data-route^="job-recruitment"] .jp-input-search {
+    margin-bottom: 16px;
+}
+
+[data-route^="job-recruitment"] .jp-input-select {
+    padding: 8px 10px;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%232563eb' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 24px;
+}
+
+[data-route^="job-recruitment"] .jp-narrow {
+    max-width: 100px;
+}
+
+/* ============ BUTTONS ============ */
+[data-route^="job-recruitment"] .btn {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+[data-route^="job-recruitment"] .btn-primary {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+}
+
+[data-route^="job-recruitment"] .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4);
+}
+
+[data-route^="job-recruitment"] .btn-success {
+    background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+[data-route^="job-recruitment"] .btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+}
+
+[data-route^="job-recruitment"] .btn-danger {
+    background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
+[data-route^="job-recruitment"] .btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+}
+
+[data-route^="job-recruitment"] .btn-secondary {
+    background: #f1f5f9;
+    color: #000000;
+    border: 1px solid #e2e8f0;
+}
+
+[data-route^="job-recruitment"] .btn-secondary:hover {
+    background: #e2e8f0;
+    border-color: #999999;
+}
+
+[data-route^="job-recruitment"] .btn-lg {
+    padding: 12px 24px;
+    font-size: 14px;
+}
+
+[data-route^="job-recruitment"] .btn-sm {
+    padding: 8px 12px;
+    font-size: 12px;
+}
+
+[data-route^="job-recruitment"] .btn:active {
+    transform: translateY(0);
+    opacity: 0.95;
+}
+
+/* Make the primary create button appear black by default (when not clicked) */
+[data-route^="job-recruitment"] #req-new {
+    background: transparent !important;
+    color: #000000 !important;
+    border: 1px solid #2563eb !important;
+    box-shadow: none !important;
+    font-weight: 700;
+}
+
+[data-route^="job-recruitment"] #req-new:hover {
+    color: #2563eb !important;
+    border-color: #93c5fd !important;
+    background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%) !important;
+    transform: translateY(-3px) !important;
+}
+
+/* ============ FILTER BUTTONS ============ */
+[data-route^="job-recruitment"] .filter-btn {
+    padding: 8px 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 20px;
+    background: white;
+    color: #000000;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+[data-route^="job-recruitment"] .filter-btn:hover {
+    border-color: #2563eb;
+    color: #2563eb;
+    background: #f0f9ff;
+}
+
+[data-route^="job-recruitment"] .filter-btn.active {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: white;
+    border-color: #2563eb;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+/* ============ REQUIREMENT LIST ============ */
+[data-route^="job-recruitment"] .req-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+}
+
+[data-route^="job-recruitment"] .req-list::-webkit-scrollbar {
+    display: none;
+}
+
+[data-route^="job-recruitment"] .req-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(14, 30, 50, 0.04);
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+    cursor: pointer;
+    transition: transform 0.14s ease, box-shadow 0.14s ease;
+    box-shadow: 0 8px 20px rgba(14, 30, 50, 0.05);
+    margin-bottom: 6px;
+    position: relative;
+}
+
+[data-route^="job-recruitment"] .req-item:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 18px 40px rgba(14, 30, 50, 0.12);
+    border-color: rgba(37, 99, 235, 0.12);
+}
+
+[data-route^="job-recruitment"] .req-item.active {
+    background: linear-gradient(180deg, #eff6ff 0%, #f6fbff 100%);
+    border-color: rgba(37, 99, 235, 0.18);
+    box-shadow: 0 22px 44px rgba(14, 30, 50, 0.14);
+}
+
+[data-route^="job-recruitment"] .req-item::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    bottom: 10px;
+    width: 4px;
+    border-radius: 6px;
+    background: linear-gradient(180deg, var(--primary), var(--primary-dark));
+}
+
+[data-route^="job-recruitment"] .req-left {
+    margin-left: 20px;
+    /* space for accent */
+    flex: 1 1 auto;
+}
+
+[data-route^="job-recruitment"] .req-title {
+    font-weight: 800;
+    color: var(--dark);
+    font-size: 15px;
+}
+
+[data-route^="job-recruitment"] .req-meta {
+    color: #6b7280;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+/* ============ EMPTY STATE ============ */
+[data-route^="job-recruitment"] .jp-empty-state {
+    text-align: center;
+    padding: 40px 28px;
+    color: #000000;
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    border-radius: 12px;
+    border: 2px dashed #e2e8f0;
+    margin: 14px 0;
+}
+
+[data-route^="job-recruitment"] .empty-icon {
+    font-size: 20px;
+    margin-bottom: 16px;
+    opacity: 0.6;
+    display: inline-block;
+    transition: transform 0.3s ease;
+}
+
+[data-route^="job-recruitment"] .jp-empty-state:hover .empty-icon {
+    transform: scale(1.1);
+}
+
+[data-route^="job-recruitment"] .jp-empty-state p {
+    margin: 0;
+    font-size: 14px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+[data-route^="job-recruitment"] .jp-empty-state strong {
+    display: block;
+    margin: 12px 0 8px 0;
+    color: #1e293b;
+    font-size: 15px;
+}
+
+/* ============ TOOLBAR ============ */
+[data-route^="job-recruitment"] .toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 12px;
+    padding: 14px;
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    border-radius: 12px;
+    border: 1.5px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s ease;
+}
+
+[data-route^="job-recruitment"] .toolbar:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+[data-route^="job-recruitment"] .toolbar-group {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+[data-route^="job-recruitment"] .filter-sidebar-label {
+    font-weight: 700;
+    color: #1f2937;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 4px;
+}
+
+[data-route^="job-recruitment"] .spacer {
+    flex: 1;
+}
+
+/* ============ CANDIDATE LIST ============ */
+[data-route^="job-recruitment"] .candidate-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+[data-route^="job-recruitment"] .candidate-card {
+    padding: 8px;
+    border-radius: 10px;
+    border: 1px solid #eef2f7;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Make the + Add Candidate button use black text by default and a soft outline */
+[data-route^="job-recruitment"] #add-candidate {
+    color: #000000 !important;
+    background: transparent !important;
+    border: 1px solid #2563eb !important;
+    box-shadow: none !important;
+    font-weight: 700;
+}
+
+[data-route^="job-recruitment"] #add-candidate:hover {
+    background: rgba(16, 185, 129, 0.06) !important;
+    color: #000000 !important;
+    transform: translateY(-2px);
+}
+
+[data-route^="job-recruitment"] .candidate-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 8px;
+    bottom: 8px;
+    width: 5px;
+    background: var(--primary);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+/*[data-route^="job-recruitment"] .candidate-card:hover {
+  border-color: #eef2f7;
+  box-shadow: 0 14px 36px rgba(14,30,50,0.08);
+  transform: translateY(-4px);
+}*/
+
+
+[data-route^="job-recruitment"] .candidate-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+[data-route^="job-recruitment"] .candidate-title {
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--dark);
+}
+
+[data-route^="job-recruitment"] .candidate-meta {
+    color: #000000;
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+[data-route^="job-recruitment"] .candidate-actions-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+
+/* ============ STATUS BADGES ============ */
+[data-route^="job-recruitment"] .status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    transition: all 0.2s ease;
+    transform: scale(1);
+    border-left: 4px solid transparent;
+}
+
+[data-route^="job-recruitment"] .status-badge:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+[data-route^="job-recruitment"] .status-applied {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #1e40af;
+    /* border-left-color: #2563eb; */
+}
+
+[data-route^="job-recruitment"] .status-shortlist {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #92400e;
+    border-left-color: #f59e0b;
+}
+
+[data-route^="job-recruitment"] .status-selected {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    color: #15803d;
+    border-left-color: #10b981;
+}
+
+[data-route^="job-recruitment"] .status-offered {
+    background: linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%);
+    color: #4c1d95;
+    border-left-color: #8b5cf6;
+}
+
+[data-route^="job-recruitment"] .status-rejected {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #991b1b;
+    border-left-color: #ef4444;
+}
+
+/* ============ BADGES ============ */
+[data-route^="job-recruitment"] .badge {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--primary-light) 0%, #bfdbfe 100%);
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.3px;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+[data-route^="job-recruitment"] .badge:hover {
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    transform: translateY(-1px);
+}
+
+[data-route^="job-recruitment"] .jp-badge-count {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #92400e;
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+[data-route^="job-recruitment"] .skill-tag {
+    display: inline-block;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    color: #0369a1;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 3px 3px 3px 0;
+    border: 1px solid rgba(3, 105, 161, 0.2);
+    transition: all 0.2s ease;
+}
+
+[data-route^="job-recruitment"] .skill-tag:hover {
+    background: linear-gradient(135deg, #e0f2fe 0%, #cffafe 100%);
+    border-color: rgba(3, 105, 161, 0.4);
+    box-shadow: 0 4px 12px rgba(3, 105, 161, 0.15);
+    transform: translateY(-1px);
+}
+
+/* ============ PAGINATION ============ */
+[data-route^="job-recruitment"] .pagination {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 24px;
+    flex-wrap: wrap;
+}
+
+[data-route^="job-recruitment"] .page-btn {
+    padding: 8px 12px;
+    border: 2px solid #e2e8f0;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    color: #000000;
+}
+
+[data-route^="job-recruitment"] .page-btn:hover:not(:disabled) {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+[data-route^="job-recruitment"] .page-btn.active {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: black;
+    border-color: transparent;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+    transform: translateY(-2px);
+}
+
+[data-route^="job-recruitment"] .page-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* ============ MODAL ============ */
+/* Modal styles are defined at bottom of file for proper z-index layering */
+
+[data-route^="job-recruitment"] .modal-panel input,
+[data-route^="job-recruitment"] .modal-panel textarea {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 13px;
+    /* font-family: inherit; */
+    margin-bottom: 14px;
+    background: white;
+    transition: all 0.2s;
+    box-sizing: border-box;
+}
+
+[data-route^="job-recruitment"] .modal-panel input:focus,
+[data-route^="job-recruitment"] .modal-panel textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    background: #f8fbff;
+}
+
+/* ============ UTILITIES ============ */
+[data-route^="job-recruitment"] .mt-24 {
+    margin-top: 0px;
+}
+
+[data-route^="job-recruitment"] .spacer {
+    flex: 1;
+}
+
+/* ============ ANIMATIONS ============ */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1024px) {
+    [data-route^="job-recruitment"] .jp-grid {
+        grid-template-columns: 1fr;
+    }
+
+    [data-route^="job-recruitment"] .jp-header-content {
+        flex-direction: column;
+        gap: 20px;
+        text-align: left;
+    }
+
+    [data-route^="job-recruitment"] .toolbar {
+        flex-direction: column;
+    }
+
+    [data-route^="job-recruitment"] .toolbar-group {
+        flex-direction: column;
+    }
+
+    [data-route^="job-recruitment"] .input,
+    [data-route^="job-recruitment"] .jp-input-select {
+        width: 100%;
+        max-width: none;
+    }
+}
+
+@media (max-width: 768px) {
+    [data-route^="job-recruitment"] .job-recruitment-container {
+        padding: 5px 10px;
+    }
+
+    [data-route^="job-recruitment"] .jp-header {
+        padding: 14px;
+    }
+
+    [data-route^="job-recruitment"] .jp-title {
+        font-size: 18px;
+    }
+
+    [data-route^="job-recruitment"] .btn-lg {
+        padding: 8px 12px;
+    }
+
+    [data-route^="job-recruitment"] .card-header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+
+    [data-route^="job-recruitment"] .candidate-head {
+        flex-direction: column;
+    }
+
+    [data-route^="job-recruitment"] .jp-nav-bar {
+        /* margin: -16px -16px 24px -16px; */
+        padding: 16px 16px 0 16px;
+    }
+
+    [data-route^="job-recruitment"] .nav-container {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    [data-route^="job-recruitment"] .nav-tab {
+        width: 100%;
+        padding: 12px 18px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 1200px) and (min-width: 769px) {
+    [data-route^="job-recruitment"] .nav-tab {
+        padding: 10px 18px;
+        font-size: 12px;
+        gap: 7px;
+    }
+
+    [data-route^="job-recruitment"] .nav-container {
+        gap: 10px;
+    }
+}
+
+@media (max-width: 900px) {
+    [data-route^="job-recruitment"] .jp-grid {
+        grid-template-columns: 1fr;
+    }
+
+    [data-route^="job-recruitment"] .nav-container {
+        gap: 10px;
+    }
+
+    [data-route^="job-recruitment"] .nav-tab {
+        padding: 10px 16px;
+        font-size: 12px;
+    }
+}
+
+/* Modal styles */
+/* ===== PREMIUM MODAL STYLES ===== */
+[data-route^="job-recruitment"] .modal-root {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    pointer-events: auto;
+    visibility: visible;
+}
+
+[data-route^="job-recruitment"] .modal-root[style*="display:none"] {
+    pointer-events: none;
+}
+
+[data-route^="job-recruitment"] .modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.35);
+    z-index: 3199;
+    backdrop-filter: blur(4px);
+    animation: backdropFade 0.25s ease;
+}
+
+[data-route^="job-recruitment"] .modal-panel {
+    position: relative;
+    z-index: 3220;
+    width: 600px;
+    max-width: calc(100% - 32px);
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.15),
+        0 1px 3px rgba(0, 0, 0, 0.1);
+    animation: modalSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-height: 85vh;
+    overflow-y: auto;
+    border: 1px solid rgba(15, 23, 42, 0.05);
+}
+
+[data-route^="job-recruitment"] .modal-panel .input,
+[data-route^="job-recruitment"] .modal-panel select,
+[data-route^="job-recruitment"] .modal-panel textarea {
+    margin-bottom: 10px;
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 13px;
+    /* font-family: inherit; */
+    background: #f9fafb;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    color: #0f172a;
+}
+
+[data-route^="job-recruitment"] .modal-panel select {
+    appearance: none;
+    background-image: url('data:image/svg+xml;utf8,<svg fill="%232563eb" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 20px;
+    padding-right: 24px;
+}
+
+[data-route^="job-recruitment"] .modal-panel .input:focus,
+[data-route^="job-recruitment"] .modal-panel select:focus,
+[data-route^="job-recruitment"] .modal-panel textarea:focus {
+    outline: none;
+    border-color: #2563eb;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.05);
+}
+
+[data-route^="job-recruitment"] .modal-panel textarea {
+    resize: vertical;
+    min-height: 120px;
+    /* font-family: inherit; */
+}
+
+@keyframes backdropFade {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(12px) scale(0.98);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+/* ===== PROFESSIONAL MODAL FORM STYLING ===== */
+[data-route^="job-recruitment"] .modal-panel {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25), 0 2px 8px rgba(0, 0, 0, 0.1);
+    animation: modalSlideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-route^="job-recruitment"] .modal-panel>div:first-child {
+    font-size: 20px;
+    font-weight: 900;
+    color: #0f172a;
+    margin-bottom: 28px;
+    letter-spacing: -0.5px;
+}
+
+[data-route^="job-recruitment"] .modal-panel label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 700;
+    color: #374151;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+}
+
+[data-route^="job-recruitment"] .modal-panel .section-label {
+    font-weight: 800;
+    color: #1f2937;
+    font-size: 14px;
+    margin-top: 24px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #b0b0b0;
+}
+
+[data-route^="job-recruitment"] .modal-panel .btn {
+    border-radius: 10px;
+    padding: 12px 22px;
+    font-weight: 700;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+[data-route^="job-recruitment"] .modal-panel .btn-primary {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: white;
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.25);
+}
+
+[data-route^="job-recruitment"] .modal-panel .btn-primary:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    box-shadow: 0 10px 30px rgba(37, 99, 235, 0.35);
+    transform: translateY(-3px);
+}
+
+[data-route^="job-recruitment"] .modal-panel .btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+    border: 2px solid #d1d5db;
+    font-weight: 600;
+}
+
+[data-route^="job-recruitment"] .modal-panel .btn-secondary:hover {
+    background: #e5e7eb;
+    border-color: #9ca3af;
+    transform: translateY(-1px);
+}
+
+[data-route^="job-recruitment"] .modal-panel .skill-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    color: #0c4a6e;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid #bfdbfe;
+    margin-right: 6px;
+    margin-bottom: 6px;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
+}
+
+[data-route^="job-recruitment"] .modal-panel .skill-chip:hover {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border-color: #7dd3fc;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    transform: translateY(-2px);
+}
+
+[data-route^="job-recruitment"] .modal-panel .chip-del {
+    background: transparent;
+    border: none;
+    color: #0c4a6e;
+    cursor: pointer;
+    font-weight: 700;
+    padding: 0 2px;
+    line-height: 1;
+}
+
+[data-route^="job-recruitment"] .modal-panel .chip-del:hover {
+    color: #dc2626;
+}
+
+[data-route^="job-recruitment"] .modal-panel #r-skills-tags {
+    min-height: 40px;
+    padding: 8px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+[data-route^="job-recruitment"] .modal-panel #r-skill-input {
+    margin-top: 0 !important;
+}
+
+[data-route^="job-recruitment"] .modal-panel .row-flex {
+    display: flex;
+    gap: 10px;
+}
+
+[data-route^="job-recruitment"] .modal-panel .row-flex .input {
+    flex: 1;
+}
+
+/* Checkbox for candidate selection */
+[data-route^="job-recruitment"] .candidate-card .select-checkbox {
+    margin-right: 8px;
+    transform: translateY(-2px);
+}
+
+[data-route^="job-recruitment"] .candidate-head {
+    gap: 12px;
+}
+
+/* Enhanced hover effects for better UX */
+[data-route^="job-recruitment"] .btn:hover {
+    opacity: 0.98;
+    transform: translateY(-2px);
+    transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+
+
+/*[data-route^="job-recruitment"] .candidate-card:hover {
+  border-left-color: #eef2f7;
+  box-shadow: 0 12px 32px rgba(37, 99, 235, 0.18);
+  transform: translateX(4px);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}*/
+
+[data-route^="job-recruitment"] .req-item:hover {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    /* border-left: 3px solid var(--primary); */
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.15);
+    transform: translateX(6px);
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Pipeline card interactions */
+[data-route^="job-recruitment"] .pipeline-card {
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+[data-route^="job-recruitment"] .pipeline-seg {
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+[data-route^="job-recruitment"] .pipeline-seg:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: -32px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.9);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Input field enhancements */
+[data-route^="job-recruitment"] .input {
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+[data-route^="job-recruitment"] .input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12), inset 0 2px 4px rgba(37, 99, 235, 0.04);
+    background: linear-gradient(135deg, #f8fbff 0%, #ffffff 100%);
+}
+
+[data-route^="job-recruitment"] .input:hover:not(:focus) {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+}
+
+[data-route^="job-recruitment"] .jp-input-search {
+    margin-bottom: 12px;
+}
+
+/* Status badge animations */
+[data-route^="job-recruitment"] .status-badge {
+    animation: badge-gentle-pulse 3s ease-in-out infinite;
+}
+
+@keyframes badge-gentle-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.85;
+        transform: scale(1.02);
+    }
+}
+
+/* Subtle pulse for premium cards */
+[data-route^="job-recruitment"] .card {
+    animation: subtle-float 4s ease-in-out infinite;
+    position: relative;
+}
+
+@keyframes subtle-float {
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-3px);
+    }
+}
+
+/* Smooth page transitions */
+[data-route^="job-recruitment"] .candidate-list,
+[data-route^="job-recruitment"] .req-list,
+[data-route^="job-recruitment"] #selected-requirement,
+[data-route^="job-recruitment"] #pipeline-snapshot {
+    animation: fadeInSmooth 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes fadeInSmooth {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Enhanced form styling */
+[data-route^="job-recruitment"] .modal-panel label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 13px;
+    text-transform: capitalize;
+}
+
+[data-route^="job-recruitment"] .modal-panel .input:invalid {
+    border-color: #ef4444;
+    background: rgba(254, 242, 242, 0.5);
+}
+
+[data-route^="job-recruitment"] .modal-panel>div:first-child {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 14px;
+    letter-spacing: -0.5px;
+}
+
+[data-route^="job-recruitment"] .modal-panel>div:last-child {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #b0b0b0;
+}
+
+/* ===== PREMIUM CORPORATE THEME ===== */
+[data-route^="job-recruitment"] .job-recruitment-container {
+    /* background: #ffffff; */
+    padding: 5px 10px;
+    color: #1f2937;
+}
+
+[data-route^="job-recruitment"] .jp-header {
+    /* background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); */
+    padding: 16px 24px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.2), 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+[data-route^="job-recruitment"] .jp-header .jp-header-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+[data-route^="job-recruitment"] .jp-title {
+    color: #ffffff !important;
+    font-size: 18px;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+
+[data-route^="job-recruitment"] .jp-subtitle {
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+[data-route^="job-recruitment"] .nav-tab {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #64748b;
+    background: white;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-route^="job-recruitment"] .nav-tab:hover {
+    color: #2563eb;
+    border-color: #93c5fd;
+    background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%);
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.15);
+    transform: translateY(-3px);
+}
+
+[data-route^="job-recruitment"] .nav-tab.active {
+    color: #2563eb;
+    border-color: #2563eb;
+    background: white;
+    font-weight: 700;
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.18);
+    border-width: 2px;
+}
+
+[data-route^="job-recruitment"] .card.jp-card {
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.12);
+    border: 1px solid #e0eef9;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+}
+
+[data-route^="job-recruitment"] .card-header {
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    border-bottom: 1px solid #e2e8f0;
+    border-radius: 12px 12px 0 0;
+}
+
+[data-route^="job-recruitment"] .card-body {
+    padding: 16px;
+}
+
+[data-route^="job-recruitment"] .jp-grid {
+    grid-gap: 16px;
+}
+
+[data-route^="job-recruitment"] .jp-side {
+    padding: 0;
+}
+
+[data-route^="job-recruitment"] .jp-main {
+    padding: 0;
+}
+
+[data-route^="job-recruitment"] .btn.btn-lg {
+    padding: 10px 16px;
+    font-size: 14px;
+    border-radius: 8px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+[data-route^="job-recruitment"] .btn {
+    border-radius: 8px;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-route^="job-recruitment"] .jp-empty-state {
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 40px 28px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+[data-route^="job-recruitment"] .jp-empty-state p,
+[data-route^="job-recruitment"] .jp-empty-state div {
+    color: #64748b;
+}
+
+[data-route^="job-recruitment"] .candidate-card,
+[data-route^="job-recruitment"] .req-item {
+    border: 1px solid #e0eef9;
+    border-radius: 10px;
+    padding: 12px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.08);
+    position: relative;
+}
+
+[data-route^="job-recruitment"] .candidate-card .candidate-head {
+    gap: 12px;
+}
+
+/* Premium modal buttons */
+[data-route^="job-recruitment"] .modal-panel .btn {
+    border-radius: 8px;
+    padding: 5px 5px;
+    font-weight: 600;
+    font-size: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-route^="job-recruitment"] .modal-panel .btn-primary {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: white;
+    border: none;
+}
+
+[data-route^="job-recruitment"] .modal-panel .btn-primary:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+    transform: translateY(-2px);
+}
+
+[data-route^="job-recruitment"] .modal-panel .btn-secondary {
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    color: #1f2937;
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+[data-route^="job-recruitment"] .modal-panel .btn-secondary:hover {
+    background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-1px);
+}
+
+[data-route^="job-recruitment"] .modal-panel .skill-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    color: #0c4a6e;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid #bfdbfe;
+    margin-right: 8px;
+    margin-bottom: 8px;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+}
+
+[data-route^="job-recruitment"] .modal-panel .skill-chip:hover {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border-color: #7dd3fc;
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.18);
+    transform: translateY(-1px);
+}
+
+[data-route^="job-recruitment"] .modal-panel .chip-del {
+    background: transparent;
+    border: none;
+    color: #0c4a6e;
+    cursor: pointer;
+    font-weight: 700;
+    padding: 0 2px;
+}
+
+/* Detail panel action buttons */
+[data-route^="job-recruitment"] #candidate-detail-body .btn {
+    padding: 6px 10px;
+    font-size: 12px;
+    margin: 0;
+    min-width: auto;
+    max-width: auto;
+}
+
+@media (max-width: 900px) {
+    [data-route^="job-recruitment"] .jp-header {
+        padding: 16px 20px;
+    }
+
+    [data-route^="job-recruitment"] .jp-title {
+        font-size: 20px;
+    }
+
+    [data-route^="job-recruitment"] .job-recruitment-container {
+        padding: 5px 10px;
+    }
+}
+
+@media (max-width: 900px) {
+    [data-route^="job-recruitment"] .jp-header {
+        padding: 10px;
+    }
+
+    [data-route^="job-recruitment"] .jp-title {
+        font-size: 16px;
+    }
+}
+
+/* Accessibility improvements */
+[data-route^="job-recruitment"] .btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+[data-route^="job-recruitment"] .input:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* Premium scrollbar styling */
+[data-route^="job-recruitment"] ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+[data-route^="job-recruitment"] ::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+[data-route^="job-recruitment"] ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--primary), var(--success));
+    border-radius: 4px;
+}
+
+[data-route^="job-recruitment"] ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--primary-dark), var(--success));
+}
+
+/* ===== PREMIUM CARD STYLING (Enhanced) ===== */
+/* Premium cards with proper shadows and effects */
+[data-route^="job-recruitment"] .jp-card-premium,
+[data-route^="job-recruitment"] .card.jp-card,
+[data-route^="job-recruitment"] .card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e0eef9;
+    animation: subtle-float 4s ease-in-out infinite;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-route^="job-recruitment"] .candidate-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.1), 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid #e0eef9;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Premium top gradient bars */
+[data-route^="job-recruitment"] .jp-card-premium::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 0;
+    background: none;
+    opacity: 0;
+    display: none;
+}
+
+[data-route^="job-recruitment"] .candidate-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background: linear-gradient(180deg, #2563eb, #1d4ed8);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    border-radius: 10px 0 0 10px;
+}
+
+[data-route^="job-recruitment"] .req-item::before {
+    opacity: 1;
+}
+
+/* Premium button styling */
+[data-route^="job-recruitment"] .btn-primary {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: white;
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3);
+    border: none;
+}
+
+[data-route^="job-recruitment"] .btn-primary:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    box-shadow: 0 10px 30px rgba(37, 99, 235, 0.4);
+    transform: translateY(-3px);
+}
+
+[data-route^="job-recruitment"] .btn-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+    border: none;
+}
+
+[data-route^="job-recruitment"] .btn-success:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+    transform: translateY(-3px);
+}
+
+[data-route^="job-recruitment"] .btn-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3);
+    border: none;
+}
+
+[data-route^="job-recruitment"] .btn-danger:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    box-shadow: 0 10px 30px rgba(239, 68, 68, 0.4);
+    transform: translateY(-3px);
+}
+
+[data-route^="job-recruitment"] .btn-secondary {
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    color: #1f2937;
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+[data-route^="job-recruitment"] .btn-secondary:hover {
+    background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+    border-color: #94a3b8;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+/* Enable premium hover effects */
+
+/*[data-route^="job-recruitment"] .candidate-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 16px 36px rgba(37, 99, 235, 0.15);
+  border-color: #eef2f7;
+}*/
+
+[data-route^="job-recruitment"] .req-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px rgba(37, 99, 235, 0.16);
+    border-color: #93c5fd;
+}
+
+[data-route^="job-recruitment"] .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Premium detail panel */
+[data-route^="job-recruitment"] #candidate-detail-panel {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+    border: 1px solid #e0eef9;
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.12);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+[data-route^="job-recruitment"] #candidate-detail-panel::before {
+    display: none !important;
+}
+
+[data-route^="job-recruitment"] #selected-requirement::before {
+    display: none !important;
+}
+
+[data-route^="job-recruitment"] #candidate-detail-body {
+    padding: 0;
+}
+
+[data-route^="job-recruitment"] #candidate-detail-body>div:last-child {
+    display: flex;
+    gap: 8px;
+    /* margin: 16px; */
+    padding: 0;
+    border: none;
+    flex-wrap: wrap;
+}
+
+/* ===== PREMIUM ANALYTICS DASHBOARD ===== */
+[data-route^="job-recruitment"] .dashboard-metrics {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+    margin-top: 20px;
+}
+
+[data-route^="job-recruitment"] .metric-card {
+    display: none !important;
+    visibility: hidden !important;
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+
+[data-route^="job-recruitment"] .metric-card.metric-blue {
+    border-color: rgba(37, 99, 235, 0.2);
+    background-image: linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, transparent 100%);
+}
+
+[data-route^="job-recruitment"] .metric-card.metric-green {
+    border-color: rgba(16, 185, 129, 0.2);
+    background-image: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, transparent 100%);
+}
+
+[data-route^="job-recruitment"] .metric-card.metric-purple {
+    border-color: rgba(139, 92, 246, 0.2);
+    background-image: linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, transparent 100%);
+}
+
+[data-route^="job-recruitment"] .metric-card.metric-orange {
+    border-color: rgba(245, 158, 11, 0.2);
+    background-image: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, transparent 100%);
+}
+
+[data-route^="job-recruitment"] .metric-icon {
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+[data-route^="job-recruitment"] .metric-content {
+    flex: 1;
+}
+
+[data-route^="job-recruitment"] .metric-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #000000;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+[data-route^="job-recruitment"] .metric-value {
+    font-size: 20px;
+    font-weight: 800;
+    color: #0f172a;
+    background: linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+[data-route^="job-recruitment"] .metric-card.metric-green .metric-value {
+    background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+[data-route^="job-recruitment"] .metric-card.metric-purple .metric-value {
+    background: linear-gradient(90deg, #8b5cf6 0%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+[data-route^="job-recruitment"] .metric-card.metric-orange .metric-value {
+    background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+@media (max-width: 1024px) {
+    [data-route^="job-recruitment"] .dashboard-metrics {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    [data-route^="job-recruitment"] .dashboard-metrics {
+        grid-template-columns: 1fr;
+    }
+}

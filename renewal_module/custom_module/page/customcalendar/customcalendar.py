@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import datetime, time
 
 import frappe
@@ -61,6 +62,14 @@ def _normalize_for_compare(dt_value):
 	return dt_value
 
 
+def _clean_title(value, fallback=""):
+	"""Return a safe, single-line title for calendar event labels."""
+	text = frappe.utils.strip_html_tags(str(value or "")).strip()
+	if not text:
+		text = fallback
+	return re.sub(r"\s+", " ", text)
+
+
 @frappe.whitelist()
 def get_calendar_events(start=None, end=None, sources=None, holiday_list=None):
 	"""Return normalized FullCalendar events from multiple doctypes."""
@@ -101,10 +110,11 @@ def get_calendar_events(start=None, end=None, sources=None, holiday_list=None):
 		)
 
 		for row in holidays:
+			event_title = _clean_title(row.description, "Holiday")
 			events.append(
 				{
 					"id": f"Holiday::{row.name}",
-					"title": row.description or "Holiday",
+					"title": event_title,
 					"start": str(row.holiday_date),
 					"end": str(add_days(row.holiday_date, 1)),
 					"allDay": True,
@@ -161,7 +171,7 @@ def get_calendar_events(start=None, end=None, sources=None, holiday_list=None):
 			if start_value > end_dt or start_value < start_dt:
 				continue
 
-			event_title = row.customer_name or row.name
+			event_title = _clean_title(row.customer_name or row.name, row.name)
 			events.append(
 				{
 					"id": f"Appointment::{row.name}",
@@ -199,10 +209,12 @@ def get_calendar_events(start=None, end=None, sources=None, holiday_list=None):
 			if start_value > end_dt or start_value < start_dt:
 				continue
 
+			call_subject = _clean_title(row.subject, row.name)
+
 			events.append(
 				{
 					"id": f"CallList::{row.name}",
-					"title": f"Call: {row.subject or row.name}",
+					"title": f"Call: {call_subject}",
 					"start": start_value.isoformat(),
 					"end": end_value.isoformat() if end_value else None,
 					"allDay": False,
@@ -238,10 +250,12 @@ def get_calendar_events(start=None, end=None, sources=None, holiday_list=None):
 			if start_value > end_dt or start_value < start_dt:
 				continue
 
+			task_subject = _clean_title(row.subject, row.name)
+
 			events.append(
 				{
 					"id": f"Task::{row.name}",
-					"title": f"Task: {row.subject or row.name}",
+					"title": f"Task: {task_subject}",
 					"start": start_value.isoformat(),
 					"end": end_value.isoformat() if end_value else None,
 					"allDay": False,

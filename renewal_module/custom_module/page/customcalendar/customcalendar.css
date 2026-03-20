@@ -71,11 +71,70 @@ body[data-route^="customcalendar"] {
 /* Sidebar */
 [data-route^="customcalendar"] #external-events .external-event {
     padding: 10px 12px;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
     margin-bottom: 8px;
     border: 1px solid rgba(0, 0, 0, .1);
     font-weight: 600;
+    background: #fff;
+    transition: all .15s ease;
+}
+
+[data-route^="customcalendar"] #external-events .external-event:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, .08);
+}
+
+[data-route^="customcalendar"] #external-events {
+    max-height: calc(100vh - 290px);
+    overflow: auto;
+    padding-right: 4px;
+}
+
+[data-route^="customcalendar"] .calendar-upcoming-topline {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+[data-route^="customcalendar"] .calendar-upcoming-title {
+    line-height: 1.3;
+    display: -webkit-box;
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+}
+
+[data-route^="customcalendar"] .calendar-source-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .01em;
+}
+
+[data-route^="customcalendar"] .calendar-source-badge.src-holiday {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+[data-route^="customcalendar"] .calendar-source-badge.src-appointment {
+    background: #dbeafe;
+    color: #1e3a8a;
+}
+
+[data-route^="customcalendar"] .calendar-source-badge.src-call_list {
+    background: #dcfce7;
+    color: #14532d;
+}
+
+[data-route^="customcalendar"] .calendar-source-badge.src-task {
+    background: #f3e8ff;
+    color: #581c87;
 }
 
 [data-route^="customcalendar"] .fc .fc-event.evt-holiday {
@@ -107,6 +166,46 @@ body[data-route^="customcalendar"] {
     min-height: 650px;
 }
 
+[data-route^="customcalendar"] .fc .fc-toolbar-title {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -.02em;
+}
+
+[data-route^="customcalendar"] .fc .fc-button {
+    border-radius: 6px;
+    text-transform: lowercase;
+    font-weight: 600;
+}
+
+[data-route^="customcalendar"] .fc .fc-daygrid-event,
+[data-route^="customcalendar"] .fc .fc-timegrid-event {
+    border-radius: 5px;
+    padding: 1px 4px;
+}
+
+[data-route^="customcalendar"] .fc .fc-daygrid-event .fc-event-main,
+[data-route^="customcalendar"] .fc .fc-timegrid-event .fc-event-main {
+    font-size: 12px;
+    line-height: 1.25;
+}
+
+[data-route^="customcalendar"] .fc .fc-daygrid-event .fc-event-title,
+[data-route^="customcalendar"] .fc .fc-timegrid-event .fc-event-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+[data-route^="customcalendar"] .fc .fc-daygrid-day-events {
+    min-height: 0;
+}
+
+[data-route^="customcalendar"] .fc .fc-daygrid-more-link {
+    font-size: 11px;
+    font-weight: 600;
+}
+
 [data-route^="customcalendar"] .customcalendar-content-row {
     align-items: stretch;
 }
@@ -129,6 +228,10 @@ body[data-route^="customcalendar"] {
 @media (max-width: 991.98px) {
     [data-route^="customcalendar"] .customcalendar-page {
         padding: 10px;
+    }
+
+    [data-route^="customcalendar"] #external-events {
+        max-height: 280px;
     }
 
     [data-route^="customcalendar"] .page-title-head {

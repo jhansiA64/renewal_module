@@ -1364,6 +1364,12 @@ body[data-route^="tasks"] {
     outline: none;
     border-color: #6C5CE7;
     box-shadow: 0 0 0 2px rgba(108, 92, 231, .15);
+}
+
+[data-route^="tasks"] .panel__form .clearfix {
+    display: none !important;
+}
+
 [data-route^="tasks"] .status-badge,
 [data-route^="tasks"] .priority-badge {
     display: inline-block;
@@ -1476,7 +1482,7 @@ body[data-route^="tasks"] {
     font-size: 9px;
     font-weight: 600;
 }
-}
+
 
 [data-route^="tasks"] .tasks-detail-panel .note-card {
     transition: all 0.2s ease;

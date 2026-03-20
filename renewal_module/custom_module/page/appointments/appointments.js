@@ -3127,6 +3127,8 @@ class appointmentspage {
 		$(wrapper).find("#appointment-btn-panel-add").show();
 		$(wrapper).find(".appointment-detail-panel .panel__header").show();
 		this._apt_panel_task_assign_control = null;
+		this._apt_panel_call_name_control = null;
+		this._apt_panel_call_selected_customer = "";
 	}
 
 	async showAptPanelForm(type, apt_name, wrapper) {
@@ -3180,6 +3182,23 @@ class appointmentspage {
 			}
 		};
 
+		const getContactLinkedCustomer = async (contactName) => {
+			const name = String(contactName || "").trim();
+			if (!name) return "";
+			try {
+				const res = await frappe.call({
+					method: "frappe.client.get",
+					args: { doctype: "Contact", name },
+					silent: true,
+				});
+				const links = res?.message?.links || [];
+				const customerLink = links.find((l) => l.link_doctype === "Customer" && l.link_name);
+				return customerLink?.link_name || "";
+			} catch (e) {
+				return "";
+			}
+		};
+
 		const syncCallSalesPerson = async () => {
 			const relatedTo = (($(wrapper).find("#apt-call-related-to").val() || "Customer") + "").trim();
 			if (relatedTo !== "Customer") {
@@ -3187,35 +3206,102 @@ class appointmentspage {
 				return;
 			}
 
-			const customerName = (($(wrapper).find("#apt-call-name1").val() || "") + "").trim();
+			const customerName = this._apt_panel_call_name_control?.get_value?.() || "";
 			const salesPerson = await fetchCustomerSalesPerson(customerName);
 			$(wrapper).find("#apt-call-sales-person").val(salesPerson || "");
 		};
 
 		if (type === "Calls") {
-			const customerPartyName = (apt.party || apt.customer_name || "").trim();
+			const appointmentWith = String(apt.appointment_with || "").trim();
+			const defaultCustomer = appointmentWith === "Customer"
+				? (apt.party || apt.customer_name || "").trim()
+				: "";
+			const defaultContact = appointmentWith === "Contact"
+				? (apt.party || "").trim()
+				: "";
+			const defaultRelatedTo = defaultContact ? "Contact" : "Customer";
+			this._apt_panel_call_selected_customer = defaultCustomer || "";
+
+			if (!this._apt_panel_call_selected_customer && defaultContact) {
+				this._apt_panel_call_selected_customer = await getContactLinkedCustomer(defaultContact);
+			}
+
 			$(wrapper).find("#appointment-panel-form-title").text("New Call");
 			$(wrapper).find("#appointment-panel-save-btn").text("Save Call");
 			$(wrapper).find("#appointment-panel-form-body").html(`
 				<div class="apt-form-grid">
-				<div class="mb-2"><label class="form-label">Subject *</label><input type="text" id="apt-call-subject" class="form-control" /></div>
-				<div class="mb-2"><label class="form-label">Status</label><select id="apt-call-status" class="form-control"><option value="Held">Held</option><option value="Scheduled">Scheduled</option><option value="Cancelled">Cancelled</option></select></div>
-				<div class="row g-2">
-					<div class="col-6 mb-2"><label class="form-label">Start Date</label><input type="date" id="apt-call-start-date" class="form-control" /></div>
-					<div class="col-6 mb-2"><label class="form-label">Start Time</label><input type="time" id="apt-call-start-time" class="form-control" /></div>
-				</div>
-				<div class="row g-2">
-					<div class="col-6 mb-2"><label class="form-label">End Date</label><input type="date" id="apt-call-end-date" class="form-control" /></div>
-					<div class="col-6 mb-2"><label class="form-label">End Time</label><input type="time" id="apt-call-end-time" class="form-control" /></div>
-				</div>
-				<div class="row g-2">
-					<div class="col-6 mb-2"><label class="form-label">Related To</label><select id="apt-call-related-to" class="form-control"><option value="Customer" selected>Customer</option><option value="Contact">Contact</option></select></div>
-					<div class="col-6 mb-2"><label class="form-label">Full Name *</label><input type="text" id="apt-call-name1" class="form-control" value="${frappe.utils.escape_html(customerPartyName)}" /></div>
-				</div>
-				<div class="mb-2"><label class="form-label">Sales Person *</label><input type="text" id="apt-call-sales-person" class="form-control" placeholder="Auto-filled from Customer" /></div>
-				<div class="mb-2"><label class="form-label">Description</label><textarea id="apt-call-description" class="form-control" rows="3"></textarea></div>
+					<div class="mb-2"><label class="form-label">Subject *</label><input type="text" id="apt-call-subject" class="form-control" /></div>
+					<div class="mb-2"><label class="form-label">Status</label><select id="apt-call-status" class="form-control"><option value="Held">Held</option><option value="Scheduled">Scheduled</option><option value="Cancelled">Cancelled</option></select></div>
+					<div class="row g-2">
+						<div class="col-6 mb-2"><label class="form-label">Start Date</label><input type="date" id="apt-call-start-date" class="form-control" /></div>
+						<div class="col-6 mb-2"><label class="form-label">Start Time</label><input type="time" id="apt-call-start-time" class="form-control" /></div>
+					</div>
+					<div class="row g-2">
+						<div class="col-6 mb-2"><label class="form-label">End Date</label><input type="date" id="apt-call-end-date" class="form-control" /></div>
+						<div class="col-6 mb-2"><label class="form-label">End Time</label><input type="time" id="apt-call-end-time" class="form-control" /></div>
+					</div>
+					<div class="row g-2">
+						<div class="col-6 mb-2"><label class="form-label">Related To</label><select id="apt-call-related-to" class="form-control"><option value="Customer">Customer</option><option value="Contact">Contact</option></select></div>
+						<div class="col-6 mb-2"><label class="form-label">Full Name *</label><div id="apt-call-name1-control"></div></div>
+					</div>
+					<div class="mb-2"><label class="form-label">Sales Person *</label><input type="text" id="apt-call-sales-person" class="form-control" placeholder="Auto-filled from Customer" /></div>
+					<div class="mb-2"><label class="form-label">Description</label><textarea id="apt-call-description" class="form-control" rows="3"></textarea></div>
 				</div>
 			`);
+
+			$(wrapper).find("#apt-call-related-to").val(defaultRelatedTo);
+
+			const renderCallNameControl = async () => {
+				const relatedTo = (($(wrapper).find("#apt-call-related-to").val() || "Customer") + "").trim();
+				const host = $(wrapper).find("#apt-call-name1-control");
+				host.empty();
+
+				this._apt_panel_call_name_control = frappe.ui.form.make_control({
+					parent: host[0],
+					df: {
+						fieldtype: "Link",
+						fieldname: "apt_call_name1",
+						label: "",
+						options: relatedTo,
+						reqd: 1,
+						onchange: async () => {
+							if (relatedTo === "Customer") {
+								this._apt_panel_call_selected_customer = this._apt_panel_call_name_control?.get_value?.() || this._apt_panel_call_selected_customer;
+								await syncCallSalesPerson();
+							}
+						}
+					},
+					render_input: true,
+				});
+
+				this._apt_panel_call_name_control.refresh();
+
+				// Keep the Link field search/autocomplete, but disable the open-document arrow button.
+				host.find(".link-btn")
+					.addClass("d-none")
+					.attr("tabindex", "-1")
+					.attr("aria-hidden", "true");
+				host.off("click.apt_call_name_link", ".link-btn").on("click.apt_call_name_link", ".link-btn", function (e) {
+					e.preventDefault();
+					e.stopPropagation();
+					return false;
+				});
+
+				if (relatedTo === "Contact") {
+					this._apt_panel_call_name_control.get_query = () => ({
+						query: "frappe.contacts.doctype.contact.contact.contact_query",
+						filters: {
+							link_doctype: "Customer",
+							link_name: this._apt_panel_call_selected_customer || "",
+						},
+					});
+					this._apt_panel_call_name_control.set_value(defaultContact || "");
+					$(wrapper).find("#apt-call-sales-person").val("");
+				} else {
+					this._apt_panel_call_name_control.set_value(this._apt_panel_call_selected_customer || defaultCustomer || "");
+					await syncCallSalesPerson();
+				}
+			};
 
 			const now = new Date();
 			const end = new Date(now.getTime() + (10 * 60 * 1000));
@@ -3227,21 +3313,16 @@ class appointmentspage {
 			$(wrapper).find("#apt-call-end-date").val(toDateInput(end));
 			$(wrapper).find("#apt-call-end-time").val(toTimeInput(end));
 
-			$(wrapper).find("#apt-call-related-to").off("change").on("change", function () {
-				const relatedTo = $(this).val() || "Customer";
-				if (relatedTo === "Customer") {
-					$(wrapper).find("#apt-call-name1").val(customerPartyName);
-				} else {
-					$(wrapper).find("#apt-call-name1").val("");
+			$(wrapper).find("#apt-call-related-to").off("change").on("change", async () => {
+				const relatedTo = (($(wrapper).find("#apt-call-related-to").val() || "Customer") + "").trim();
+				if (relatedTo === "Contact") {
+					const currentCustomer = this._apt_panel_call_name_control?.get_value?.();
+					if (currentCustomer) this._apt_panel_call_selected_customer = currentCustomer;
 				}
-				syncCallSalesPerson();
+				await renderCallNameControl();
 			});
 
-			$(wrapper).find("#apt-call-name1").off("change blur").on("change blur", function () {
-				syncCallSalesPerson();
-			});
-
-			await syncCallSalesPerson();
+			await renderCallNameControl();
 		} else if (type === "Tasks") {
 			$(wrapper).find("#appointment-panel-form-title").text("New Task");
 			$(wrapper).find("#appointment-panel-save-btn").text("Save Task");
@@ -3295,13 +3376,24 @@ class appointmentspage {
 			if (type === "Calls") {
 				const subject = ($(wrapper).find("#apt-call-subject").val() || "").trim();
 				const relatedTo = ($(wrapper).find("#apt-call-related-to").val() || "Customer").trim();
-				let name1 = ($(wrapper).find("#apt-call-name1").val() || "").trim();
+				let name1 = this._apt_panel_call_name_control?.get_value?.() || "";
+				name1 = String(name1 || "").trim();
 				let customSalesPerson = ($(wrapper).find("#apt-call-sales-person").val() || "").trim();
 				if (relatedTo === "Customer") {
-					const aptDoc = await frappe.db.get_doc("Appointment", apt_name);
-					name1 = (aptDoc.party || aptDoc.customer_name || name1 || "").trim();
+					if (!name1) {
+						name1 = String(this._apt_panel_call_selected_customer || "").trim();
+					}
 					if (!customSalesPerson) {
-						customSalesPerson = await fetchCustomerSalesPerson(name1);
+						try {
+							const salesRes = await frappe.call({
+								method: "renewal_module.custom_module.page.appointments.appointments.get_customer_sales_person",
+								args: { customer: name1 },
+								silent: true,
+							});
+							customSalesPerson = (salesRes?.message || "").trim();
+						} catch (e) {
+							customSalesPerson = "";
+						}
 					}
 					if (!customSalesPerson) {
 						frappe.msgprint(__("Sales Person is required for selected customer"));

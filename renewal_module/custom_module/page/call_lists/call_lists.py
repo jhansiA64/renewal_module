@@ -1,6 +1,7 @@
 import frappe
 import json
 from frappe import _
+from renewal_module.user_permissions import calllist_has_permission, calllist_permission_query
 
 
 @frappe.whitelist()
@@ -145,6 +146,15 @@ def get_list_data(start=0, page_length=20, status=None, id=None, filters=None):
                     conditions.append(f"(`{field}` IS NULL OR `{field}` = '')")
 
     # ---- Build final query ----
+    # permission_clause = calllist_permission_query(frappe.session.user)
+    # if permission_clause:
+    #     conditions.append(f"({permission_clause})")
+
+    #Match standard list-view visibility (user permissions, shares, role-based match conditions).
+    # match_clause = frappe.build_match_conditions("Call List")
+    # if match_clause:
+    #     conditions.append(f"({match_clause})")
+
     where_clause = " AND ".join(conditions)
 
     try:
@@ -225,6 +235,9 @@ def get_call_list_details(call_list_name):
         return {}
 
     doc = frappe.get_doc("Call List", call_list_name)
+    if not calllist_has_permission(doc, "read", frappe.session.user):
+        frappe.throw(_("Not permitted"), frappe.PermissionError)
+
     data = doc.as_dict()
     data["owner_full_name"] = frappe.utils.get_fullname(doc.owner) if doc.owner else ""
     data["activity"] = get_call_list_activity(call_list_name)
