@@ -16,7 +16,7 @@ frappe.pages['opportunity-data'].on_page_show = function (wrapper) {
       setTimeout(cb, 10);
     });
     frappe.require([
-      "/assets/renewal_module/css/issue_themes/support_theme2.css",
+      "/assets/renewal_module/css/issue_themes/support_theme2.css"
     ]);
   };
 
@@ -58,6 +58,12 @@ function fmtCurrency(val, currency = null) {
   } catch {
     return normalizeFormatted(String(val ?? ""));
   }
+}
+
+function fmtInt(val) {
+  const num = Number(val || 0);
+  if (!Number.isFinite(num)) return "0";
+  return Math.trunc(num).toLocaleString();
 }
 
 function getOpportunityAmount(doc = {}) {
@@ -143,6 +149,8 @@ const OPP_CFG = {
     last_filters: "opportunity_data_last_filters"
   }
 };
+
+const OPP_UI_VERSION = "inline-editor-2026-03-13-v1";
 
 
 // ---- PAGE CLASS ----
@@ -313,8 +321,53 @@ class opportunitydatapage {
     $(window).off("resize.oppLineItemsWidth");
     this.switchView("new");
     this.setTitle("New Opportunity");
+    console.log("Opportunity Data UI:", OPP_UI_VERSION);
+    this._newOppCurrentStep = 1;
     this.bindNewOpportunityForm();
+    this.bindLineItemsFullWidth();
     this.initNewOpportunityDefaults();
+    this.gotoNewWizardStep(1);
+  }
+
+  gotoNewWizardStep(step) {
+    const $scope = $(this.page.wrapper);
+    const totalSteps = 4;
+    this._newOppCurrentStep = step;
+
+    // Update stepper bar
+    $scope.find(".new-opp-wizard-step").each(function () {
+      const s = parseInt($(this).data("step"), 10);
+      $(this).removeClass("is-active is-done");
+      if (s < step) $(this).addClass("is-done");
+      else if (s === step) $(this).addClass("is-active");
+    });
+
+    // Update connector lines
+    $scope.find(".new-opp-wizard-connector").each(function (idx) {
+      $(this).toggleClass("is-done", idx + 1 < step);
+    });
+
+    // Show/hide panels
+    $scope.find(".new-opp-wizard-panel").each(function () {
+      const p = parseInt($(this).data("panel"), 10);
+      $(this).toggleClass("d-none", p !== step);
+    });
+
+    // Back button
+    $scope.find("#new-opp-back").toggleClass("d-none", step === 1);
+
+    // Next vs Save button
+    const isLastStep = step === totalSteps;
+    $scope.find("#new-opp-next").toggleClass("d-none", isLastStep);
+    $scope.find("#new-opp-save").toggleClass("d-none", !isLastStep);
+
+    // Ensure item row on step 3 (Items)
+    if (step === 3) {
+      const $tbody = $scope.find("#new-opp-items-table-body");
+      if (!$tbody.find("tr").length) {
+        $scope.find("#new-opp-add-item").trigger("click");
+      }
+    }
   }
 
   bindNewOpportunityForm() {
@@ -428,10 +481,205 @@ class opportunitydatapage {
       };
     };
 
+    const getInlineItemDetailFields = ($row) => {
+      const baseValues = getRowDataSnapshot($row);
+      const sourceValues = { ...($row.data("sourceItemFields") || {}) };
+      const extraValues = { ...($row.data("extraItemFields") || {}) };
+      const merged = { ...sourceValues, ...baseValues, ...extraValues };
+
+      const labels = {
+        qty: "Qty",
+        rate: "Rate",
+        amount: "Amount",
+        brand: "Brand",
+        item_group: "Item Group",
+        description: "Description",
+        hsncode: "HSN Code",
+        spq_rate: "SPQ Rate",
+        spq_amount: "SPQ Amount",
+        margin: "Margin",
+        uom: "UOM",
+        opportunity_type: "Opportunity Type",
+        forecast: "Forecast",
+        renewal_id: "Renewal ID",
+        sales_stage: "Sales Stage",
+        expected_date: "Expected Date",
+        orc: "ORC",
+        commission_type: "Commission Type",
+        rate_value: "Rate Value",
+      };
+
+      const preferredOrder = [
+        "qty", "rate", "amount", "spq_rate", "spq_amount", "margin", "uom",
+        "brand", "item_group", "hsncode", "opportunity_type", "forecast",
+        "renewal_id", "sales_stage", "expected_date", "orc", "commission_type", "rate_value", "description",
+      ];
+
+      const keysInOrder = [
+        ...preferredOrder.filter((fieldname) => Object.prototype.hasOwnProperty.call(merged, fieldname)),
+        ...Object.keys(merged).filter((fieldname) => !preferredOrder.includes(fieldname) && fieldname !== "item_code" && fieldname !== "item_name" && fieldname !== "_extra_fields"),
+      ];
+
+      const formatValue = (fieldname, value) => {
+        if (value == null) return "";
+        if (fieldname === "orc") return Number(value) === 1 ? "Yes" : "No";
+        if (["qty", "rate", "amount", "spq_rate", "spq_amount", "margin", "rate_value"].includes(fieldname)) {
+          const num = Number(value);
+          return Number.isFinite(num) ? String(num) : "";
+        }
+        return String(value).trim();
+      };
+
+      return keysInOrder
+        .map((fieldname) => {
+          const displayValue = formatValue(fieldname, merged[fieldname]);
+          if (!displayValue) return null;
+          return {
+            fieldname,
+            label: labels[fieldname] || frappe.model.unscrub(fieldname),
+            value: displayValue,
+          };
+        })
+        .filter(Boolean);
+    };
+
+    const renderInlineItemDetails = ($row, expand = false) => {
+      const detailFields = getInlineItemDetailFields($row);
+      const $existingRow = $row.next(".new-opp-item-inline-details");
+      const $tableSummary = $row.find(".new-opp-item-table-summary");
+
+      if ($tableSummary.length) {
+        $tableSummary.text("").addClass("d-none");
+      }
+
+      if (!expand) {
+        if ($existingRow.length) $existingRow.remove();
+        return;
+      }
+
+      if (!detailFields.length) {
+        if ($existingRow.length) $existingRow.remove();
+        return;
+      }
+
+      const detailsHtml = detailFields
+        .map((entry) => {
+          const safeLabel = frappe.utils.escape_html(String(entry.label || "").trim());
+          const safeValue = frappe.utils.escape_html(String(entry.value || "").trim());
+          return `
+						<div class="new-opp-item-detail-pill">
+							<span class="text-muted">${safeLabel}:</span>
+							<span>${safeValue}</span>
+						</div>
+					`;
+        })
+        .join("");
+
+      if ($existingRow.length) {
+        $existingRow.find(".new-opp-item-inline-details-wrap").html(detailsHtml);
+        $existingRow.toggleClass("d-none", !expand);
+        return;
+      }
+
+      const detailsRow = `
+				<tr class="new-opp-item-inline-details ${expand ? "" : "d-none"}">
+					<td colspan="9">
+						<div class="new-opp-item-inline-details-wrap">${detailsHtml}</div>
+					</td>
+				</tr>
+			`;
+      $row.after(detailsRow);
+    };
+
+    const syncNewOppMainRowDisplay = ($row) => {
+      // Recover from older buggy state where first cell was accidentally hidden.
+      $row.children("td").first().show();
+
+      const canonicalValues = { ...($row.data("currentItemValues") || {}) };
+      const manualValues = { ...($row.data("manualItemValues") || {}) };
+      const stored = {
+        ...($row.data("sourceItemFields") || {}),
+        ...($row.data("extraItemFields") || {}),
+        ...canonicalValues,
+        ...manualValues,
+      };
+      const sanitizeText = (value) => {
+        const raw = String(value || "");
+        if (!raw) return "";
+        return frappe.utils.strip_html
+          ? String(frappe.utils.strip_html(raw) || "").trim()
+          : $("<div>").html(raw).text().trim();
+      };
+      const pickText = (selector, fallbackKey = "") => {
+        // Use canonical value only when it is non-empty
+        const canonVal = String(canonicalValues[fallbackKey] ?? "");
+        if (canonVal) return sanitizeText(canonVal);
+        // Fall back to hidden input in main row
+        const $field = $row.find(selector);
+        const current = String($field.val() || "").trim();
+        if (current) return sanitizeText(current);
+        // Last resort: stored merged data
+        return sanitizeText(stored[fallbackKey]);
+      };
+      const pickNumber = (selector, fallbackKey = "") => {
+        const manualVal = manualValues[fallbackKey];
+        if (manualVal !== undefined && manualVal !== null && manualVal !== "") {
+          return parseNumber(manualVal);
+        }
+        const $field = $row.find(selector);
+        const current = String($field.val() || "").trim();
+        // Prefer the hidden row input first because Apply writes latest values there.
+        if (current !== "") return parseNumber(current);
+        // Fall back to canonical cache only when row input is empty.
+        const canonVal = canonicalValues[fallbackKey];
+        if (canonVal !== undefined && canonVal !== null && canonVal !== "") {
+          return parseNumber(canonVal);
+        }
+        return parseNumber(stored[fallbackKey]);
+      };
+
+      const itemCodeControl = $row.data("itemCodeControl");
+      const itemCode = sanitizeText(itemCodeControl?.get_value?.() || $row.find(".new-opp-item-code").val() || stored.item_code || "");
+      const itemName = pickText(".new-opp-item-name", "item_name") || itemCode || "-";
+      const qty = pickNumber(".new-opp-item-qty", "qty");
+      const rate = pickNumber(".new-opp-item-rate", "rate");
+      const amount = pickNumber(".new-opp-item-amount", "amount") || (qty * rate);
+      const spqRate = pickNumber(".new-opp-item-spq-rate", "spq_rate");
+      const spqAmount = pickNumber(".new-opp-item-spq-amount", "spq_amount") || (qty * spqRate);
+      const margin = pickNumber(".new-opp-item-margin", "margin") || (amount - spqAmount);
+      const brand = pickText(".new-opp-item-brand", "brand");
+      const salesStage = pickText(".new-opp-item-sales-stage", "sales_stage");
+      const opportunityType = pickText(".new-opp-item-opportunity-type", "opportunity_type");
+      const forecast = pickText(".new-opp-item-forecast", "forecast");
+      const renewalId = getRowRenewalId($row) || String(stored.renewal_id || "").trim();
+      const expectedDate = pickText(".new-opp-item-expected-date", "expected_date");
+      const isOrc = $row.find(".new-opp-item-orc").is(":checked") || Number(stored.orc || 0) === 1;
+      const commissionType = pickText(".new-opp-item-commission-type", "commission_type");
+      const rateValue = pickText(".new-opp-item-rate-value", "rate_value");
+
+      $row.find(".new-opp-display-item-name").text(itemName).attr("title", itemName);
+      $row.find(".new-opp-display-item-code-sub").text(itemCode || "").attr("title", itemCode || "");
+      $row.find(".new-opp-display-brand").text(brand || "Others").attr("title", brand || "Others");
+      $row.find(".new-opp-display-qty").text(fmtInt(qty));
+      $row.find(".new-opp-display-rate").text(fmtCurrency(rate || 0));
+      $row.find(".new-opp-display-amount").text(fmtCurrency(amount || 0));
+      $row.find(".new-opp-display-spq-rate").text(fmtCurrency(spqRate || 0));
+      $row.find(".new-opp-display-spq-amount").text(fmtCurrency(spqAmount || 0));
+      $row.find(".new-opp-display-margin").text(fmtCurrency(margin || 0));
+      $row.find(".new-opp-display-sales-stage").text(salesStage || "-").attr("title", salesStage || "-");
+      $row.find(".new-opp-display-opportunity-type").text(opportunityType || "-").attr("title", opportunityType || "-");
+      $row.find(".new-opp-display-forecast").text(forecast || "-").attr("title", forecast || "-");
+      $row.find(".new-opp-display-renewal-id").text(renewalId || "-").attr("title", renewalId || "-");
+      $row.find(".new-opp-display-expected-date").text(expectedDate ? frappe.datetime.str_to_user(expectedDate) : "-");
+      $row.find(".new-opp-display-orc").text(isOrc ? "✓" : "-");
+      $row.find(".new-opp-display-commission-type").text(isOrc ? (commissionType || "-") : "-");
+      $row.find(".new-opp-display-rate-value").text(isOrc ? (rateValue || "-") : "-");
+    };
+
     const toggleOrcDependentFields = ($row, preserveValues = false) => {
       const isOrcEnabled = $row.find(".new-opp-item-orc").is(":checked");
-      const $commissionTypeCell = $row.find(".new-opp-item-commission-type").closest("td");
-      const $rateValueCell = $row.find(".new-opp-item-rate-value").closest("td");
+      const $commissionTypeCell = $row.find(".new-opp-display-commission-type").closest("td");
+      const $rateValueCell = $row.find(".new-opp-display-rate-value").closest("td");
 
       $commissionTypeCell.toggle(isOrcEnabled);
       $rateValueCell.toggle(isOrcEnabled);
@@ -453,7 +701,19 @@ class opportunitydatapage {
         .toArray()
         .some((el) => $(el).is(":checked"));
 
-      $table.find("thead th:nth-child(20), thead th:nth-child(21)").toggle(hasOrcEnabledRow);
+      $table.find("thead th:nth-child(15), thead th:nth-child(16), tbody td:nth-child(15), tbody td:nth-child(16)").toggle(hasOrcEnabledRow);
+    };
+
+    const removeItemMainRow = ($mainRow) => {
+      if (!$mainRow?.length) return;
+      let $sibling = $mainRow.next();
+      while ($sibling.length && ($sibling.hasClass("new-opp-item-inline-details") || $sibling.hasClass("new-opp-item-inline-editor"))) {
+        const $toRemove = $sibling;
+        $sibling = $sibling.next();
+        $toRemove.remove();
+      }
+      $mainRow.remove();
+      updateOrcDependentColumnVisibility();
     };
 
     const addItemRow = async (row = {}) => {
@@ -470,10 +730,10 @@ class opportunitydatapage {
       const spqAmount = Number(row.spq_amount || (qty * spqRate));
       const margin = Number(row.margin || ((qty * rate) - spqAmount));
       const uom = frappe.utils.escape_html(String(row.uom || ""));
-      const opportunityType = String(row.opportunity_type || "").trim();
-      const forecast = String(row.forecast || "").trim();
+      const opportunityType = String(row.opportunity_type || row.custom_opportunity_type || "New").trim() || "New";
+      const forecast = String(row.forecast || row.custom_forecast || "Include").trim() || "Include";
       const renewalId = frappe.utils.escape_html(String(row.renewal_id || ""));
-      const salesStage = String(row.sales_stage || "").trim();
+      const salesStage = String(row.sales_stage || row.status || "Initial Analysis").trim() || "Initial Analysis";
       const expectedDate = frappe.utils.escape_html(String(row.expected_date || row.closure_date || ""));
       const orc = Number(row.orc || 0) ? "checked" : "";
       const commissionType = String(row.commission_type || "").trim();
@@ -489,11 +749,12 @@ class opportunitydatapage {
 
       const salesStageOptions = [
         "",
+        "Initial Analysis",
+        "POC/Demos/Webinar/Session",
         "Prospecting",
-        "Qualification",
-        "Needs Analysis",
-        "Proposal/Price Quote",
-        "Negotiation/Review",
+        "Proposal",
+        "Negotiation",
+        "Order Committed",
         "Closed Won",
         "Closed Lost",
         "Dead",
@@ -504,40 +765,82 @@ class opportunitydatapage {
         .join("");
 
       const tr = `
-        <tr>
-          <td><div class="new-opp-item-code-link-control"></div></td>
-          <td><input type="text" class="form-control new-opp-item-name" value="${itemName}" placeholder="Item name" /></td>
-          <td><input type="number" min="0" step="0.01" class="form-control new-opp-item-rate" value="${rate}" /></td>
-          <td><input type="number" min="0" step="1" class="form-control new-opp-item-qty" value="${qty}" /></td>
-          <td><input type="number" class="form-control new-opp-item-amount" value="${amount}" readonly /></td>
-          <td><input type="text" class="form-control new-opp-item-brand" value="${brand}" placeholder="Brand" /></td>
-          <td><input type="text" class="form-control new-opp-item-group" value="${itemGroup}" placeholder="Item Group" /></td>
-          <td><input type="text" class="form-control new-opp-item-description" value="${description}" placeholder="Description" /></td>
-          <td><input type="text" class="form-control new-opp-item-hsncode" value="${hsncode}" placeholder="HSN" /></td>
-          <td><input type="number" min="0" step="0.01" class="form-control new-opp-item-spq-rate" value="${spqRate}" /></td>
-          <td><input type="number" class="form-control new-opp-item-spq-amount" value="${spqAmount}" readonly /></td>
-          <td><input type="number" class="form-control new-opp-item-margin" value="${margin}" readonly /></td>
-          <td><input type="text" class="form-control new-opp-item-uom" value="${uom}" placeholder="UOM" /></td>
-          <td><select class="form-control new-opp-item-opportunity-type">${opportunityTypeOptions}</select></td>
-          <td><select class="form-control new-opp-item-forecast">${forecastOptions}</select></td>
-          <td><div class="new-opp-item-renewal-link-control"></div></td>
-          <td><select class="form-control new-opp-item-sales-stage">${salesStageOptions}</select></td>
-          <td><input type="date" class="form-control new-opp-item-expected-date" value="${expectedDate}" /></td>
-          <td><input type="checkbox" class="new-opp-item-orc" ${orc} /></td>
-          <td><select class="form-control new-opp-item-commission-type">${commissionTypeOptions}</select></td>
-          <td><input type="number" min="0" step="0.01" class="form-control new-opp-item-rate-value" value="${rateValue}" /></td>
-          <td class="actions-col line-items-center">
-            <div class="new-opp-row-actions">
-              <button type="button" class="btn btn-default btn-xs new-opp-edit-row" title="Edit Row"><i class="fa fa-pencil"></i></button>
-              <button type="button" class="btn btn-default btn-xs new-opp-remove-item" title="Remove Row"><i class="fa fa-trash"></i></button>
-            </div>
-          </td>
-        </tr>
-      `;
+				<tr class="new-opp-item-main-row">
+					<td>
+						<div class="line-item-title">
+							<div class="name new-opp-display-item-name" title="${itemName}">${itemName || "-"}</div>
+							<div class="sub new-opp-display-item-code-sub" title="${itemCode}">${itemCode}</div>
+						</div>
+						<div class="new-opp-item-code-link-control d-none"></div>
+						<div class="d-none new-opp-item-hidden-fields">
+							<input type="hidden" class="new-opp-item-code" value="${itemCode}">
+							<input type="hidden" class="new-opp-item-name" value="${itemName}" />
+							<input type="hidden" class="new-opp-item-brand" value="${brand}" />
+							<input type="hidden" class="new-opp-item-qty" value="${qty}">
+							<input type="hidden" class="new-opp-item-rate" value="${rate}">
+							<input type="hidden" class="new-opp-item-amount" value="${amount}">
+							<input type="hidden" class="new-opp-item-spq-rate" value="${spqRate}">
+							<input type="hidden" class="new-opp-item-spq-amount" value="${spqAmount}">
+							<input type="hidden" class="new-opp-item-margin" value="${margin}">
+							<input type="hidden" class="new-opp-item-sales-stage" value="${frappe.utils.escape_html(salesStage)}">
+							<input type="hidden" class="new-opp-item-opportunity-type" value="${frappe.utils.escape_html(opportunityType)}">
+							<input type="hidden" class="new-opp-item-forecast" value="${frappe.utils.escape_html(forecast)}">
+							<input type="hidden" class="new-opp-item-renewal-id" value="${renewalId}">
+							<input type="hidden" class="new-opp-item-expected-date" value="${expectedDate}">
+							<input type="checkbox" class="new-opp-item-orc d-none" ${orc}>
+							<input type="hidden" class="new-opp-item-commission-type" value="${frappe.utils.escape_html(commissionType)}">
+							<input type="hidden" class="new-opp-item-rate-value" value="${rateValue}">
+							<input type="hidden" class="new-opp-item-group" value="${itemGroup}" />
+							<input type="hidden" class="new-opp-item-description" value="${description}" />
+							<input type="hidden" class="new-opp-item-hsncode" value="${hsncode}" />
+							<input type="hidden" class="new-opp-item-uom" value="${uom}" />
+						</div>
+						<div class="new-opp-item-table-summary text-muted d-none" style="margin-top: 4px; font-size: 12px;"></div>
+					</td>
+					<td class="line-items-center"><span class="new-opp-display-qty">${fmtInt(qty)}</span></td>
+					<td class="line-items-center"><span class="new-opp-display-rate">${fmtCurrency(rate)}</span></td>
+					<td class="line-items-center"><span class="new-opp-display-amount">${fmtCurrency(amount)}</span></td>
+					<td class="line-items-center"><span class="new-opp-display-spq-rate">${fmtCurrency(spqRate)}</span></td>
+					<td class="line-items-center"><span class="new-opp-display-margin">${fmtCurrency(margin)}</span></td>
+					<td><span class="cell-ellipsis new-opp-display-forecast" title="${frappe.utils.escape_html(forecast)}">${frappe.utils.escape_html(forecast || "-")}</span></td>
+					<td><span class="cell-ellipsis new-opp-display-sales-stage" title="${frappe.utils.escape_html(salesStage)}">${frappe.utils.escape_html(salesStage || "-")}</span></td>
+					<td class="actions-col line-items-center">
+						<button type="button" class="item-row-edit-btn new-opp-edit-row" title="Edit this item"><i class="fa fa-pencil"></i></button>
+						<button type="button" class="item-row-delete-btn new-opp-delete-row" title="Delete this item" style="margin-left:4px;">
+							<i class="fa fa-trash" style="color:#e74c3c;"></i>
+						</button>
+					</td>
+				</tr>
+			`;
       const $tbody = $scope.find("#new-opp-items-table-body");
       $tbody.append(tr);
       const $row = $tbody.find("tr").last();
+      $row.data("sourceItemFields", { ...row });
       $row.data("extraItemFields", row._extra_fields || row.extra_fields || {});
+      $row.data("currentItemValues", {
+        item_code: String(row.item_code || "").trim(),
+        item_name: String(row.item_name || "").trim(),
+        qty,
+        rate,
+        amount,
+        brand: String(row.brand || "").trim(),
+        item_group: String(row.item_group || "").trim(),
+        description: String(row.description || "").trim(),
+        hsncode: String(row.hsncode || row.hsn_code || row.gst_hsn_code || "").trim(),
+        spq_rate: spqRate,
+        spq_amount: spqAmount,
+        margin,
+        uom: String(row.uom || "").trim(),
+        opportunity_type: opportunityType,
+        forecast,
+        renewal_id: String(row.renewal_id || "").trim(),
+        sales_stage: salesStage,
+        expected_date: String(row.expected_date || row.closure_date || "").trim(),
+        orc: Number(row.orc || 0) ? 1 : 0,
+        commission_type: String(row.commission_type || "").trim(),
+        rate_value: String(row.rate_value || "").trim(),
+      });
+      syncNewOppMainRowDisplay($row);
 
       if (frappe?.ui?.form?.make_control) {
         const $holder = $row.find(".new-opp-item-code-link-control");
@@ -554,6 +857,7 @@ class opportunitydatapage {
                 filters: { disabled: 0 },
               }),
               onchange: async () => {
+                if ($row.data("_suppressItemAutofill")) return;
                 await autofillItemRowByCode($row);
               },
             },
@@ -563,6 +867,7 @@ class opportunitydatapage {
           itemCodeControl.set_value(String(row.item_code || "").trim());
           itemCodeControl.$input?.addClass("new-opp-item-code");
           $row.data("itemCodeControl", itemCodeControl);
+          this.configureItemAdvancedSearch(itemCodeControl);
           this.attachInlineLinkPortal(itemCodeControl);
         }
 
@@ -602,6 +907,15 @@ class opportunitydatapage {
       }
 
       toggleOrcDependentFields($row, true);
+      renderInlineItemDetails($row, false);
+
+      // For new blank rows, open editor immediately so first fields are visible.
+      const hasInitialItem = String(row.item_code || row.item_name || "").trim();
+      if (!hasInitialItem) {
+        setTimeout(() => {
+          $row.find(".new-opp-edit-row").trigger("click");
+        }, 0);
+      }
 
     };
 
@@ -638,8 +952,30 @@ class opportunitydatapage {
 
       $row.find(".new-opp-item-rate").val(Number(itemMeta.rate || 0));
       $row.find(".new-opp-item-spq-rate").val(Number(itemMeta.buying_rate || 0));
+      $row.data("currentItemValues", {
+        ...($row.data("currentItemValues") || {}),
+        item_code: itemCode,
+        item_name: String(itemMeta.item_name || "").trim(),
+        brand: String(itemMeta.brand || "").trim(),
+        item_group: String(itemMeta.item_group || "").trim(),
+        description: String(toPlainText(itemMeta.description || "") || "").trim(),
+        uom: String(itemMeta.uom || "").trim(),
+        hsncode: String(itemMeta.hsncode || "").trim(),
+        rate: Number(itemMeta.rate || 0),
+        spq_rate: Number(itemMeta.buying_rate || 0),
+      });
 
       recalcItemAmount($row);
+      syncNewOppMainRowDisplay($row);
+    };
+
+    const pickRenewalPresetForNew = async (opportunityType = "Renewal") => {
+      const customerName = String(me.getNewOpportunityPartyName() || "").trim();
+      if (!customerName) {
+        frappe.msgprint(__("Please select a Customer first."));
+        return null;
+      }
+      return await me.pickRenewalPresetItem(opportunityType, customerName);
     };
 
     const openDatePicker = (inputEl) => {
@@ -773,6 +1109,10 @@ class opportunitydatapage {
       const customerName = String(me.getNewOpportunityPartyName() || "").trim();
       if (!customerName) {
         me.setNewOpportunitySalesTeam([]);
+        if (me._newOppSalesPersonControl?.set_value) {
+          me._newOppSalesPersonControl.set_value("");
+        }
+        $(me.page.wrapper).find("#new-opp-sales-person-display").html("");
         return;
       }
 
@@ -811,6 +1151,35 @@ class opportunitydatapage {
         if (String(me.getNewOpportunityPartyName() || "").trim() !== customerName) return;
 
         me.setNewOpportunitySalesTeam(salesPeople);
+
+        // Pre-populate the inline sales person field with the first sales person
+        const firstEntry = salesPeople[0];
+        if (firstEntry?.sales_person) {
+          if (me._newOppSalesPersonControl?.set_value) {
+            me._newOppSalesPersonControl.set_value(firstEntry.sales_person);
+          }
+          const $display = $(me.page.wrapper).find("#new-opp-sales-person-display");
+          if ($display.length) {
+            const safeName = frappe.utils.escape_html(firstEntry.sales_person);
+            const safeMobile = frappe.utils.escape_html(firstEntry.mobile_no || "");
+            const safeEmail = frappe.utils.escape_html(firstEntry.email_id || "");
+            me._newOppSalesPersonExpanded = false;
+            $display.html(`
+							<div class="new-opp-contact-entry" data-sales-person-inline="${safeName}">
+								<div class="new-opp-contact-entry-top">
+									<span class="new-opp-contact-entry-name" title="${safeName}">
+										<span class="new-opp-sales-person-name-toggle">${safeName}</span>
+									</span>
+								</div>
+								<div class="new-opp-contact-entry-details d-none">
+									${safeMobile ? `<div class="new-opp-contact-entry-meta" title="${safeMobile}">${safeMobile}</div>` : ""}
+									${safeEmail ? `<div class="new-opp-contact-entry-meta" title="${safeEmail}">${safeEmail}</div>` : ""}
+									${!safeMobile && !safeEmail ? `<div class="new-opp-contact-entry-meta text-muted">No details</div>` : ""}
+								</div>
+							</div>
+						`);
+          }
+        }
       } catch (e) {
         if (requestId !== me._newOppSalesPrefillReq) return;
         me.setNewOpportunitySalesTeam([]);
@@ -876,10 +1245,10 @@ class opportunitydatapage {
             <div class="new-opp-contact-entry" data-contact="${safeContact}">
               <div class="new-opp-contact-entry-top">
                 <span class="new-opp-contact-entry-name" title="${safeDisplayName}">
-                  <i class="fa fa-check-circle new-opp-contact-tpoc ${isTpoc ? "is-active" : "is-inactive"}" title="TPOC"></i>
+                  <i class="fa fa-check-circle new-opp-contact-tpoc ${isTpoc ? "is-active" : "is-inactive"}" title="POC"></i>
                   <span class="new-opp-contact-name-toggle">${safeDisplayName}</span>
+                  <i class="fa fa-trash new-opp-contact-delete" title="Delete" style="margin-left:8px;cursor:pointer;"></i>
                 </span>
-                <i class="fa fa-trash new-opp-contact-delete" title="Delete"></i>
               </div>
               <div class="new-opp-contact-entry-details ${isExpanded ? "" : "d-none"}">
                 ${phoneValue ? `<div class="new-opp-contact-entry-meta" title="${safePhone}">${safePhone}</div>` : ""}
@@ -1118,13 +1487,47 @@ class opportunitydatapage {
         addItemRow();
       });
 
+    $scope
+      .off("click", "#new-opp-add-item-renewal")
+      .on("click", "#new-opp-add-item-renewal", async function (e) {
+        e.preventDefault();
+        const preset = await pickRenewalPresetForNew("Renewal");
+        if (!preset) return;
+        await addItemRow(preset);
+      });
+
+    $scope
+      .off("click", "#new-opp-add-item-additional")
+      .on("click", "#new-opp-add-item-additional", async function (e) {
+        e.preventDefault();
+        const preset = await pickRenewalPresetForNew("Additional");
+        if (!preset) return;
+        await addItemRow(preset);
+      });
+
 
     $scope
       .off("click", ".new-opp-remove-item")
       .on("click", ".new-opp-remove-item", function (e) {
         e.preventDefault();
-        $(this).closest("tr").remove();
-        updateOrcDependentColumnVisibility();
+        const $mainRow = $(this).closest("tr.new-opp-item-main-row");
+        removeItemMainRow($mainRow);
+      });
+
+    $scope
+      .off("click", ".new-opp-delete-row")
+      .on("click", ".new-opp-delete-row", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const $mainRow = $(this).closest("tr.new-opp-item-main-row");
+        if (!$mainRow.length) return;
+
+        frappe.confirm(
+          __("Are you sure you want to delete this item row?"),
+          () => {
+            removeItemMainRow($mainRow);
+          }
+        );
       });
 
     $scope
@@ -1132,182 +1535,442 @@ class opportunitydatapage {
       .on("click", ".new-opp-edit-row", async function (e) {
         e.preventDefault();
         const $row = $(this).closest("tr");
+        $scope.find("tr.new-opp-item-inline-editor").remove();
+        renderInlineItemDetails($row, false);
 
-        await frappe.model.with_doctype("Opportunity Item");
-        const itemMeta = frappe.get_meta("Opportunity Item");
-        const disallowedTypes = new Set([
-          "Section Break", "Column Break", "Tab Break", "Fold", "Heading", "HTML", "Button", "Table", "Table MultiSelect",
-        ]);
-
-        const fields = (itemMeta?.fields || [])
-          .filter((df) => df?.fieldname && !df.hidden && !disallowedTypes.has(df.fieldtype))
-          .map((df) => ({
-            label: df.label || df.fieldname,
-            fieldname: df.fieldname,
-            fieldtype: df.fieldtype || "Data",
-            options: df.options || undefined,
-            reqd: df.read_only ? 0 : (df.reqd || 0),
-            read_only: df.read_only || 0,
-          }));
-
-        const baseSnapshot = getRowDataSnapshot($row);
-        const existingExtra = { ...($row.data("extraItemFields") || {}) };
-
-        const dialog = new frappe.ui.Dialog({
-          title: __("Edit Opportunity Item"),
-          size: "large",
-          fields,
-          primary_action_label: __("Apply"),
-          primary_action(values) {
-            if (!values) return;
-
-            const itemCodeControl = $row.data("itemCodeControl");
-            if (itemCodeControl?.set_value && Object.prototype.hasOwnProperty.call(values, "item_code")) {
-              itemCodeControl.set_value(values.item_code || "");
-            }
-
-            const setVal = (selector, val) => {
-              const $field = $row.find(selector);
-              if ($field.length) $field.val(val == null ? "" : val);
-            };
-
-            setVal(".new-opp-item-name", values.item_name);
-            setVal(".new-opp-item-rate", values.rate);
-            setVal(".new-opp-item-qty", values.qty);
-            setVal(".new-opp-item-amount", values.amount);
-            setVal(".new-opp-item-brand", values.brand);
-            setVal(".new-opp-item-group", values.item_group);
-            setVal(".new-opp-item-description", toPlainText(values.description));
-            setVal(".new-opp-item-hsncode", values.hsncode || values.hsn_code || values.gst_hsn_code || "");
-            setVal(".new-opp-item-spq-rate", values.spq_rate);
-            setVal(".new-opp-item-spq-amount", values.spq_amount);
-            setVal(".new-opp-item-margin", values.margin);
-            setVal(".new-opp-item-uom", values.uom || values.stock_uom || "");
-            setVal(".new-opp-item-opportunity-type", values.opportunity_type);
-            setVal(".new-opp-item-forecast", values.forecast);
-            const renewalIdControl = $row.data("renewalIdControl");
-            if (renewalIdControl?.set_value && Object.prototype.hasOwnProperty.call(values, "renewal_id")) {
-              renewalIdControl.set_value(values.renewal_id || "");
-            }
-            setVal(".new-opp-item-sales-stage", values.sales_stage);
-            setVal(".new-opp-item-expected-date", values.expected_date || values.closure_date || values.closing_date || "");
-            setVal(".new-opp-item-commission-type", values.commission_type);
-            setVal(".new-opp-item-rate-value", values.rate_value);
-            $row.find(".new-opp-item-orc").prop("checked", Number(values.orc || 0) === 1);
-            toggleOrcDependentFields($row);
-
-            const consumed = new Set([
-              "item_code", "item_name", "rate", "qty", "amount", "brand", "item_group", "description",
-              "hsncode", "hsn_code", "gst_hsn_code", "spq_rate", "spq_amount", "margin", "uom", "stock_uom",
-              "opportunity_type", "forecast", "renewal_id", "sales_stage", "expected_date", "closure_date", "closing_date",
-              "orc", "commission_type", "rate_value",
-            ]);
-
-            const extraItemFields = {};
-            Object.entries(values || {}).forEach(([fieldname, value]) => {
-              if (consumed.has(fieldname)) return;
-              extraItemFields[fieldname] = value;
-            });
-
-            $row.data("extraItemFields", extraItemFields);
-            recalcItemAmount($row);
-            dialog.hide();
-          },
-        });
-
-        const setDialogValue = (fieldname, value) => {
-          if (!dialog.fields_dict?.[fieldname]) return;
-          dialog.set_value(fieldname, value || "");
+        const stored = {
+          ...($row.data("sourceItemFields") || {}),
+          ...($row.data("extraItemFields") || {}),
+          ...($row.data("currentItemValues") || {}),
+          ...($row.data("manualItemValues") || {}),
         };
 
-        const setDialogIfEmpty = (fieldname, value) => {
-          if (!dialog.fields_dict?.[fieldname]) return;
-          const currentValue = dialog.get_value(fieldname);
-          if (!String(currentValue || "").trim()) {
-            dialog.set_value(fieldname, value || "");
+        const esc = (v) => frappe.utils.escape_html(String(v == null ? "" : v));
+        const qty = parseNumber(stored.qty ?? $row.find(".new-opp-item-qty").val() ?? 1) || 1;
+        const rate = parseNumber(stored.rate ?? $row.find(".new-opp-item-rate").val());
+        const spqRate = parseNumber(stored.spq_rate ?? $row.find(".new-opp-item-spq-rate").val());
+        const amount = parseNumber(stored.amount ?? $row.find(".new-opp-item-amount").val()) || (qty * rate);
+        const spqAmount = parseNumber(stored.spq_amount ?? $row.find(".new-opp-item-spq-amount").val()) || (qty * spqRate);
+        const margin = amount - spqAmount;
+        const isOrcEnabled = Number(stored.orc || 0) === 1;
+        const itemCode = String(stored.item_code || getRowItemCode($row) || "").trim();
+        const initialInlineItemCode = itemCode;
+        const itemName = String(stored.item_name || "").trim();
+        const brand = String(stored.brand || "Others").trim();
+        const uom = String(stored.uom || "").trim();
+        const expectedDate = String(stored.expected_date || stored.closure_date || "").trim();
+
+        const selectOptions = (values, selectedValue) => values
+          .map((value) => `<option value="${esc(value)}" ${String(value) === String(selectedValue || "") ? "selected" : ""}>${esc(value || "Select")}</option>`)
+          .join("");
+
+        const editorHtml = `
+					<tr class="new-opp-item-inline-editor">
+						<td colspan="8">
+							<div class="new-opp-item-inline-editor-wrap" style="border:1px solid #d7deea;padding:14px;border-radius:10px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.08);font-size:12px;margin:0;width:100%;">
+								<div class="item-inline-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;">
+									<strong style="font-size:13px;">Edit Item</strong>
+									<div class="inline-edit-actions-stack" style="display:flex;gap:6px;">
+										<button type="button" class="btn btn-primary btn-sm new-opp-inline-apply" title="Apply"><i class="fa fa-check"></i></button>
+										<button type="button" class="btn btn-default btn-sm new-opp-inline-cancel" title="Close"><i class="fa fa-times"></i></button>
+									</div>
+								</div>
+
+								<div style="border-top:1px solid #e5e7eb;padding-top:10px;">
+									<div style="font-weight:600;margin-bottom:8px;">1. Basic Details</div>
+									<div class="row" style="row-gap:10px;margin:0;">
+										<div class="col-md-4"><label style="display:block;margin-bottom:4px;font-weight:500;">Item Code</label><div class="new-opp-inline-item-code-wrap"></div></div>
+										<div class="col-md-4"><label style="display:block;margin-bottom:4px;font-weight:500;">Item Name</label><div class="form-control new-opp-inline-item-name-preview" style="height:auto;min-height:34px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(itemName)}">${esc(itemName || "-")}</div></div>
+										<div class="col-md-4"><label style="display:block;margin-bottom:4px;font-weight:500;">Brand</label><div class="form-control new-opp-inline-brand-preview" style="height:auto;min-height:34px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(brand)}">${esc(brand)}</div></div>
+										<div class="col-md-4"><label style="display:block;margin-bottom:4px;font-weight:500;">Forecast</label><select class="form-control new-opp-inline-field" data-field="forecast">${selectOptions(["", "Include", "Exclude"], stored.forecast || "Include")}</select></div>
+										<div class="col-md-4"><label style="display:block;margin-bottom:4px;font-weight:500;">Opportunity Type</label><select class="form-control new-opp-inline-field" data-field="opportunity_type">${selectOptions(["", "New", "Renewal", "Additional", "Add-on", "Sales"], stored.opportunity_type || "New")}</select></div>
+										<div class="col-md-4"><label style="display:block;margin-bottom:4px;font-weight:500;">Sales Stage</label><select class="form-control new-opp-inline-field" data-field="sales_stage">${selectOptions(["", "Initial Analysis", "POC/Demos/Webinar/Session", "Prospecting", "Proposal", "Negotiation", "Order Committed", "Closed Won", "Closed Lost", "Dead"], stored.sales_stage || "Initial Analysis")}</select></div>
+										<div class="col-md-4"><label style="display:block;margin-bottom:4px;font-weight:500;">Qty</label><input type="number" step="any" min="0" class="form-control new-opp-inline-field" data-field="qty" value="${qty}" /></div>
+										<div class="col-md-4"><label style="display:block;margin-bottom:4px;font-weight:500;">Rate</label><input type="number" step="0.01" min="0" class="form-control new-opp-inline-field" data-field="rate" value="${rate}" /></div>
+										<div class="col-md-4"><label style="display:block;margin-bottom:4px;font-weight:500;">Amount</label><div class="form-control" style="height:auto;min-height:34px;"><span class="new-opp-inline-computed-amount">${fmtCurrency(amount)}</span></div></div>
+										<div class="col-md-4"><label style="display:block;margin-bottom:4px;font-weight:500;">Expected Closing Date <span style="color:#eb9091">*</span></label><input type="date" class="form-control new-opp-inline-field" data-field="expected_date" value="${esc(expectedDate)}" /></div>
+										<div class="col-md-4 new-opp-inline-renewal-wrap"><label style="display:block;margin-bottom:4px;font-weight:500;">Renewal ID</label><input type="text" class="form-control new-opp-inline-field" data-field="renewal_id" value="${esc(stored.renewal_id || "")}" /></div>
+									</div>
+								</div>
+
+								<div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:10px;">
+									<div style="font-weight:600;margin-bottom:8px;">2. SPQ Details</div>
+									<div class="row" style="row-gap:10px;">
+										<div class="col-md-4"><label style="display:block;margin-bottom:4px;font-weight:500;">SPQ Rate</label><input type="number" step="0.01" min="0" class="form-control new-opp-inline-field" data-field="spq_rate" value="${spqRate}" /></div>
+										<div class="col-md-4"><label style="display:block;margin-bottom:4px;font-weight:500;">SPQ Amount</label><div class="form-control" style="height:auto;min-height:34px;"><span class="new-opp-inline-computed-spq-amount">${fmtCurrency(spqAmount)}</span></div></div>
+										<div class="col-md-4"><label style="display:block;margin-bottom:4px;font-weight:500;">Margin</label><div class="form-control" style="height:auto;min-height:34px;"><span class="new-opp-inline-computed-margin">${fmtCurrency(margin)}</span></div></div>
+									</div>
+								</div>
+
+								<div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:10px;">
+									<div style="font-weight:600;margin-bottom:8px;">3. ORC Details</div>
+									<div class="row" style="row-gap:10px;">
+										<div class="col-md-4"><label style="display:block;margin-bottom:4px;font-weight:500;">ORC</label><div style="height:34px;display:flex;align-items:center;"><input type="checkbox" class="new-opp-inline-field new-opp-inline-orc" data-field="orc" ${isOrcEnabled ? "checked" : ""} /></div></div>
+										<div class="col-md-4 new-opp-inline-commission-col" style="${isOrcEnabled ? "" : "display:none;"}"><label style="display:block;margin-bottom:4px;font-weight:500;">Commission Type</label>
+											<select class="form-control new-opp-inline-field" data-field="commission_type">${selectOptions(["", "Unit Rate", "Value"], stored.commission_type)}</select>
+										</div>
+										<div class="col-md-4 new-opp-inline-rate-value-col" style="${isOrcEnabled ? "" : "display:none;"}"><label style="display:block;margin-bottom:4px;font-weight:500;">Rate Value</label>
+											<input type="number" step="0.01" min="0" class="form-control new-opp-inline-field" data-field="rate_value" value="${Number(stored.rate_value || 0)}" />
+										</div>
+									</div>
+								</div>
+
+								<div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:10px;">
+									<div style="font-weight:600;margin-bottom:8px;">Additional Fields</div>
+									<div class="row" style="row-gap:10px;">
+										<div class="col-md-4"><label style="display:block;margin-bottom:4px;font-weight:500;">UOM</label><div class="new-opp-inline-uom-wrap"></div></div>
+										<div class="col-md-12"><label style="display:block;margin-bottom:4px;font-weight:500;">Description</label><div class="new-opp-inline-description-wrap"></div></div>
+									</div>
+								</div>
+
+								<input type="hidden" class="new-opp-inline-item-name" value="${esc(itemName)}" />
+							</div>
+						</td>
+					</tr>
+				`;
+
+        const $existingEditor = $row.nextAll(".new-opp-item-inline-editor").first();
+        if ($existingEditor.length) {
+          $existingEditor.replaceWith(editorHtml);
+        } else {
+          const $detailsRow = $row.next(".new-opp-item-inline-details");
+          if ($detailsRow.length) {
+            $detailsRow.after(editorHtml);
+          } else {
+            $row.after(editorHtml);
           }
-        };
-
-        const updateDialogDerivedAmounts = () => {
-          const qty = parseNumber(dialog.get_value("qty"));
-          const rate = parseNumber(dialog.get_value("rate"));
-          const spqRate = parseNumber(dialog.get_value("spq_rate"));
-          const amount = qty * rate;
-          const spqAmount = qty * spqRate;
-
-          if (dialog.fields_dict?.amount) {
-            dialog.set_value("amount", amount.toFixed(2));
-          }
-          if (dialog.fields_dict?.spq_amount) {
-            dialog.set_value("spq_amount", spqAmount.toFixed(2));
-          }
-          if (dialog.fields_dict?.margin) {
-            dialog.set_value("margin", (amount - spqAmount).toFixed(2));
-          }
-        };
-
-        const applyDialogItemAutofill = async (codeValue = "") => {
-          const itemCode = String(codeValue || dialog.get_value("item_code") || "").trim();
-          if (!itemCode) return;
-
-          const itemMetaData = await me.getItemAutofill(itemCode);
-          if (!itemMetaData) return;
-
-          setDialogValue("item_name", itemMetaData.item_name || "");
-          setDialogValue("description", toPlainText(itemMetaData.description || ""));
-          setDialogValue("brand", itemMetaData.brand || "");
-          setDialogValue("item_group", itemMetaData.item_group || "");
-          setDialogValue("uom", itemMetaData.uom || "");
-          setDialogValue("stock_uom", itemMetaData.uom || "");
-
-          const hsnValue = itemMetaData.hsncode || "";
-          setDialogValue("hsncode", hsnValue);
-          setDialogValue("hsn_code", hsnValue);
-          setDialogValue("gst_hsn_code", hsnValue);
-
-          if (dialog.fields_dict?.rate) {
-            dialog.set_value("rate", Number(itemMetaData.rate || 0));
-          }
-          if (dialog.fields_dict?.spq_rate) {
-            dialog.set_value("spq_rate", Number(itemMetaData.buying_rate || 0));
-          }
-
-          updateDialogDerivedAmounts();
-        };
-
-        const prefill = { ...existingExtra, ...baseSnapshot };
-        if (prefill.hsncode && !prefill.hsn_code) prefill.hsn_code = prefill.hsncode;
-        dialog.set_values(prefill);
-
-        if (dialog.fields_dict?.item_code) {
-          const itemCodeField = dialog.fields_dict.item_code;
-          const existingOnChange = itemCodeField.df.onchange;
-          itemCodeField.df.onchange = async function () {
-            if (typeof existingOnChange === "function") {
-              existingOnChange.call(this);
-            }
-            await applyDialogItemAutofill(dialog.get_value("item_code"));
-          };
-
-          itemCodeField.$input
-            ?.off("awesomplete-selectcomplete.newOppPopupItem link-change.newOppPopupItem change.newOppPopupItem blur.newOppPopupItem")
-            .on("awesomplete-selectcomplete.newOppPopupItem link-change.newOppPopupItem change.newOppPopupItem blur.newOppPopupItem", async function () {
-              await applyDialogItemAutofill(dialog.get_value("item_code"));
-            });
         }
 
-        ["qty", "rate", "spq_rate"].forEach((fieldname) => {
-          const $input = dialog.fields_dict?.[fieldname]?.$input;
-          if (!$input?.length) return;
-          $input
-            .off(`input.newOppPopupCalc-${fieldname} change.newOppPopupCalc-${fieldname}`)
-            .on(`input.newOppPopupCalc-${fieldname} change.newOppPopupCalc-${fieldname}`, function () {
-              updateDialogDerivedAmounts();
+        const $editor = $row.nextAll(".new-opp-item-inline-editor").first();
+
+        const isRenewalLikeType = (value) => {
+          const normalized = String(value || "").trim().toLowerCase();
+          return normalized === "renewal" || normalized === "additional";
+        };
+
+        const toggleInlineRenewalField = () => {
+          const opportunityType = $editor.find(`[data-field="opportunity_type"]`).val();
+          const showRenewal = isRenewalLikeType(opportunityType);
+          $editor.find(".new-opp-inline-renewal-wrap").toggle(showRenewal);
+          if (!showRenewal) {
+            $editor.find(`[data-field="renewal_id"]`).val("");
+          }
+        };
+
+        // ORC field visibility toggle
+        const toggleInlineOrcFields = () => {
+          const enabled = $editor.find(".new-opp-inline-orc").is(":checked");
+          $editor.find(".new-opp-inline-commission-col").toggle(enabled);
+          $editor.find(".new-opp-inline-rate-value-col").toggle(enabled);
+        };
+        $editor.find(".new-opp-inline-orc").off("change.orcToggle").on("change.orcToggle", toggleInlineOrcFields);
+        toggleInlineOrcFields();
+
+        // Live amount recalculation
+        const recalcInlineAmounts = () => {
+          const q = parseNumber($editor.find(`[data-field="qty"]`).val());
+          const r = parseNumber($editor.find(`[data-field="rate"]`).val());
+          const sr = parseNumber($editor.find(`[data-field="spq_rate"]`).val());
+          const amt = q * r;
+          const sqAmt = q * sr;
+          $editor.find(".new-opp-inline-computed-amount").text(fmtCurrency(amt));
+          $editor.find(".new-opp-inline-computed-spq-amount").text(fmtCurrency(sqAmt));
+          $editor.find(".new-opp-inline-computed-margin").text(fmtCurrency(amt - sqAmt));
+        };
+        $editor.find(`[data-field="qty"], [data-field="rate"], [data-field="spq_rate"]`)
+          .on("input change", recalcInlineAmounts);
+
+        $editor.find(`[data-field="rate"]`)
+          .off("input.newOppManualRateFlag change.newOppManualRateFlag")
+          .on("input.newOppManualRateFlag change.newOppManualRateFlag", () => {
+            $editor.data("_manualRateEdited", true);
+          });
+
+        $editor.find(`[data-field="spq_rate"]`)
+          .off("input.newOppManualSpqRateFlag change.newOppManualSpqRateFlag")
+          .on("input.newOppManualSpqRateFlag change.newOppManualSpqRateFlag", () => {
+            $editor.data("_manualSpqRateEdited", true);
+          });
+
+        $editor.find(`[data-field="opportunity_type"]`)
+          .off("change.newOppRenewalToggle")
+          .on("change.newOppRenewalToggle", toggleInlineRenewalField);
+        toggleInlineRenewalField();
+
+        // Helper: sync item name display + hidden input
+        const syncInlineItemName = (value) => {
+          const safe = esc(String(value || "").trim());
+          $editor.find(".new-opp-inline-item-name-preview").attr("title", safe).text(safe || "-");
+          $editor.find(".new-opp-inline-item-name").val(String(value || "").trim());
+        };
+
+        // Mount Frappe controls
+        if (frappe?.ui?.form?.make_control) {
+          // Item Code Link control
+          const $codeHolder = $editor.find(".new-opp-inline-item-code-wrap");
+          const applyInlineItemMeta = async () => {
+            if ($editor.data("_suppressInlineItemAutofill")) return;
+            const code = String(itemCodeCtrl?.get_value?.() || "").trim();
+            const codeChanged = Boolean(code) && code !== String(initialInlineItemCode || "").trim();
+            syncInlineItemName(code);
+            if (!code) return;
+            const meta = await me.getItemAutofill(code);
+            if (!meta) return;
+            $editor.data("itemMeta", meta);
+            syncInlineItemName(meta.item_name || code);
+            const brandSafe = esc(meta.brand || "Others");
+            $editor.find(".new-opp-inline-brand-preview").attr("title", brandSafe).text(brandSafe);
+            const manualRateEdited = Boolean($editor.data("_manualRateEdited"));
+            const manualSpqRateEdited = Boolean($editor.data("_manualSpqRateEdited"));
+            if (codeChanged || !manualRateEdited) {
+              $editor.find(`[data-field="rate"]`).val(Number(meta.rate || 0));
+            }
+            if (codeChanged || !manualSpqRateEdited) {
+              $editor.find(`[data-field="spq_rate"]`).val(Number(meta.buying_rate || 0));
+            }
+            recalcInlineAmounts();
+            const uomCtrl2 = $editor.data("uomControl");
+            if (uomCtrl2?.set_value) uomCtrl2.set_value(meta.uom || "");
+            const descCtrl2 = $editor.data("descControl");
+            if (descCtrl2?.set_value) descCtrl2.set_value(meta.description_html || meta.description || "");
+          };
+
+          const itemCodeCtrl = frappe.ui.form.make_control({
+            parent: $codeHolder,
+            df: {
+              fieldtype: "Link",
+              fieldname: "new_opp_inline_item_code",
+              options: "Item",
+              label: "",
+              placeholder: __("Item Code"),
+              get_query: () => ({ filters: { disabled: 0 } }),
+              onchange: async () => {
+                await applyInlineItemMeta();
+              },
+            },
+            render_input: true,
+          });
+          $editor.data("_suppressInlineItemAutofill", true);
+          itemCodeCtrl.set_value(itemCode);
+          $editor.removeData("_suppressInlineItemAutofill");
+          $editor.data("itemCodeControl", itemCodeCtrl);
+          me.configureItemAdvancedSearch(itemCodeCtrl);
+          me.attachInlineLinkPortal(itemCodeCtrl);
+          itemCodeCtrl.$input
+            ?.off("change.newOppInlineItem blur.newOppInlineItem awesomplete-selectcomplete.newOppInlineItem")
+            ?.on("change.newOppInlineItem blur.newOppInlineItem awesomplete-selectcomplete.newOppInlineItem", async () => {
+              if ($editor.data("_suppressInlineItemAutofill")) return;
+              await applyInlineItemMeta();
             });
+          if (itemCodeCtrl.$wrapper?.length) {
+            itemCodeCtrl.$wrapper.find(".frappe-control, .form-group, .clearfix").css({ marginBottom: "0" });
+            itemCodeCtrl.$wrapper.find(".control-input-wrapper, .awesomplete, .input-with-feedback").css({ width: "100%" });
+            itemCodeCtrl.$wrapper.find(".control-label, .help-box").hide();
+          }
+
+          // UOM Link control
+          const $uomHolder = $editor.find(".new-opp-inline-uom-wrap");
+          const uomCtrl = frappe.ui.form.make_control({
+            parent: $uomHolder,
+            df: { fieldtype: "Link", fieldname: "new_opp_inline_uom", options: "UOM", label: "" },
+            render_input: true,
+          });
+          uomCtrl.set_value(uom);
+          $editor.data("uomControl", uomCtrl);
+          me.attachInlineLinkPortal(uomCtrl);
+          if (uomCtrl.$wrapper?.length) {
+            uomCtrl.$wrapper.find(".frappe-control, .form-group, .clearfix").css({ marginBottom: "0" });
+            uomCtrl.$wrapper.find(".control-input-wrapper, .awesomplete, .input-with-feedback").css({ width: "100%" });
+            uomCtrl.$wrapper.find(".control-label, .help-box").hide();
+          }
+
+          // Description Text Editor control
+          const $descHolder = $editor.find(".new-opp-inline-description-wrap");
+          const descCtrl = frappe.ui.form.make_control({
+            parent: $descHolder,
+            df: { fieldtype: "Text Editor", fieldname: "new_opp_inline_description", label: "" },
+            render_input: true,
+          });
+          descCtrl.set_value(String(stored.description || ""));
+          $editor.data("descControl", descCtrl);
+          if (descCtrl.$wrapper?.length) {
+            descCtrl.$wrapper.find(".control-label, .help-box").hide();
+            descCtrl.$wrapper.find(".ql-container").css({ minHeight: "120px" });
+          }
+        }
+      });
+
+    $scope
+      .off("click", ".new-opp-inline-cancel")
+      .on("click", ".new-opp-inline-cancel", function (e) {
+        e.preventDefault();
+        $(this).closest("tr.new-opp-item-inline-editor").remove();
+      });
+
+    $scope
+      .off("click", ".new-opp-inline-apply")
+      .on("click", ".new-opp-inline-apply", function (e) {
+        e.preventDefault();
+        const $editor = $(this).closest("tr.new-opp-item-inline-editor");
+        const $row = $editor.prevAll("tr.new-opp-item-main-row").first();
+        if (!$row.length) return;
+
+        const getField = (fieldname) => {
+          const $field = $editor.find(`.new-opp-inline-field[data-field='${fieldname}']`);
+          if (!$field.length) return "";
+          if ($field.attr("type") === "checkbox") return $field.is(":checked") ? 1 : 0;
+          return String($field.val() || "").trim();
+        };
+
+        const itemCodeCtrl = $editor.data("itemCodeControl");
+        const uomCtrl = $editor.data("uomControl");
+        const descCtrl = $editor.data("descControl");
+        const itemMeta = $editor.data("itemMeta") || {};
+
+        const resolvedItemCode = String(itemCodeCtrl?.get_value?.() || getRowItemCode($row) || "").trim();
+        const resolvedItemName = String($editor.find(".new-opp-inline-item-name").val() || itemMeta.item_name || resolvedItemCode || "").trim();
+        const resolvedBrand = String($editor.find(".new-opp-inline-brand-preview").text() || itemMeta.brand || "").trim();
+        const resolvedUom = String(uomCtrl?.get_value?.() || "").trim();
+        const resolvedDescription = descCtrl?.get_value ? descCtrl.get_value() : "";
+
+        const values = {
+          item_code: resolvedItemCode,
+          item_name: resolvedItemName,
+          qty: parseNumber(getField("qty")),
+          rate: parseNumber(getField("rate")),
+          spq_rate: parseNumber(getField("spq_rate")),
+          uom: resolvedUom,
+          brand: resolvedBrand,
+          item_group: String($row.find(".new-opp-item-group").val() || itemMeta.item_group || "").trim(),
+          sales_stage: getField("sales_stage"),
+          expected_date: getField("expected_date"),
+          opportunity_type: getField("opportunity_type"),
+          forecast: getField("forecast"),
+          renewal_id: getField("renewal_id"),
+          orc: Number(getField("orc") || 0),
+          commission_type: getField("commission_type"),
+          rate_value: parseNumber(getField("rate_value")),
+          description: resolvedDescription || String($row.find(".new-opp-item-description").val() || "").trim(),
+        };
+
+        if (!String(values.expected_date || "").trim()) {
+          frappe.msgprint(__("Expected Closing Date is mandatory."));
+          $editor.find(`[data-field="expected_date"]`).focus();
+          return;
+        }
+
+        const isRenewalOrAdditional = ["renewal", "additional"].includes(String(values.opportunity_type || "").trim().toLowerCase());
+        if (!isRenewalOrAdditional) {
+          values.renewal_id = "";
+        }
+
+        values.amount = Number(values.qty || 0) * Number(values.rate || 0);
+        values.spq_amount = Number(values.qty || 0) * Number(values.spq_rate || 0);
+        values.margin = Number(values.amount || 0) - Number(values.spq_amount || 0);
+
+        $row.data("manualItemValues", {
+          ...($row.data("manualItemValues") || {}),
+          qty: values.qty,
+          rate: values.rate,
+          amount: values.amount,
+          spq_rate: values.spq_rate,
+          spq_amount: values.spq_amount,
+          margin: values.margin,
         });
 
-        updateDialogDerivedAmounts();
-        dialog.show();
+        const setVal = (selector, val) => {
+          const $field = $row.find(selector);
+          if ($field.length) $field.val(val == null ? "" : val);
+        };
+
+        // Write item code + item name back to main row
+        const rowItemCodeCtrl = $row.data("itemCodeControl");
+        const previousItemCode = String(
+          $row.find(".new-opp-item-code").val()
+          || rowItemCodeCtrl?.get_value?.()
+          || ""
+        ).trim();
+
+        if (resolvedItemCode) {
+          $row.find(".new-opp-item-code").val(resolvedItemCode);
+
+          // Avoid re-fetch/reset of manually edited rate/SPQ rate when item code is unchanged.
+          if (rowItemCodeCtrl?.set_value && resolvedItemCode !== previousItemCode) {
+            $row.data("_suppressItemAutofill", true);
+            rowItemCodeCtrl.set_value(resolvedItemCode);
+            $row.removeData("_suppressItemAutofill");
+          }
+        }
+        $row.find(".new-opp-item-name").val(resolvedItemName);
+
+        setVal(".new-opp-item-rate", values.rate);
+        setVal(".new-opp-item-qty", values.qty);
+        setVal(".new-opp-item-amount", values.amount);
+        setVal(".new-opp-item-brand", values.brand);
+        setVal(".new-opp-item-group", values.item_group);
+        setVal(".new-opp-item-description", values.description);
+        setVal(".new-opp-item-spq-rate", values.spq_rate);
+        setVal(".new-opp-item-spq-amount", values.spq_amount);
+        setVal(".new-opp-item-margin", values.margin);
+        setVal(".new-opp-item-uom", values.uom);
+        setVal(".new-opp-item-opportunity-type", values.opportunity_type);
+        setVal(".new-opp-item-forecast", values.forecast);
+        setVal(".new-opp-item-sales-stage", values.sales_stage);
+        setVal(".new-opp-item-expected-date", values.expected_date);
+        setVal(".new-opp-item-commission-type", values.commission_type);
+        setVal(".new-opp-item-rate-value", values.rate_value);
+
+        const renewalIdControl = $row.data("renewalIdControl");
+        if (renewalIdControl?.set_value) {
+          renewalIdControl.set_value(values.renewal_id || "");
+        }
+
+        $row.find(".new-opp-item-orc").prop("checked", Number(values.orc || 0) === 1);
+        toggleOrcDependentFields($row, true);
+
+        const existingExtra = { ...($row.data("extraItemFields") || {}) };
+        $row.data("extraItemFields", {
+          ...existingExtra,
+          ...values,
+        });
+
+        $row.data("sourceItemFields", {
+          ...($row.data("sourceItemFields") || {}),
+          ...values,
+        });
+
+        recalcItemAmount($row);
+
+        const syncedQty = parseNumber($row.find(".new-opp-item-qty").val());
+        const syncedRate = parseNumber($row.find(".new-opp-item-rate").val());
+        const syncedAmount = parseNumber($row.find(".new-opp-item-amount").val());
+        const syncedSpqRate = parseNumber($row.find(".new-opp-item-spq-rate").val());
+        const syncedSpqAmount = parseNumber($row.find(".new-opp-item-spq-amount").val());
+        const syncedMargin = parseNumber($row.find(".new-opp-item-margin").val());
+
+        // Ensure row display reflects latest applied values immediately.
+        $row.find(".new-opp-display-qty").text(fmtInt(syncedQty));
+        $row.find(".new-opp-display-rate").text(fmtCurrency(syncedRate));
+        $row.find(".new-opp-display-amount").text(fmtCurrency(syncedAmount));
+        $row.find(".new-opp-display-spq-rate").text(fmtCurrency(syncedSpqRate));
+        $row.find(".new-opp-display-spq-amount").text(fmtCurrency(syncedSpqAmount));
+        $row.find(".new-opp-display-margin").text(fmtCurrency(syncedMargin));
+
+        $row.data("currentItemValues", {
+          ...($row.data("currentItemValues") || {}),
+          ...values,
+          qty: syncedQty,
+          rate: syncedRate,
+          amount: syncedAmount,
+          spq_rate: syncedSpqRate,
+          spq_amount: syncedSpqAmount,
+          margin: syncedMargin,
+        });
+
+        syncNewOppMainRowDisplay($row);
+        renderInlineItemDetails($row, false);
+        $row.nextAll("tr.new-opp-item-inline-details").first().remove();
+        $editor.remove();
       });
 
     $scope
@@ -1401,10 +2064,10 @@ class opportunitydatapage {
               read_only: 1,
             },
             {
-              label: "TPOC",
+              label: "POC",
               fieldname: "tpoc",
               fieldtype: "Check",
-              description: "Is this contact a Technical Point of Contact?",
+              description: "Is this contact a Point of Contact?",
               default: 0,
             },
           ],
@@ -1460,92 +2123,135 @@ class opportunitydatapage {
       });
 
     renderContactMiniList();
-    renderSalesTeamMiniList();
 
+    // Render inline sales person display — name only; click name to expand email/mobile
+    const renderSalesPersonDisplay = async (salesPersonName) => {
+      const $display = $scope.find("#new-opp-sales-person-display");
+      if (!$display.length) return;
+
+      if (!salesPersonName) {
+        $display.html("");
+        me.setNewOpportunitySalesTeam([]);
+        return;
+      }
+
+      const resolved = await resolveSalesPersonContact(salesPersonName);
+      const safeName = frappe.utils.escape_html(salesPersonName);
+      const safeMobile = frappe.utils.escape_html(resolved.mobile_no || "");
+      const safeEmail = frappe.utils.escape_html(resolved.email_id || "");
+      const isExpanded = Boolean(me._newOppSalesPersonExpanded);
+
+      $display.html(`
+				<div class="new-opp-contact-entry" data-sales-person-inline="${safeName}">
+					<div class="new-opp-contact-entry-top">
+						<span class="new-opp-contact-entry-name" title="${safeName}">
+							<span class="new-opp-sales-person-name-toggle">${safeName}</span>
+						</span>
+					</div>
+					<div class="new-opp-contact-entry-details ${isExpanded ? "" : "d-none"}">
+						${safeMobile ? `<div class="new-opp-contact-entry-meta" title="${safeMobile}">${safeMobile}</div>` : ""}
+						${safeEmail ? `<div class="new-opp-contact-entry-meta" title="${safeEmail}">${safeEmail}</div>` : ""}
+						${!safeMobile && !safeEmail ? `<div class="new-opp-contact-entry-meta text-muted">No details</div>` : ""}
+					</div>
+				</div>
+			`);
+
+      me.setNewOpportunitySalesTeam([{
+        sales_person: salesPersonName,
+        mobile_no: resolved.mobile_no || "",
+        email_id: resolved.email_id || "",
+        allocated_percentage: 100,
+      }]);
+    };
+
+    // Click to expand/collapse sales person details
     $scope
-      .off("click", "#new-opp-sales-team-quick-add")
-      .on("click", "#new-opp-sales-team-quick-add", function (e) {
+      .off("click", ".new-opp-sales-person-name-toggle")
+      .on("click", ".new-opp-sales-person-name-toggle", function (e) {
         e.preventDefault();
-        const selectedCustomer = me.getNewOpportunityPartyName();
-        if (!selectedCustomer) {
-          frappe.msgprint(__("Please select a Customer first."));
-          return;
-        }
-
-        const dialog = new frappe.ui.Dialog({
-          title: __("Add Sales Team"),
-          fields: [
-            {
-              label: "Sales Person",
-              fieldname: "sales_person",
-              fieldtype: "Link",
-              options: "Sales Person",
-              reqd: 1,
-            },
-            {
-              label: "Mobile No",
-              fieldname: "mobile_no",
-              fieldtype: "Data",
-              read_only: 1,
-            },
-            {
-              label: "Email ID",
-              fieldname: "email_id",
-              fieldtype: "Data",
-              read_only: 1,
-            },
-            {
-              label: "Allocation %",
-              fieldname: "allocated_percentage",
-              fieldtype: "Float",
-              default: 100,
-              read_only: 1,
-            },
-          ],
-          primary_action_label: __("Add"),
-          primary_action(values) {
-            const salesPersonValue = String(values.sales_person || "").trim();
-            if (!salesPersonValue) return;
-
-            const nextValues = [
-              ...me
-                .getNewOpportunitySalesTeam()
-                .filter((entry) => String(entry?.sales_person || "").trim() !== salesPersonValue),
-              {
-                sales_person: salesPersonValue,
-                mobile_no: String(values.mobile_no || "").trim(),
-                email_id: String(values.email_id || "").trim(),
-                allocated_percentage: 100,
-              },
-            ];
-            me.setNewOpportunitySalesTeam(nextValues);
-            dialog.hide();
-          },
-        });
-
-        dialog.fields_dict.sales_person.df.onchange = async function () {
-          const salesPersonName = String(dialog.get_value("sales_person") || "").trim();
-          if (!salesPersonName) {
-            dialog.set_value("mobile_no", "");
-            dialog.set_value("email_id", "");
-            dialog.set_value("allocated_percentage", 100);
-            return;
-          }
-
-          const resolved = await resolveSalesPersonContact(salesPersonName);
-          dialog.set_value("mobile_no", String(resolved.mobile_no || "").trim());
-          dialog.set_value("email_id", String(resolved.email_id || "").trim());
-          dialog.set_value("allocated_percentage", 100);
-        };
-
-        dialog.show();
+        me._newOppSalesPersonExpanded = !Boolean(me._newOppSalesPersonExpanded);
+        $(this).closest(".new-opp-contact-entry")
+          .find(".new-opp-contact-entry-details")
+          .toggleClass("d-none", !me._newOppSalesPersonExpanded);
       });
+
+    // Hook into the sales person link control after it's rendered
+    const wireNewOppSalesPersonControl = () => {
+      const ctrl = me._newOppSalesPersonControl;
+      if (!ctrl || ctrl._salesPersonChangeHooked) return;
+      ctrl._salesPersonChangeHooked = true;
+
+      const handleChange = async () => {
+        const val = String(ctrl.get_value?.() || "").trim();
+        await renderSalesPersonDisplay(val);
+      };
+
+      if (ctrl.$input?.length) {
+        ctrl.$input
+          .off("awesomplete-selectcomplete.salesPersonChange link-change.salesPersonChange change.salesPersonChange")
+          .on("awesomplete-selectcomplete.salesPersonChange link-change.salesPersonChange change.salesPersonChange", handleChange);
+      }
+
+      const existingOnChange = ctrl.df.onchange;
+      ctrl.df.onchange = async function () {
+        if (typeof existingOnChange === "function") existingOnChange.call(this);
+        await handleChange();
+      };
+    };
+
+    wireNewOppSalesPersonControl();
+    // Retry once after short delay in case control isn't fully ready
+    setTimeout(wireNewOppSalesPersonControl, 300);
 
     $scope
       .off("click", "#new-opp-cancel")
       .on("click", "#new-opp-cancel", function (e) {
         e.preventDefault();
         frappe.set_route(OPP_CFG.ROUTE);
+      });
+
+    $scope
+      .off("click", "#new-opp-back")
+      .on("click", "#new-opp-back", function (e) {
+        e.preventDefault();
+        const current = me._newOppCurrentStep || 1;
+        if (current > 1) me.gotoNewWizardStep(current - 1);
+      });
+
+    $scope
+      .off("click", "#new-opp-next")
+      .on("click", "#new-opp-next", function (e) {
+        e.preventDefault();
+        const current = me._newOppCurrentStep || 1;
+        if (current === 1) {
+          const partyName = me.getNewOpportunityPartyName();
+          if (!partyName) {
+            frappe.show_alert({ message: __("Please select a Customer before proceeding."), indicator: "red" }, 4);
+            return;
+          }
+        }
+        me.gotoNewWizardStep(current + 1);
+      });
+
+    $scope
+      .off("click", ".new-opp-wizard-step")
+      .on("click", ".new-opp-wizard-step", function (e) {
+        e.preventDefault();
+        const targetStep = parseInt($(this).data("step"), 10);
+        if (!Number.isFinite(targetStep) || targetStep < 1) return;
+
+        const totalSteps = $scope.find(".new-opp-wizard-step").length || 4;
+        const safeStep = Math.min(Math.max(targetStep, 1), totalSteps);
+
+        if (safeStep > 1) {
+          const partyName = me.getNewOpportunityPartyName();
+          if (!partyName) {
+            frappe.show_alert({ message: __("Please select a Customer before proceeding."), indicator: "red" }, 4);
+            return;
+          }
+        }
+
+        me.gotoNewWizardStep(safeStep);
       });
 
     $scope
@@ -1559,10 +2265,10 @@ class opportunitydatapage {
         }
 
         const partyName = me.getNewOpportunityPartyName();
-        const salesStage = ($scope.find("#new-opp-sales-stage").val() || "").trim();
+        const salesStage = "Initial Analysis";
         const description = ($scope.find("#new-opp-description").val() || "").trim();
-        const transactionDate = String($scope.find("#new-opp-transaction-date").val() || "").trim();
-        const opportunityOwner = me.getNewOpportunityOwner();
+        const transactionDate = frappe.datetime.nowdate();
+        const opportunityOwner = frappe.session.user || "";
         const company = me.getNewOpportunityCompany();
         const primaryContact = me.getNewOpportunityContact();
         const salesTeamList = me.getNewOpportunitySalesTeam();
@@ -1631,31 +2337,53 @@ class opportunitydatapage {
         };
 
         const itemRows = $scope
-          .find("#new-opp-items-table-body tr")
+          .find("#new-opp-items-table-body tr.new-opp-item-main-row")
           .map((_, row) => {
             const $row = $(row);
+            const manualValues = { ...($row.data("manualItemValues") || {}) };
+            const stored = {
+              ...($row.data("sourceItemFields") || {}),
+              ...($row.data("extraItemFields") || {}),
+              ...manualValues,
+            };
+            const pickText = (selector, fallbackKey = "") => {
+              const $field = $row.find(selector);
+              const current = String($field.val() || "").trim();
+              if (current) return current;
+              return String(stored[fallbackKey] || "").trim();
+            };
+            const pickNumber = (selector, fallbackKey = "") => {
+              const manualVal = manualValues[fallbackKey];
+              if (manualVal !== undefined && manualVal !== null && manualVal !== "") {
+                return parseNumber(manualVal);
+              }
+              const $field = $row.find(selector);
+              const raw = String($field.val() || "").trim();
+              if (raw) return parseNumber(raw);
+              return parseNumber(stored[fallbackKey]);
+            };
             const itemCodeControl = $row.data("itemCodeControl");
             const item_code = String((itemCodeControl?.get_value?.() || $row.find(".new-opp-item-code").val() || "")).trim();
-            const item_name = String($row.find(".new-opp-item-name").val() || "").trim();
-            const qty = parseNumber($row.find(".new-opp-item-qty").val());
-            const rate = parseNumber($row.find(".new-opp-item-rate").val());
-            const amount = parseNumber($row.find(".new-opp-item-amount").val()) || (qty * rate);
-            const brand = String($row.find(".new-opp-item-brand").val() || "").trim();
-            const item_group = String($row.find(".new-opp-item-group").val() || "").trim();
-            const description = String($row.find(".new-opp-item-description").val() || "").trim();
-            const hsncode = String($row.find(".new-opp-item-hsncode").val() || "").trim();
-            const spq_rate = parseNumber($row.find(".new-opp-item-spq-rate").val());
-            const spq_amount = parseNumber($row.find(".new-opp-item-spq-amount").val()) || (qty * spq_rate);
-            const margin = parseNumber($row.find(".new-opp-item-margin").val()) || (amount - spq_amount);
-            const uom = String($row.find(".new-opp-item-uom").val() || "").trim();
-            const opportunity_type = String($row.find(".new-opp-item-opportunity-type").val() || "").trim();
-            const forecast = String($row.find(".new-opp-item-forecast").val() || "").trim();
-            const renewal_id = getRowRenewalId($row);
-            const sales_stage = String($row.find(".new-opp-item-sales-stage").val() || "").trim();
-            const expected_date = String($row.find(".new-opp-item-expected-date").val() || "").trim();
-            const orc = $row.find(".new-opp-item-orc").is(":checked") ? 1 : 0;
-            const commission_type = String($row.find(".new-opp-item-commission-type").val() || "").trim();
-            const rate_value = parseNumber($row.find(".new-opp-item-rate-value").val());
+            const item_name = pickText(".new-opp-item-name", "item_name");
+            const qty = pickNumber(".new-opp-item-qty", "qty");
+            const rate = pickNumber(".new-opp-item-rate", "rate");
+            const amount = pickNumber(".new-opp-item-amount", "amount") || (qty * rate);
+            const brand = pickText(".new-opp-item-brand", "brand");
+            const item_group = pickText(".new-opp-item-group", "item_group");
+            const description = pickText(".new-opp-item-description", "description");
+            const hsncode = pickText(".new-opp-item-hsncode", "hsncode");
+            const spq_rate = pickNumber(".new-opp-item-spq-rate", "spq_rate");
+            const spq_amount = pickNumber(".new-opp-item-spq-amount", "spq_amount") || (qty * spq_rate);
+            const margin = pickNumber(".new-opp-item-margin", "margin") || (amount - spq_amount);
+            const uom = pickText(".new-opp-item-uom", "uom");
+            const opportunity_type = pickText(".new-opp-item-opportunity-type", "opportunity_type");
+            const forecast = pickText(".new-opp-item-forecast", "forecast");
+            const renewal_id = getRowRenewalId($row) || String(stored.renewal_id || "").trim();
+            const sales_stage = pickText(".new-opp-item-sales-stage", "sales_stage");
+            const expected_date = pickText(".new-opp-item-expected-date", "expected_date");
+            const orc = $row.find(".new-opp-item-orc").length ? ($row.find(".new-opp-item-orc").is(":checked") ? 1 : 0) : (Number(stored.orc || 0) ? 1 : 0);
+            const commission_type = pickText(".new-opp-item-commission-type", "commission_type");
+            const rate_value = pickNumber(".new-opp-item-rate-value", "rate_value");
             const _extra_fields = { ...($row.data("extraItemFields") || {}) };
             if (!item_code) return null;
             return {
@@ -1697,6 +2425,13 @@ class opportunitydatapage {
         if (invalidMarginRow) {
           const itemLabel = String(invalidMarginRow.item_code || invalidMarginRow.item_name || "row").trim();
           frappe.msgprint(__(`Margin must be greater than 0 for item: ${itemLabel}`));
+          return;
+        }
+
+        const invalidExpectedDateRow = itemRows.find((row) => !String(row?.expected_date || "").trim());
+        if (invalidExpectedDateRow) {
+          const itemLabel = String(invalidExpectedDateRow.item_code || invalidExpectedDateRow.item_name || "row").trim();
+          frappe.msgprint(__(`Expected Closing Date is mandatory for item: ${itemLabel}`));
           return;
         }
 
@@ -1886,8 +2621,8 @@ class opportunitydatapage {
             setIfField(child, "item_group", row.item_group);
             setIfField(child, "description", row.description);
             setIfField(child, ["hsncode", "hsn_code", "gst_hsn_code"], row.hsncode);
-            setIfField(child, "spq_rate", row.spq_rate);
-            setIfField(child, "spq_amount", row.spq_amount);
+            setIfField(child, ["spq_rate", "buying_rate", "purchase_rate"], row.spq_rate);
+            setIfField(child, ["spq_amount", "buying_amount", "purchase_amount"], row.spq_amount);
             setIfField(child, "margin", row.margin);
             setIfField(child, ["uom", "stock_uom"], row.uom);
             setIfField(child, "opportunity_type", row.opportunity_type);
@@ -1980,8 +2715,8 @@ class opportunitydatapage {
     };
 
     ensureLinkControl("#new-opp-party-name-control", "_newOppPartyControl", "Customer");
-    ensureLinkControl("#new-opp-owner-control", "_newOppOwnerControl", "User");
     ensureLinkControl("#new-opp-company-control", "_newOppCompanyControl", "Company");
+    ensureLinkControl("#new-opp-sales-person-control", "_newOppSalesPersonControl", "Sales Person");
   }
 
   getNewOpportunityPartyName() {
@@ -2127,16 +2862,17 @@ class opportunitydatapage {
     this.setNewOpportunitySalesTeam([]);
     this.setNewOpportunityPartyName("");
     this.setNewOpportunityContact(this._currentContactId || "");
-    $scope.find("#new-opp-sales-stage").val("Open");
     $scope.find("#new-opp-description").val("");
-    $scope.find("#new-opp-transaction-date").val(frappe.datetime.nowdate());
-    this.setNewOpportunityOwner(frappe.session.user || "");
     this.setNewOpportunityCompany(frappe.defaults.get_default("Company") || "");
+    if (this._newOppSalesPersonControl?.set_value) {
+      this._newOppSalesPersonControl.set_value("");
+    }
+    $scope.find("#new-opp-sales-person-display").html("");
     this._newOppContactList = [];
     $scope.find("#new-opp-items-table-body").html("");
-    $scope.find("#new-opp-add-item").trigger("click");
     $scope.find("#new-opp-save").prop("disabled", false).text("Create Opportunity");
     $scope.trigger("new-opp-contact-changed");
+    this.gotoNewWizardStep(1);
   }
 
   bindLineItemsFullWidth() {
@@ -2145,6 +2881,19 @@ class opportunitydatapage {
       .on("resize.oppLineItemsWidth", () => {
         this.updateLineItemsFullWidth();
       });
+
+    const $scrollContainers = $(this.page.wrapper).find(".detail-card--lineitems .table-wrap, #new-opp-items-table-wrap, .new-opp-item-inline-editor-wrap");
+    const setLineItemsScroll = function () {
+      const scrollLeft = this.scrollLeft || 0;
+      const root = this.closest(".detail-card--lineitems, #new-opp-items-table-wrap") || this;
+      if (root && root.style) {
+        root.style.setProperty("--line-items-scroll", `${scrollLeft}px`);
+      }
+    };
+
+    $scrollContainers
+      .off("scroll.oppLineItemsSticky")
+      .on("scroll.oppLineItemsSticky", setLineItemsScroll);
 
     setTimeout(() => this.updateLineItemsFullWidth(), 0);
     setTimeout(() => this.updateLineItemsFullWidth(), 120);
@@ -2204,7 +2953,16 @@ class opportunitydatapage {
 
     const positionList = () => {
       const rect = inputEl.getBoundingClientRect();
-      if (!rect.width || !rect.height) return;
+      if (!rect.width || !rect.height) {
+        listEl.style.display = "none";
+        return;
+      }
+
+      const isOutOfView = rect.bottom < 0 || rect.top > window.innerHeight || rect.right < 0 || rect.left > window.innerWidth;
+      if (isOutOfView) {
+        listEl.style.display = "none";
+        return;
+      }
 
       let top = rect.bottom + 4;
       let maxH = window.innerHeight - top - 10;
@@ -2220,13 +2978,246 @@ class opportunitydatapage {
       listEl.style.top = `${Math.round(top)}px`;
       listEl.style.width = `${Math.max(Math.round(rect.width), 220)}px`;
       listEl.style.maxHeight = `${Math.round(maxH)}px`;
+      listEl.style.display = "block";
     };
 
-    $input.off("focus.inlinePortal input.inlinePortal keyup.inlinePortal click.inlinePortal");
+    const hideList = () => {
+      listEl.style.display = "none";
+    };
+
+    $input.off("focus.inlinePortal input.inlinePortal keyup.inlinePortal click.inlinePortal blur.inlinePortal");
     $input.on("focus.inlinePortal input.inlinePortal keyup.inlinePortal click.inlinePortal", () => {
       setTimeout(positionList, 0);
       setTimeout(positionList, 70);
     });
+    $input.on("blur.inlinePortal", () => {
+      setTimeout(() => {
+        const active = document.activeElement;
+        if (active !== inputEl && !listEl.contains(active)) {
+          hideList();
+        }
+      }, 150);
+    });
+
+    if (!control.__inlinePortalScrollBound) {
+      const handleViewportChange = () => {
+        if (document.activeElement === inputEl) {
+          positionList();
+        } else {
+          hideList();
+        }
+      };
+      window.addEventListener("scroll", handleViewportChange, true);
+      window.addEventListener("resize", handleViewportChange, true);
+      control.__inlinePortalScrollBound = true;
+    }
+  }
+
+  ensureItemLinkSelectorPatched() {
+    const LinkSelector = frappe?.ui?.form?.LinkSelector;
+    if (!LinkSelector || LinkSelector.__renewalItemSearchPatched) return;
+
+    if (!frappe.__renewalItemLinkSearchPatched && typeof frappe.link_search === "function") {
+      const originalLinkSearch = frappe.link_search;
+      const customQueryMethod =
+        "renewal_module.custom_module.page.opportunity_data.opportunity_data.search_items_for_link";
+
+      frappe.link_search = function (doctype, args, callback, btn) {
+        const queryMethod = args?.query;
+        if (queryMethod !== customQueryMethod) {
+          return originalLinkSearch.call(this, doctype, args, callback, btn);
+        }
+
+        const safeArgs = Object.assign({}, args || {}, { doctype, searchfield: args?.searchfield || "name" });
+        let retried = false;
+
+        const execute = () => {
+          frappe.call({
+            method: "frappe.desk.search.search_widget",
+            type: "GET",
+            args: safeArgs,
+            btn,
+            callback: function (r) {
+              callback && callback(r?.message || []);
+            },
+            error: function (err) {
+              const message = String(err?.message || err?.exception || err?.statusText || "");
+              const canRetry = !retried && /(network changed|err_network_changed|failed to fetch|networkerror)/i.test(message);
+
+              if (canRetry) {
+                retried = true;
+                setTimeout(execute, 350);
+                return;
+              }
+
+              callback && callback([]);
+              frappe.show_alert({
+                message: __("Search interrupted by network/security layer. Please retry."),
+                indicator: "orange",
+              }, 5);
+            },
+          });
+        };
+
+        execute();
+      };
+
+      frappe.__renewalItemLinkSearchPatched = true;
+    }
+
+    const originalMake = LinkSelector.prototype.make;
+
+    LinkSelector.prototype.make = function () {
+      originalMake.call(this);
+
+      if (!this.custom_item_search || this.doctype !== "Item") return;
+
+      const txtField = this.dialog?.fields_dict?.txt;
+      const resultsField = this.dialog?.fields_dict?.results;
+      if (!txtField?.$wrapper?.length || !resultsField?.$wrapper?.length) return;
+
+      this.dialog.$wrapper.find(".custom-item-advanced-search").remove();
+      txtField.$wrapper.addClass("d-none");
+
+      const state = this.target?._itemAdvancedSearchState || {};
+      const $filters = $(
+        `<div class="custom-item-advanced-search mb-3" style="padding-bottom:12px;border-bottom:1px solid #e5e7eb;">
+					<div class="custom-item-filter-row" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:nowrap;overflow-x:auto;">
+						<div style="min-width:170px;flex:1 1 170px;">
+							<label class="small text-muted d-block mb-1">Brand</label>
+							<input type="text" class="form-control form-control-sm" data-item-filter="brand" placeholder="Search brand">
+						</div>
+						<div style="min-width:130px;flex:0 0 130px;">
+							<label class="small text-muted d-block mb-1">Tenure</label>
+							<select class="form-control form-control-sm" data-item-filter="tenure">
+								<option value="">Select</option>
+								<option value="Years">Years</option>
+								<option value="Months">Months</option>
+							</select>
+						</div>
+						<div style="min-width:150px;flex:0 0 150px;">
+							<label class="small text-muted d-block mb-1">Years/Months</label>
+							<input type="text" class="form-control form-control-sm" data-item-filter="years_months" placeholder="Enter value">
+						</div>
+						<div style="min-width:190px;flex:1 1 190px;">
+							<label class="small text-muted d-block mb-1">Product</label>
+							<input type="text" class="form-control form-control-sm" data-item-filter="product" placeholder="Search product">
+						</div>
+					</div>
+				</div>`
+      );
+
+      $filters.find("[data-item-filter]").each(function () {
+        const fieldname = $(this).data("itemFilter");
+        $(this).val(state[fieldname] || "");
+      });
+
+      resultsField.$wrapper.before($filters);
+
+      const runSearch = () => {
+        this.start = 0;
+        this.search();
+      };
+
+      // Debounced auto-search for text inputs
+      let _searchTimer = null;
+      const debouncedSearch = () => {
+        clearTimeout(_searchTimer);
+        _searchTimer = setTimeout(runSearch, 400);
+      };
+
+      // Update state for all filter fields (input for text, change for select)
+      $filters.on("input change", "[data-item-filter]", (event) => {
+        const $el = $(event.currentTarget);
+        const fieldname = $el.data("itemFilter");
+        if (this.target?._itemAdvancedSearchState) {
+          this.target._itemAdvancedSearchState[fieldname] = String($el.val() || "").trim();
+        }
+        // Auto-search: immediately for select, debounced for text inputs
+        if ($el.is("select")) {
+          runSearch();
+        } else {
+          debouncedSearch();
+        }
+      });
+
+      $filters.on("keydown", "input", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        clearTimeout(_searchTimer);
+        runSearch();
+      });
+
+      // Populate datalist suggestions for link fields (Brand, Item Group)
+      $filters.on("input", "[data-item-link]", (event) => {
+        const $el = $(event.currentTarget);
+        const doctype = $el.data("itemLink");
+        const txt = ($el.val() || "").trim();
+        const listId = $el.attr("list");
+        if (!listId) return;
+        const $list = $(`#${listId}`);
+        if (!txt) { $list.empty(); return; }
+        frappe.call({
+          method: "frappe.desk.search.search_link",
+          type: "GET",
+          args: { doctype, txt, page_length: 20, ignore_user_permissions: 0 },
+          callback(r) {
+            $list.empty();
+            (r.message || []).forEach((row) => {
+              const val = typeof row === "string" ? row : (row.value || "");
+              if (val) $list.append($('<option>').attr("value", val));
+            });
+          },
+        });
+      });
+    };
+
+    LinkSelector.__renewalItemSearchPatched = true;
+  }
+
+  configureItemAdvancedSearch(control) {
+    if (!control || control.__itemAdvancedSearchConfigured) return;
+
+    this.ensureItemLinkSelectorPatched();
+    control.__itemAdvancedSearchConfigured = true;
+    control._itemAdvancedSearchState = {
+      brand: "",
+      tenure: "",
+      years_months: "",
+      product: "",
+    };
+
+    const originalSetCustomQuery =
+      typeof control.set_custom_query === "function"
+        ? control.set_custom_query.bind(control)
+        : null;
+
+    control.set_custom_query = (args) => {
+      if (originalSetCustomQuery) originalSetCustomQuery(args);
+
+      args.query = "renewal_module.custom_module.page.opportunity_data.opportunity_data.search_items_for_link";
+      args.filters = Object.assign({}, args.filters || {}, {
+        disabled: 0,
+        brand: control._itemAdvancedSearchState.brand || "",
+        tenure: control._itemAdvancedSearchState.tenure || "",
+        years_months: control._itemAdvancedSearchState.years_months || "",
+        product: control._itemAdvancedSearchState.product || "",
+      });
+    };
+
+    control.open_advanced_search = function () {
+      const doctype = this.get_options();
+      if (!doctype) return false;
+
+      new frappe.ui.form.LinkSelector({
+        doctype,
+        target: this,
+        txt: this.get_input_value(),
+        custom_item_search: true,
+      });
+
+      return false;
+    };
   }
 
   // -------- DATA --------
@@ -2244,80 +3235,11 @@ class opportunitydatapage {
     }
   }
 
-  // fetch_list_data({ reset = false, saved_filters = [], override_filters = {} } = {}) {
-  //   console.log("fetch_list_data called with:", { reset, saved_filters, override_filters });
-  //   if (this._fetching) return Promise.resolve();
-  //   this._fetching = true;
-
-  //   if (reset) {
-  //     this.all_rows = [];
-  //     this.visible_count = 0;
-  //   }
-
-  //   const statusVal = this.active_status || "";
-  //   const probBucket = this.active_probability || "";
-  //   const owners = this.selectedOwners || [];
-
-  //   // normalize advanced filters → pass through as-is (like tickets page)
-  //   const filtersPayload = JSON.stringify(saved_filters || []);
-
-  //   return new Promise((resolve, reject) => {
-  //     frappe.call({
-  //       method: OPP_CFG.API.get_list_data,
-  //       args: {
-  //         start: reset ? 0 : (this.all_rows.length || 0),
-  //         page_length: this.page_length,
-  //         status: statusVal,
-  //         probability: probBucket,     // e.g., "50-75" handled server-side
-  //         owners,
-  //         filters: filtersPayload
-  //       },
-  //       callback: (r) => {
-  //         try {
-  //           const { data = [], total = 0 } = (r && r.message) || {};
-  //           this.total_records = Number.isFinite(total) ? parseInt(total, 10) : (data.length || 0);
-  //           if (reset) this.all_rows = Array.isArray(data) ? data.slice() : [];
-  //           else if (Array.isArray(data) && data.length) this.all_rows = [...this.all_rows, ...data];
-
-  //           this.visible_count = Math.min(this.all_rows.length, this.total_records);
-  //           if (this.total_records === 0) {
-  //             this.all_rows = [];
-  //             this.visible_count = 0;
-  //           }
-  //           this.filtered_rows = this.all_rows.slice();
-  //           this.render_rows(true);
-  //           resolve();
-  //         } catch (err) {
-  //           reject(err);
-  //         } finally {
-  //           this._fetching = false;
-  //         }
-  //       },
-  //       error: (err) => {
-  //         console.error("get_list_data error:", err);
-  //         this._fetching = false;
-  //         reject(err);
-  //       }
-  //     });
-  //   });
-  // }
-
-
-
   /**
- * Fetch paged Opportunity rows with basic filters (status, probability bucket, owners)
- * and advanced filters (saved_filters → JSON).
- *
- * - Prevents overlapping requests with `_fetch_in_progress` (and keeps `_fetching` in sync).
- * - Resets paging state on `reset: true`.
- * - Normalizes `saved_filters` into `[field, operator, value]` triplets.
- * - Accepts `override_filters` to force values (e.g., during URL restore).
- * - Updates counts and renders rows.
- *
- * Expected backend signature (kept as-is from your Opportunity call):
- *   method: OPP_CFG.API.get_list_data
- *   args: { start, page_length, status, probability, owners, filters }
- */
+   * Fetch paged Opportunity rows with basic filters and advanced filters.
+   * - Accepts `override_filters` to force values during URL restore.
+   * - Updates counts and renders rows.
+   */
   fetch_list_data({ reset = false, saved_filters = [], override_filters = {} } = {}) {
     const me = this;
     console.log("%c[Opportunity] fetch_list_data called", "color:#2e86de;", {
@@ -2999,10 +3921,11 @@ class opportunitydatapage {
     ]).catch(() => ({ message: {} }));
 
     const itemInfo = itemRes?.message || {};
+    const rawDescription = String(itemInfo.description || "");
     const normalizedDescription = (
       frappe.utils.strip_html
-        ? frappe.utils.strip_html(String(itemInfo.description || ""))
-        : $("<div>").html(String(itemInfo.description || "")).text()
+        ? frappe.utils.strip_html(rawDescription)
+        : $("<div>").html(rawDescription).text()
     );
     let rate = Number(itemInfo.standard_rate || 0);
     let buyingRate = Number(itemInfo.valuation_rate || 0);
@@ -3041,6 +3964,7 @@ class opportunitydatapage {
       item_code: code,
       item_name: itemInfo.item_name || code,
       description: String(normalizedDescription || "").replace(/\u00a0/g, " ").trim(),
+      description_html: rawDescription,
       item_group: itemInfo.item_group || "",
       brand: itemInfo.brand || "Others",
       hsncode: itemInfo.gst_hsn_code || "",
@@ -3051,6 +3975,140 @@ class opportunitydatapage {
 
     this._itemAutofillCache[code] = out;
     return out;
+  }
+
+  async extractRenewalItemPreset(renewalDoc, renewalId, opportunityType = "Renewal") {
+    const doc = renewalDoc || {};
+    const itemTables = [doc.items, doc.renewal_items, doc.products, doc.product_items].filter(Array.isArray);
+    const itemRow = itemTables.flat().find((row) => String(row?.item_code || row?.item || "").trim()) || {};
+
+    const itemCode = String(
+      itemRow.item_code
+      || itemRow.item
+      || doc.item_code
+      || doc.item
+      || ""
+    ).trim();
+
+    if (!itemCode) return null;
+
+    const qty = Number(itemRow.qty || itemRow.quantity || doc.qty || 1) || 1;
+    let rate = Number(itemRow.rate || doc.rate || 0) || 0;
+    if (!rate) {
+      const amountForRate = Number(itemRow.amount || doc.amount || 0) || 0;
+      rate = qty > 0 ? (amountForRate / qty) : 0;
+    }
+
+    const itemMeta = await this.getItemAutofill(itemCode);
+    if (!rate) rate = Number(itemMeta?.rate || 0) || 0;
+
+    const pickFirstPositive = (...values) => {
+      for (const value of values) {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed) && parsed > 0) return parsed;
+      }
+      return 0;
+    };
+    const spqRate = pickFirstPositive(itemRow.spq_rate, itemRow.buying_rate, itemRow.purchase_rate, itemMeta?.buying_rate);
+    const amount = Number(itemRow.amount || doc.amount || (qty * rate)) || (qty * rate);
+    const spqAmount = pickFirstPositive(itemRow.spq_amount, itemRow.buying_amount, itemRow.purchase_amount) || (qty * spqRate);
+    const margin = Number(itemRow.margin || (amount - spqAmount)) || (amount - spqAmount);
+    const expectedDate = String(
+      // Use Renewal End Date as first priority for expected closing date.
+      itemRow.end_date
+      || itemRow.enddate
+      || itemRow.to_date
+      || itemRow.ends_on
+      || doc.end_date
+      || doc.enddate
+      || doc.to_date
+      || doc.ends_on
+      || itemRow.expected_date
+      || itemRow.schedule_date
+      || itemRow.closure_date
+      || itemRow.closing_date
+      || doc.expected_date
+      || doc.schedule_date
+      || doc.closure_date
+      || doc.closing_date
+      || ""
+    ).trim();
+
+    return {
+      item_code: itemCode,
+      item_name: String(itemRow.item_name || itemMeta?.item_name || itemCode).trim(),
+      brand: String(itemRow.brand || itemMeta?.brand || "").trim(),
+      item_group: String(itemRow.item_group || itemMeta?.item_group || "").trim(),
+      description: String(itemRow.description || itemMeta?.description_html || itemMeta?.description || "").trim(),
+      uom: String(itemRow.uom || itemMeta?.uom || "").trim(),
+      hsncode: String(itemRow.hsncode || itemRow.hsn_code || itemMeta?.hsncode || "").trim(),
+      qty,
+      rate,
+      amount,
+      spq_rate: spqRate,
+      spq_amount: spqAmount,
+      margin,
+      renewal_id: String(renewalId || "").trim(),
+      opportunity_type: String(opportunityType || "").trim(),
+      forecast: "Include",
+      expected_date: expectedDate,
+    };
+  }
+
+  async pickRenewalPresetItem(opportunityType = "Renewal", customerName = "") {
+    const renewalDoctype = (await this.getOpportunityRenewalDoctype()) || "Renewal";
+    const customerFilterField = await this.getOpportunityRenewalCustomerFilterField();
+
+    return await new Promise((resolve) => {
+      let settled = false;
+      const finish = (value) => {
+        if (settled) return;
+        settled = true;
+        resolve(value || null);
+      };
+
+      const dialog = new frappe.ui.Dialog({
+        title: __("Select Renewal"),
+        fields: [
+          {
+            label: "Renewal",
+            fieldname: "renewal_id",
+            fieldtype: "Link",
+            options: renewalDoctype,
+            reqd: 1,
+            get_query: () => {
+              if (!customerName || !customerFilterField) return {};
+              return {
+                filters: {
+                  [customerFilterField]: customerName,
+                },
+              };
+            },
+          },
+        ],
+        primary_action_label: __("Use Renewal"),
+        primary_action: async (values) => {
+          const renewalId = String(values?.renewal_id || "").trim();
+          if (!renewalId) return;
+
+          try {
+            const renewalDoc = await frappe.db.get_doc(renewalDoctype, renewalId);
+            const preset = await this.extractRenewalItemPreset(renewalDoc, renewalId, opportunityType);
+            if (!preset?.item_code) {
+              frappe.msgprint(__("No valid item found in selected renewal."));
+              return;
+            }
+            dialog.hide();
+            finish(preset);
+          } catch (e) {
+            frappe.msgprint(__("Unable to fetch selected renewal."));
+          }
+        },
+      });
+
+      dialog.$wrapper.on("hidden.bs.modal", () => finish(null));
+      dialog.show();
+    });
   }
 
   async renderOpportunityContactSection(doc) {
@@ -3652,6 +4710,107 @@ class opportunitydatapage {
     }
   }
 
+  getItemSpqRateNumber(item = {}, fallback = 0) {
+    const candidateFields = Array.isArray(arguments[2]) ? arguments[2] : [];
+    const asNumber = (value) => {
+      const parsed = parseFloat(String(value ?? "").replace(/,/g, "").trim());
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+    const firstPositive = (...values) => values.map(asNumber).find((num) => num > 0) || 0;
+
+    const candidateValues = candidateFields.map((fieldname) => item?.[fieldname]);
+    const direct = firstPositive(...candidateValues, item.spq_rate, item.buying_rate, item.purchase_rate, item.custom_spq_rate);
+    if (direct > 0) return direct;
+
+    const dynamicKey = Object.keys(item || {}).find((key) => (
+      /(spq|buying|purchase).*rate/i.test(key)
+      && !/(commission|orc|value|sell|cost|valuation|list)/i.test(key)
+    ));
+    if (dynamicKey) {
+      const parsed = asNumber(item[dynamicKey]);
+      if (parsed > 0) return parsed;
+    }
+
+    const parsedFallback = asNumber(fallback);
+    return parsedFallback > 0 ? parsedFallback : 0;
+  }
+
+  getItemSpqAmountNumber(item = {}, fallback = 0) {
+    const candidateFields = Array.isArray(arguments[2]) ? arguments[2] : [];
+    const asNumber = (value) => {
+      const parsed = parseFloat(String(value ?? "").replace(/,/g, "").trim());
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+    const firstPositive = (...values) => values.map(asNumber).find((num) => num > 0) || 0;
+
+    const candidateValues = candidateFields.map((fieldname) => item?.[fieldname]);
+    const direct = firstPositive(...candidateValues, item.spq_amount, item.buying_amount, item.purchase_amount, item.custom_spq_amount);
+    if (direct > 0) return direct;
+
+    const dynamicKey = Object.keys(item || {}).find((key) => (
+      /(spq|buying|purchase).*amount/i.test(key)
+      && !/(commission|orc|value|sell|cost|valuation|list)/i.test(key)
+    ));
+    if (dynamicKey) {
+      const parsed = asNumber(item[dynamicKey]);
+      if (parsed > 0) return parsed;
+    }
+
+    const parsedFallback = asNumber(fallback);
+    return parsedFallback > 0 ? parsedFallback : 0;
+  }
+
+  async getOpportunityItemSpqFieldCandidates() {
+    const sourceDoc = this._currentOpportunityDoc || {};
+    const childDoctype = (sourceDoc.items && sourceDoc.items[0]?.doctype) || "Opportunity Item";
+    if (this._spqFieldCandidates && this._spqFieldCandidates.childDoctype === childDoctype) {
+      return this._spqFieldCandidates;
+    }
+
+    await frappe.model.with_doctype(childDoctype);
+    const meta = frappe.get_meta(childDoctype);
+    const dfs = Array.isArray(meta?.fields) ? meta.fields : [];
+
+    const knownRateAliases = ["spq_rate", "buying_rate", "purchase_rate", "custom_spq_rate"];
+    const knownAmountAliases = ["spq_amount", "buying_amount", "purchase_amount", "custom_spq_amount"];
+
+    const isRateCandidate = (df = {}) => {
+      const fieldname = String(df.fieldname || "").toLowerCase();
+      const label = String(df.label || "").toLowerCase();
+      if (!fieldname) return false;
+      if (fieldname === "rate" || label === "rate") return false;
+      if (/(commission|orc|valuation|list|selling|margin)/i.test(fieldname)) return false;
+      if (/(commission|orc|valuation|list|selling|margin)/i.test(label)) return false;
+      if (knownRateAliases.includes(fieldname)) return true;
+      if (/(spq|buying|purchase|supplier|cost)/i.test(fieldname) && /rate/i.test(fieldname)) return true;
+      if (/(spq|buying|purchase|supplier|cost)/i.test(label) && /rate/i.test(label)) return true;
+      return false;
+    };
+
+    const isAmountCandidate = (df = {}) => {
+      const fieldname = String(df.fieldname || "").toLowerCase();
+      const label = String(df.label || "").toLowerCase();
+      if (!fieldname) return false;
+      if (fieldname === "amount" || label === "amount") return false;
+      if (/(commission|orc|valuation|list|selling|margin)/i.test(fieldname)) return false;
+      if (/(commission|orc|valuation|list|selling|margin)/i.test(label)) return false;
+      if (knownAmountAliases.includes(fieldname)) return true;
+      if (/(spq|buying|purchase|supplier|cost)/i.test(fieldname) && /amount/i.test(fieldname)) return true;
+      if (/(spq|buying|purchase|supplier|cost)/i.test(label) && /amount/i.test(label)) return true;
+      return false;
+    };
+
+    const metaRateFields = dfs.filter(isRateCandidate).map((df) => String(df.fieldname || "")).filter(Boolean);
+    const metaAmountFields = dfs.filter(isAmountCandidate).map((df) => String(df.fieldname || "")).filter(Boolean);
+
+    const unique = (arr = []) => Array.from(new Set(arr.filter(Boolean)));
+    const rateFields = unique([...knownRateAliases, ...metaRateFields]);
+    const amountFields = unique([...knownAmountAliases, ...metaAmountFields]);
+
+    this._spqFieldCandidates = { childDoctype, rateFields, amountFields };
+    return this._spqFieldCandidates;
+  }
+
   async renderOpportunityItems(doc) {
     const $itemsTable = $("#detail-items-tbody");
     if (!$itemsTable.length) return;
@@ -3664,12 +4823,13 @@ class opportunitydatapage {
 
     const items = doc.items || [];
     if (!items.length) {
-      $itemsTable.html(`<tr><td colspan="17" class="muted">No line items</td></tr>`);
+      $itemsTable.html(`<tr><td colspan="9" class="muted">No line items</td></tr>`);
       this.setDetailOrcColumnsVisibility(false);
       return;
     }
 
     const hasOrcEnabledRow = items.some((item) => isTruthyFlag(item?.orc) || isTruthyFlag(item?.is_orc));
+    const spqFieldCandidates = await this.getOpportunityItemSpqFieldCandidates();
 
     const spqMap = await this.getRecommendedSupplierQuotationRateMap(doc.name || this._currentOpportunityName || "");
     const asNumber = (value) => {
@@ -3736,12 +4896,13 @@ class opportunitydatapage {
     };
 
     const itemsHtml = items.map((item, idx) => {
-      const itemName = item.item_name || item.item_code || item.name || "";
+      const rawName = String(item.name || "");
+      const itemName = item.item_name || item.item_code || (rawName.startsWith("__new_row_") ? "" : rawName) || "";
       const itemSub = (item.item_name && item.item_code && item.item_name !== item.item_code)
         ? item.item_code
         : (item.description || "");
       const brand = item.brand || "Others";
-      const qty = frappe.format(Math.trunc(Number(item.qty || 0)), { fieldtype: "Int" });
+      const qty = fmtInt(item.qty || 0);
       const rate = fmtCurrency(item.rate || 0);
       const amount = fmtCurrency(item.amount || ((item.qty || 0) * (item.rate || 0)));
       const salesStage = item.sales_stage || doc[OPP_CFG.STATUS_FIELD] || "";
@@ -3765,11 +4926,11 @@ class opportunitydatapage {
       const saleAmountNumber = asNumber(item.amount || (qtyNumber * rateNumber));
       const exactKey = `${itemCode}::${qtyNumber.toFixed(6)}`;
 
-      const spqRateNumber = asNumber(item.spq_rate)
+      const spqRateNumber = this.getItemSpqRateNumber(item, 0, spqFieldCandidates?.rateFields || [])
         || asNumber(spqMap.exact_rate?.[exactKey])
         || asNumber(spqMap.by_item_rate?.[itemCode])
         || 0;
-      const spqAmountNumber = asNumber(item.spq_amount)
+      const spqAmountNumber = this.getItemSpqAmountNumber(item, 0, spqFieldCandidates?.amountFields || [])
         || asNumber(spqMap.exact_amount?.[exactKey])
         || asNumber(spqMap.by_item_amount?.[itemCode])
         || (qtyNumber * spqRateNumber);
@@ -3815,6 +4976,9 @@ class opportunitydatapage {
           <button class="item-row-edit-btn" data-row-name="${frappe.utils.escape_html(rowName)}" data-row-idx="${idx}" title="Edit this item">
             <i class="fa fa-pencil"></i>
           </button>
+          <button class="item-row-delete-btn" data-row-name="${frappe.utils.escape_html(rowName)}" data-row-idx="${idx}" title="Delete this item" style="margin-left:4px;">
+            <i class="fa fa-trash" style="color:#e74c3c;"></i>
+          </button>
         </td>
       </tr>
     `;
@@ -3838,12 +5002,31 @@ class opportunitydatapage {
   bindOpportunityItemRowActions() {
     const me = this;
     const $tbody = $("#detail-items-tbody");
+    const $scope = $(this.page.wrapper);
 
-    $("#detail-add-item-row, #detail-add-item-row-bottom")
+    $("#detail-add-item-row, #detail-add-item-row-bottom, #detail-add-item-row-action")
       .off("click")
       .on("click", function (e) {
         e.preventDefault();
         me.addDetailItemRow();
+      });
+
+    $("#detail-add-item-row-renewal")
+      .off("click")
+      .on("click", async function (e) {
+        e.preventDefault();
+        const preset = await me.pickRenewalPresetItem("Renewal", me.getCurrentOpportunityCustomerName());
+        if (!preset) return;
+        await me.addDetailItemRow(preset);
+      });
+
+    $("#detail-add-item-row-additional")
+      .off("click")
+      .on("click", async function (e) {
+        e.preventDefault();
+        const preset = await me.pickRenewalPresetItem("Additional", me.getCurrentOpportunityCustomerName());
+        if (!preset) return;
+        await me.addDetailItemRow(preset);
       });
 
     $tbody
@@ -3857,10 +5040,48 @@ class opportunitydatapage {
       });
 
     $tbody
+      .off("click", ".item-row-delete-btn")
+      .on("click", ".item-row-delete-btn", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const docname = me._currentOpportunityName;
+        if (!docname) return;
+        const rowName = String($(this).data("row-name") || "").trim();
+        const rowIdx = parseInt($(this).data("row-idx"), 10);
+
+        frappe.confirm(
+          __("Are you sure you want to delete this item row?"),
+          async () => {
+            // confirmed
+            const latestDoc = await frappe.db.get_doc(OPP_CFG.DOCTYPE, docname).catch(() => null);
+            if (!latestDoc || !Array.isArray(latestDoc.items)) return;
+            if (rowName) {
+              latestDoc.items = latestDoc.items.filter((r) => String(r?.name || "") !== rowName);
+            } else if (Number.isFinite(rowIdx) && rowIdx >= 0) {
+              latestDoc.items = latestDoc.items.filter((_, i) => i !== rowIdx);
+            } else {
+              return;
+            }
+            frappe.call({
+              method: "frappe.client.save",
+              args: { doc: latestDoc },
+              freeze: true,
+              freeze_message: __("Deleting item..."),
+              callback: () => {
+                frappe.show_alert({ message: __("Item deleted"), indicator: "orange" });
+                me.load_doc_details(docname);
+              },
+            });
+          }
+        );
+      });
+
+    $scope
       .off("click", ".item-row-cancel")
       .on("click", ".item-row-cancel", function (e) {
         e.preventDefault();
-        const rowName = String($(this).closest("tr").attr("data-row-name") || "").trim();
+        const $editing = $(this).closest("[data-editing='1']");
+        const rowName = String($editing.attr("data-row-name") || "").trim();
         if (rowName.startsWith("__new_row_")) {
           const currentDoc = me._currentOpportunityDoc || {};
           if (Array.isArray(currentDoc.items)) {
@@ -3868,23 +5089,25 @@ class opportunitydatapage {
             me._currentOpportunityDoc = currentDoc;
           }
         }
+        $scope.find("tr.item-inline-edit-row").remove();
+        $scope.find("#detail-items-inline-editor-panel").remove();
         $(".table-wrap").removeClass("is-inline-editing");
         me.renderOpportunityItems(me._currentOpportunityDoc || {});
         me.bindOpportunityItemRowActions();
       });
 
-    $tbody
+    $scope
       .off("click", ".item-row-save")
       .on("click", ".item-row-save", function (e) {
         e.preventDefault();
-        const $row = $(this).closest("tr");
+        const $row = $(this).closest("[data-editing='1']");
         me.saveOpportunityItemInlineEdit($row);
       });
 
-    $tbody
+    $scope
       .off("input", ".item-edit-qty, .item-edit-rate, .item-edit-spq-rate")
       .on("input", ".item-edit-qty, .item-edit-rate, .item-edit-spq-rate", function () {
-        const $row = $(this).closest("tr");
+        const $row = $(this).closest("[data-editing='1']");
         const $qtyInput = $row.find(".item-edit-qty");
         const qtyRaw = String($qtyInput.val() || "");
         const qtyDigitsOnly = qtyRaw.replace(/\D+/g, "");
@@ -3901,10 +5124,10 @@ class opportunitydatapage {
         $row.find(".item-edit-margin").text(fmtCurrency(amount - spqAmount));
       });
 
-    $tbody
+    $scope
       .off("keydown", ".item-edit-input, .item-edit-sales-stage-control input, .item-edit-opportunity-type-control input, .item-edit-renewal-id-control input")
       .on("keydown", ".item-edit-input, .item-edit-sales-stage-control input, .item-edit-opportunity-type-control input, .item-edit-renewal-id-control input", function (e) {
-        const $row = $(this).closest("tr");
+        const $row = $(this).closest("[data-editing='1']");
         if (!$row.length) return;
 
         if (e.key === "Enter") {
@@ -3919,6 +5142,180 @@ class opportunitydatapage {
           $row.find(".item-row-cancel").trigger("click");
         }
       });
+
+    // ===== DETAIL VIEW ITEMS FILTER BUTTON =====
+    $("#detail-items-filter-btn")
+      .off("click")
+      .on("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        me.openDetailItemsFilterPopover($(this));
+      });
+  }
+
+  openDetailItemsFilterPopover($btn) {
+    const me = this;
+    if ($btn.data("bs.popover")) {
+      $btn.popover("dispose");
+      return;
+    }
+
+    let pop = $('<div class="filter-area">');
+
+    // ===== ITEM CODE FILTER FIRST (PRIMARY) =====
+    let itemCodeFilterHtml = $(`
+			<div class="item-code-filter mb-3 p-2" style="border-bottom: 2px solid #007bff; padding-bottom: 10px;">
+				<label class="block text-muted small" style="font-size: 11px; margin-bottom: 4px; font-weight: 600;">ITEM CODE (Search First)</label>
+				<input type="text" class="form-control form-control-sm" placeholder="Search by item code..." data-filter-field="item-code" style="font-size: 12px; padding: 6px 8px;">
+			</div>
+		`);
+    pop.append(itemCodeFilterHtml);
+
+    // ===== CUSTOM SEARCH FILTERS (Brand, Product, Tenure, Years/Month) =====
+    let customFiltersHtml = $(`
+			<div class="custom-quick-filters mb-3 p-2" style="border-bottom: 1px solid #ddd; padding-bottom: 10px;">
+				<div class="filter-field mb-2">
+					<label class="block text-muted small" style="font-size: 11px; margin-bottom: 4px;">Brand</label>
+					<input type="text" class="form-control form-control-sm" placeholder="Search brand" data-filter-field="brand" style="font-size: 12px;">
+				</div>
+				<div class="filter-field mb-2">
+					<label class="block text-muted small" style="font-size: 11px; margin-bottom: 4px;">Product</label>
+					<input type="text" class="form-control form-control-sm" placeholder="Search product" data-filter-field="product" style="font-size: 12px;">
+				</div>
+				<div class="filter-field mb-2">
+					<label class="block text-muted small" style="font-size: 11px; margin-bottom: 4px;">Tenure</label>
+					<input type="text" class="form-control form-control-sm" placeholder="Search tenure" data-filter-field="tenure" style="font-size: 12px;">
+				</div>
+				<div class="filter-field mb-2">
+					<label class="block text-muted small" style="font-size: 11px; margin-bottom: 4px;">Years/Months</label>
+					<input type="text" class="form-control form-control-sm" placeholder="Search years/months" data-filter-field="years_months" style="font-size: 12px;">
+				</div>
+			</div>
+		`);
+    pop.append(customFiltersHtml);
+
+    let footer = $(`
+      <div class="filter-action-buttons mt-1 d-flex justify-content-end align-items-center gap-2">
+        <button class="btn btn-secondary btn-xs clear-filters">Clear</button>
+        <button class="btn btn-primary btn-xs apply-filters">Apply</button>
+      </div>
+    `);
+    pop.append(footer);
+
+    // ===== HANDLE CUSTOM & ITEM CODE FILTER INPUTS =====
+    let appliedFilters = {};
+
+    [...itemCodeFilterHtml.find('input[data-filter-field]'), ...customFiltersHtml.find('input[data-filter-field]')].forEach(input => {
+      $(input).on('input', function () {
+        const field = $(this).data('filter-field');
+        const value = $(this).val().trim();
+        if (value) {
+          appliedFilters[field] = value.toLowerCase();
+        } else {
+          delete appliedFilters[field];
+        }
+      });
+    });
+
+    footer.find(".clear-filters").on("click", () => {
+      itemCodeFilterHtml.find('input[data-filter-field]').val('');
+      customFiltersHtml.find('input[data-filter-field]').val('');
+      appliedFilters = {};
+    });
+
+    footer.find(".apply-filters").on("click", () => {
+      me.filterDetailItemsTable(appliedFilters);
+      $btn.popover("dispose");
+    });
+
+    $btn.popover({
+      html: true,
+      placement: "bottom",
+      content: pop,
+      trigger: "manual",
+      container: "body",
+      template: `
+        <div class="popover filter-popover fade bs-popover-bottom" role="tooltip">
+          <div class="arrow"></div>
+          <div class="popover-body popover-content"></div>
+        </div>
+      `,
+      popperConfig: {
+        modifiers: [
+          { name: 'offset', options: { offset: [0, 4] } },
+          { name: 'preventOverflow', options: { padding: 10, altBoundary: true } }
+        ]
+      }
+    }).popover("show");
+
+    $(document).one("click", (evt) => {
+      if (!$(evt.target).closest(".filter-popover, #detail-items-filter-btn").length) {
+        $btn.popover("dispose");
+      }
+    });
+  }
+
+  filterDetailItemsTable(filters = {}) {
+    const $tbody = $("#detail-items-tbody");
+    const $rows = $tbody.find("tr");
+
+    $rows.each((idx, tr) => {
+      const $row = $(tr);
+      let shouldShow = true;
+
+      // Check item code filter
+      if (filters['item-code']) {
+        const itemCode = $row.find("td:nth-child(1)").text().toLowerCase();
+        if (!itemCode.includes(filters['item-code'])) {
+          shouldShow = false;
+        }
+      }
+
+      // Check brand filter
+      if (filters['brand'] && shouldShow) {
+        const brand = $row.find("td:nth-child(2)").text().toLowerCase();
+        if (!brand.includes(filters['brand'])) {
+          shouldShow = false;
+        }
+      }
+
+      // Check product filter
+      if (filters['product'] && shouldShow) {
+        const product = $row.find("td:nth-child(1)").text().toLowerCase();
+        if (!product.includes(filters['product'])) {
+          shouldShow = false;
+        }
+      }
+
+      // Check tenure filter
+      if (filters['tenure'] && shouldShow) {
+        const tenure = $row.text().toLowerCase();
+        if (!tenure.includes(filters['tenure'])) {
+          shouldShow = false;
+        }
+      }
+
+      // Check years/months filter
+      if (filters['years_months'] && shouldShow) {
+        const content = $row.text().toLowerCase();
+        if (!content.includes(filters['years_months'])) {
+          shouldShow = false;
+        }
+      }
+
+      $row.toggle(shouldShow);
+    });
+
+    // Show "No results" message if all rows are hidden
+    const visibleRows = $rows.filter(":visible").length;
+    if (visibleRows === 0) {
+      const colspan = $tbody.closest("table").find("thead th").length;
+      if (!$tbody.find(".no-filter-results").length) {
+        $tbody.append(`<tr class="no-filter-results"><td colspan="${colspan}" class="muted text-center">No items match your filters</td></tr>`);
+      }
+    } else {
+      $tbody.find(".no-filter-results").remove();
+    }
   }
 
   async enterOpportunityItemInlineEdit(rowName, rowIdx) {
@@ -3932,16 +5329,20 @@ class opportunitydatapage {
     const rows = sourceDoc.items || [];
     const row = rows.find((r) => r.name === rowName) || rows[rowIdx];
     if (!row) return;
+    const spqFieldCandidates = await this.getOpportunityItemSpqFieldCandidates();
+    await this.ensureItemCodeSuggestions();
 
     const fieldMeta = await this.getOpportunityItemFieldMeta();
 
     const itemCode = row.item_code || row.item_name || "";
+    const initialInlineItemCode = String(itemCode || "").trim();
+    const itemName = row.item_name || row.item_code || "";
     const brand = row.brand || "Others";
     const qty = Math.trunc(Number(row.qty || 0));
     const rate = Number(row.rate || 0);
     const amount = qty * rate;
-    const spqRate = Number(row.spq_rate || 0);
-    const spqAmount = Number(row.spq_amount || (qty * spqRate));
+    const spqRate = this.getItemSpqRateNumber(row, 0, spqFieldCandidates?.rateFields || []);
+    const spqAmount = this.getItemSpqAmountNumber(row, 0, spqFieldCandidates?.amountFields || []) || (qty * spqRate);
     const margin = Number(row.margin || (amount - spqAmount));
     const isOrcEnabled = isTruthyFlag(row.orc) || isTruthyFlag(row.is_orc);
     const commissionType = String(row.commission_type || "").trim();
@@ -4018,13 +5419,20 @@ class opportunitydatapage {
     const targetSelector = rowName
       ? `tr[data-row-name="${rowName.replace(/"/g, '&quot;')}"]`
       : `tr[data-row-idx="${rowIdx}"]`;
-    const $target = $("#detail-items-tbody").find(targetSelector).first();
-    if (!$target.length) return;
+    const $mainRow = $("#detail-items-tbody").find(targetSelector).first();
+    if (!$mainRow.length) return;
+
+    // Keep main row visible; always show a dedicated inline editor row below it.
+    const $tbody = $("#detail-items-tbody");
+    const $tableWrap = $mainRow.closest(".table-wrap");
+    $tbody.find("tr.item-inline-edit-row").remove();
+    $tableWrap.find("#detail-items-inline-editor-panel").remove();
+    $tbody.find("tr[data-editing='1']").removeAttr("data-editing");
 
     // Fallback from currently rendered row text when row payload misses any field.
-    const shownSalesStage = String($target.find("td:nth-child(9) .cell-ellipsis").text() || "").trim();
-    const shownOpportunityType = String($target.find("td:nth-child(10) .cell-ellipsis").text() || "").trim();
-    const shownForecast = normalizeForecast(String($target.find("td:nth-child(11) .cell-ellipsis").text() || "").trim());
+    const shownSalesStage = String($mainRow.find("td:nth-child(9) .cell-ellipsis").text() || "").trim();
+    const shownOpportunityType = String($mainRow.find("td:nth-child(10) .cell-ellipsis").text() || "").trim();
+    const shownForecast = normalizeForecast(String($mainRow.find("td:nth-child(11) .cell-ellipsis").text() || "").trim());
     salesStage = pickFirstNonEmpty(salesStage, shownSalesStage);
     opportunityType = pickFirstNonEmpty(opportunityType, shownOpportunityType);
     forecast = normalizeForecast(pickFirstNonEmpty(forecast, shownForecast));
@@ -4032,106 +5440,236 @@ class opportunitydatapage {
     const hasAnyOrcEnabled = rows.some((r) => isTruthyFlag(r?.orc) || isTruthyFlag(r?.is_orc));
     this.setDetailOrcColumnsVisibility(hasAnyOrcEnabled || isOrcEnabled);
 
-    const inlineHtml = `
-    <td>
-      <div class="item-code-link-control"></div>
-    </td>
-    <td><span class="cell-ellipsis" title="${frappe.utils.escape_html(brand)}">${frappe.utils.escape_html(brand)}</span></td>
-    <td class="line-items-center"><input type="text" inputmode="numeric" pattern="[0-9]*" class="item-edit-input item-edit-qty" value="${qty}"></td>
-    <td class="line-items-center"><input type="number" step="0.01" min="0" class="item-edit-input item-edit-rate" value="${rate}"></td>
-    <td class="line-items-center"><span class="item-edit-amount">${fmtCurrency(row.amount)}</span></td>
-    <td class="line-items-center"><input type="number" step="0.01" min="0" class="item-edit-input item-edit-spq-rate" value="${spqRate}"></td>
-    <td class="line-items-center"><span class="item-edit-spq-amount">${fmtCurrency(spqAmount)}</span></td>
-    <td class="line-items-center"><span class="item-edit-margin">${fmtCurrency(margin)}</span></td>
-    <td><div class="item-edit-sales-stage-control"></div></td>
-    <td><div class="item-edit-opportunity-type-control"></div></td>
-    <td>
-      <select class="item-edit-input item-edit-forecast">
-        <option value="">Select</option>
-        <option value="Include" ${forecast === "Include" ? "selected" : ""}>Include</option>
-        <option value="Exclude" ${forecast === "Exclude" ? "selected" : ""}>Exclude</option>
-      </select>
-    </td>
-    <td><div class="item-edit-renewal-id-control"></div></td>
-    <td><input type="date" class="item-edit-input item-edit-closure-date" value="${frappe.utils.escape_html(closureDate || "")}"></td>
-    <td class="line-items-center"><input type="checkbox" class="item-edit-orc" ${isOrcEnabled ? "checked" : ""}></td>
-    <td>
-      <select class="item-edit-input item-edit-commission-type" ${isOrcEnabled ? "" : "style=\"display:none;\""}>
-        <option value="">Select</option>
-        <option value="Unit Rate" ${commissionType === "Unit Rate" ? "selected" : ""}>Unit Rate</option>
-        <option value="Value" ${commissionType === "Value" ? "selected" : ""}>Value</option>
-      </select>
-      <span class="item-edit-commission-type-empty ${isOrcEnabled ? "d-none" : ""}">-</span>
-    </td>
-    <td class="line-items-center">
-      <input type="number" min="0" step="0.01" class="item-edit-input item-edit-rate-value" value="${isOrcEnabled ? rateValue : 0}" ${isOrcEnabled ? "" : "style=\"display:none;\""}>
-      <span class="item-edit-rate-value-empty ${isOrcEnabled ? "d-none" : ""}">-</span>
-    </td>
-    <td class="actions-col line-items-center">
-      <div class="item-inline-actions">
-        <button class="item-row-save" title="Save"><i class="fa fa-check"></i></button>
-        <button class="item-row-cancel" title="Cancel"><i class="fa fa-times"></i></button>
-      </div>
-    </td>
-  `;
+    const buildSelectOptions = (options = [], currentValue = "") => {
+      const normalized = Array.from(new Set(
+        (options || [])
+          .map((opt) => String(opt || "").trim())
+          .filter(Boolean)
+      ));
+      const current = String(currentValue || "").trim();
+      if (current && !normalized.includes(current)) normalized.push(current);
+      return ["", ...normalized]
+        .map((opt) => `<option value="${frappe.utils.escape_html(opt)}" ${opt === current ? "selected" : ""}>${frappe.utils.escape_html(opt || "Select")}</option>`)
+        .join("");
+    };
 
-    $target.attr("data-editing", "1").html(inlineHtml);
+    const opportunityTypeOptions = String(fieldMeta?.opportunity_type?.options || "")
+      .split("\n")
+      .map((v) => v.trim())
+      .filter(Boolean);
+    ["New", "Renewal", "Additional", "Add-on", "Sales"].forEach((opt) => {
+      if (!opportunityTypeOptions.includes(opt)) opportunityTypeOptions.push(opt);
+    });
+    const opportunityTypeOptionsHtml = buildSelectOptions(opportunityTypeOptions, opportunityType);
+    const salesStageOptions = String(fieldMeta?.sales_stage?.options || "")
+      .split("\n")
+      .map((v) => v.trim())
+      .filter(Boolean);
+    const salesStageOptionsHtml = buildSelectOptions(salesStageOptions, salesStage);
+
+    const detailCols = Math.max(
+      $mainRow.children("td").length,
+      $mainRow.closest("table").find("thead tr th").length,
+      1
+    );
+
+    const panelCols = Math.max(detailCols - 1, 1);
+
+    const inlineHtml = `
+		<tr class="item-inline-edit-row" data-row-name="${frappe.utils.escape_html(rowName)}" data-row-idx="${rowIdx}" data-editing="1">
+			<td colspan="${panelCols}">
+		<div id="detail-items-inline-editor-panel" class="item-inline-editor-panel" data-row-name="${frappe.utils.escape_html(rowName)}" data-row-idx="${rowIdx}" data-editing="1" style="margin-top:12px;border:1px solid #d7deea;border-radius:10px;background:#fff;padding:14px;box-shadow:0 10px 24px rgba(15,23,42,0.08);font-size:12px;">
+			<div class="item-inline-header d-flex justify-content-between align-items-center mb-3" style="position:sticky;top:0;left:0;z-index:102; background:#fff; overflow:hidden; padding:8px 0;">
+				<div>
+					<strong>Edit Item (Inline)</strong>
+				</div>
+				<div class="inline-edit-actions-stack">
+					<button class="btn btn-primary btn-sm item-row-save" title="Save"><i class="fa fa-check"></i></button>
+					<button class="btn btn-default btn-sm item-row-cancel" title="Close"><i class="fa fa-times"></i></button>
+				</div>
+			</div>
+			<div style="margin-top:6px;border-top:1px solid #e5e7eb;padding-top:10px;">
+				<div style="font-weight:600;margin-bottom:8px;">1. Basic Details</div>
+				<div class="row" style="row-gap:10px;">
+					<div class="col-md-4"><label>Item Code</label><div class="item-code-link-control"></div></div>
+					<div class="col-md-4"><label>Item Name</label><div class="form-control item-edit-item-name-preview" style="height:auto;" title="${frappe.utils.escape_html(itemName)}">${frappe.utils.escape_html(itemName)}</div></div>
+					<div class="col-md-4"><label>Brand</label><div class="form-control item-edit-brand-preview" style="height:auto;" title="${frappe.utils.escape_html(brand)}">${frappe.utils.escape_html(brand)}</div></div>
+					<div class="col-md-4"><label>Forecast</label>
+					<select class="form-control item-edit-input item-edit-forecast">
+						<option value="">Select</option>
+						<option value="Include" ${forecast === "Include" ? "selected" : ""}>Include</option>
+						<option value="Exclude" ${forecast === "Exclude" ? "selected" : ""}>Exclude</option>
+					</select>
+					</div>
+					<div class="col-md-4"><label>Opportunity Type</label>
+						<select class="form-control item-edit-input item-edit-opportunity-type">${opportunityTypeOptionsHtml}</select>
+					</div>
+					<div class="col-md-4"><label>Sales Stage</label>
+						<select class="form-control item-edit-input item-edit-sales-stage">${salesStageOptionsHtml}</select>
+					</div>
+					<div class="col-md-4"><label>Qty</label><input type="text" inputmode="numeric" pattern="[0-9]*" class="form-control item-edit-input item-edit-qty" value="${qty}"></div>
+					<div class="col-md-4"><label>Rate</label><input type="number" step="0.01" min="0" class="form-control item-edit-input item-edit-rate" value="${rate}"></div>
+					<div class="col-md-4"><label>Amount</label><div class="form-control" style="height:auto;"><span class="item-edit-amount">${fmtCurrency(row.amount)}</span></div></div>
+					<div class="col-md-4"><label>Expected Closing Date</label><input type="date" class="form-control item-edit-input item-edit-closure-date" value="${frappe.utils.escape_html(closureDate || "")}"></div>
+					<div class="col-md-4"><label>Renewal ID</label><input type="text" class="form-control item-edit-input item-edit-renewal-id" value="${frappe.utils.escape_html(renewalId || "")}"></div>
+				</div>
+			</div>
+
+			<div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:10px;">
+				<div style="font-weight:600;margin-bottom:8px;">2. SPQ Details</div>
+				<div class="row" style="row-gap:10px;">
+					<div class="col-md-4"><label>SPQ Rate</label><input type="number" step="0.01" min="0" class="form-control item-edit-input item-edit-spq-rate" value="${spqRate}"></div>
+					<div class="col-md-4"><label>SPQ Amount</label><div class="form-control" style="height:auto;"><span class="item-edit-spq-amount">${fmtCurrency(spqAmount)}</span></div></div>
+					<div class="col-md-4"><label>Margin</label><div class="form-control" style="height:auto;"><span class="item-edit-margin">${fmtCurrency(margin)}</span></div></div>
+				</div>
+			</div>
+
+			<div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:10px;">
+				<div style="font-weight:600;margin-bottom:8px;">3. ORC Details</div>
+				<div class="row" style="row-gap:10px;">
+					<div class="col-md-4"><label>ORC</label><div class="line-items-center" style="height:34px;"><input type="checkbox" class="item-edit-orc" ${isOrcEnabled ? "checked" : ""}></div></div>
+					<div class="col-md-4"><label>Commission Type</label>
+					<select class="form-control item-edit-input item-edit-commission-type" ${isOrcEnabled ? "" : "style=\"display:none;\""}>
+						<option value="">Select</option>
+						<option value="Unit Rate" ${commissionType === "Unit Rate" ? "selected" : ""}>Unit Rate</option>
+						<option value="Value" ${commissionType === "Value" ? "selected" : ""}>Value</option>
+					</select>
+					<span class="item-edit-commission-type-empty ${isOrcEnabled ? "d-none" : ""}">-</span>
+					</div>
+					<div class="col-md-4"><label>Rate Value</label>
+					<input type="number" min="0" step="0.01" class="form-control item-edit-input item-edit-rate-value" value="${isOrcEnabled ? rateValue : 0}" ${isOrcEnabled ? "" : "style=\"display:none;\""}>
+					<span class="item-edit-rate-value-empty ${isOrcEnabled ? "d-none" : ""}">-</span>
+					</div>
+				</div>
+			</div>
+
+			<input type="hidden" class="item-edit-item-name" value="${frappe.utils.escape_html(itemName || itemCode || "")}">
+			<div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:10px;">
+				<div style="font-weight:600;margin-bottom:8px;">Additional Fields</div>
+				<div class="row item-edit-extra-fields" style="row-gap:10px;"></div>
+			</div>
+		</div>
+			</td>
+		</tr>
+	`;
+
+    $mainRow.after(inlineHtml);
+    const $target = $mainRow.nextAll("tr.item-inline-edit-row").first().find("#detail-items-inline-editor-panel").first();
     $target.closest(".table-wrap").addClass("is-inline-editing");
 
-    const $itemCodeWrap = $target.find(".item-code-link-control");
-    if ($itemCodeWrap.length && frappe?.ui?.form?.make_control) {
-      const applyItemAutofill = async () => {
-        const selectedCode = (linkControl.get_value() || "").trim();
-        if (!selectedCode) return;
+    const syncItemNamePreview = (value = "") => {
+      const clean = String(value || "").trim();
+      const safe = frappe.utils.escape_html(clean);
+      $target.find(".item-edit-item-name-preview").attr("title", safe).text(safe || "-");
+      $target.find(".item-edit-item-name").val(clean);
+    };
 
-        const itemMeta = await this.getItemAutofill(selectedCode);
-        if (!itemMeta) return;
+    const applyItemAutofillByCode = async (selectedCode = "", force = false) => {
+      if ($target.data("_suppressDetailItemAutofill")) return;
+      const code = String(selectedCode || "").trim();
+      if (!code) return;
+      const codeChanged = code !== initialInlineItemCode;
+      if (!force && !codeChanged) return;
+      syncItemNamePreview(code);
 
-        $target.data("itemMeta", itemMeta);
-        const qtyVal = parseInt(String($target.find(".item-edit-qty").val() || "").replace(/\D+/g, ""), 10) || 0;
-        const newRate = Number(itemMeta.rate || 0);
-        const newSpqRate = Number(itemMeta.buying_rate || 0);
+      const itemMeta = await this.getItemAutofill(code);
+      if (!itemMeta) return;
+
+      $target.data("itemMeta", itemMeta);
+      const qtyVal = parseInt(String($target.find(".item-edit-qty").val() || "").replace(/\D+/g, ""), 10) || 0;
+      const newRate = Number(itemMeta.rate || 0);
+      const newSpqRate = Number(itemMeta.buying_rate || 0);
+      const manualRateEdited = Boolean($target.data("_detailManualRateEdited"));
+      const manualSpqRateEdited = Boolean($target.data("_detailManualSpqRateEdited"));
+      if (codeChanged || !manualRateEdited) {
         $target.find(".item-edit-rate").val(newRate);
+      }
+      if (codeChanged || !manualSpqRateEdited) {
         if (newSpqRate > 0) {
           $target.find(".item-edit-spq-rate").val(newSpqRate);
         }
-        $target.find(".item-edit-amount").text(fmtCurrency(qtyVal * newRate));
-        const spqRateVal = parseFloat($target.find(".item-edit-spq-rate").val()) || 0;
-        const spqAmountVal = qtyVal * spqRateVal;
-        $target.find(".item-edit-spq-amount").text(fmtCurrency(spqAmountVal));
-        $target.find(".item-edit-margin").text(fmtCurrency((qtyVal * newRate) - spqAmountVal));
-        const brandText = frappe.utils.escape_html(itemMeta.brand || "Others");
-        $target.find("td:nth-child(2)").html(`<span class="cell-ellipsis" title="${brandText}">${brandText}</span>`);
-      };
+      }
+      $target.find(".item-edit-amount").text(fmtCurrency(qtyVal * newRate));
+      const spqRateVal = parseFloat($target.find(".item-edit-spq-rate").val()) || 0;
+      const spqAmountVal = qtyVal * spqRateVal;
+      $target.find(".item-edit-spq-amount").text(fmtCurrency(spqAmountVal));
+      $target.find(".item-edit-margin").text(fmtCurrency((qtyVal * newRate) - spqAmountVal));
+      const brandText = frappe.utils.escape_html(itemMeta.brand || "Others");
+      $target.find(".item-edit-brand-preview").attr("title", brandText).text(brandText);
+      const itemNameText = frappe.utils.escape_html(itemMeta.item_name || code || "");
+      $target.find(".item-edit-item-name-preview").attr("title", itemNameText).text(itemNameText);
+      $target.find(".item-edit-item-name").val(String(itemMeta.item_name || code || "").trim());
 
+      const extraItemControls = $target.data("extraItemControls") || {};
+      if (extraItemControls.uom?.set_value) {
+        extraItemControls.uom.set_value(String(itemMeta.uom || "").trim());
+      }
+      if (extraItemControls.description?.set_value) {
+        extraItemControls.description.set_value(String(itemMeta.description_html || itemMeta.description || "").trim());
+      }
+
+      $mainRow.find("td:nth-child(2)").html(`<span class="cell-ellipsis" title="${brandText}">${brandText}</span>`);
+    };
+
+    const $itemCodeWrap = $target.find(".item-code-link-control");
+    if ($itemCodeWrap.length && frappe?.ui?.form?.make_control) {
       const linkControl = frappe.ui.form.make_control({
         parent: $itemCodeWrap,
         df: {
           fieldtype: "Link",
           fieldname: "item_code_inline",
           label: "",
+          only_input: true,
           options: "Item",
           placeholder: __("Item Code"),
           onchange: async () => {
-            await applyItemAutofill();
+            await applyItemAutofillByCode(linkControl.get_value());
           },
         },
         render_input: true,
       });
+
+      $target.data("_suppressDetailItemAutofill", true);
       linkControl.set_value(itemCode || "");
+      $target.removeData("_suppressDetailItemAutofill");
       $target.data("itemLinkControl", linkControl);
+      this.configureItemAdvancedSearch(linkControl);
       this.attachInlineLinkPortal(linkControl);
 
       const $input = linkControl.$input;
       if ($input && $input.length) {
-        $input.off("change.itemAutofill blur.itemAutofill awesomplete-selectcomplete.itemAutofill awesomplete-select.itemAutofill");
-        $input.on("change.itemAutofill blur.itemAutofill awesomplete-selectcomplete.itemAutofill awesomplete-select.itemAutofill", () => {
-          applyItemAutofill();
-        });
+        $input
+          .off("input.itemAutofill change.itemAutofill blur.itemAutofill awesomplete-selectcomplete.itemAutofill awesomplete-select.itemAutofill")
+          .on("input.itemAutofill", function () {
+            syncItemNamePreview($(this).val());
+          })
+          .on("change.itemAutofill blur.itemAutofill awesomplete-selectcomplete.itemAutofill awesomplete-select.itemAutofill", function () {
+            applyItemAutofillByCode(linkControl.get_value());
+          });
+
+        $target.find(".item-edit-rate")
+          .off("input.detailManualRateFlag change.detailManualRateFlag")
+          .on("input.detailManualRateFlag change.detailManualRateFlag", () => {
+            $target.data("_detailManualRateEdited", true);
+          });
+
+        $target.find(".item-edit-spq-rate")
+          .off("input.detailManualSpqRateFlag change.detailManualSpqRateFlag")
+          .on("input.detailManualSpqRateFlag change.detailManualSpqRateFlag", () => {
+            $target.data("_detailManualSpqRateEdited", true);
+          });
+
+        setTimeout(() => {
+          try {
+            $input.trigger("focus");
+          } catch (e) {
+            // no-op
+          }
+        }, 0);
       }
 
-      if (itemCode) {
-        setTimeout(() => applyItemAutofill(), 0);
+      if (String(itemCode || "").trim()) {
+        setTimeout(() => applyItemAutofillByCode(itemCode, false), 0);
       }
     }
 
@@ -4172,6 +5710,7 @@ class opportunitydatapage {
           fieldtype: df.fieldtype || "Data",
           fieldname: dataKey,
           label: "",
+          only_input: true,
           options,
           ...extraDf,
         },
@@ -4179,35 +5718,62 @@ class opportunitydatapage {
       });
       ctrl.set_value(value || "");
       $target.data(dataKey, ctrl);
+      if (ctrl.$wrapper?.length) {
+        ctrl.$wrapper.css({ marginBottom: "0", width: "100%" });
+        ctrl.$wrapper.find(".form-group, .clearfix").css({ marginBottom: "0" });
+        ctrl.$wrapper.find(".control-input-wrapper, .awesomplete, .input-with-feedback").css({ width: "100%" });
+      }
       this.attachInlineLinkPortal(ctrl);
     };
 
-    makeInlineControl($target.find(".item-edit-sales-stage-control"), fieldMeta.sales_stage, salesStage, "salesStageControl");
-    makeInlineControl($target.find(".item-edit-opportunity-type-control"), fieldMeta.opportunity_type, opportunityType, "opportunityTypeControl");
+    $target.data("salesStageControl", null);
+    $target.data("opportunityTypeControl", null);
 
-    const renewalDoctype = (await this.getOpportunityRenewalDoctype()) || String(fieldMeta?.renewal_id?.options || "").trim();
-    const renewalCustomerFilterField = await this.getOpportunityRenewalCustomerFilterField();
-    const currentCustomerName = this.getCurrentOpportunityCustomerName();
-    makeInlineControl(
-      $target.find(".item-edit-renewal-id-control"),
-      fieldMeta.renewal_id,
-      renewalId,
-      "renewalIdControl",
-      {
-        fieldtype: renewalDoctype ? "Link" : (fieldMeta?.renewal_id?.fieldtype || "Data"),
-        options: renewalDoctype || fieldMeta?.renewal_id?.options || "",
-        get_query: () => {
-          if (!currentCustomerName || !renewalCustomerFilterField) {
-            return {};
-          }
-          return {
-            filters: {
-              [renewalCustomerFilterField]: currentCustomerName,
-            },
-          };
-        },
-      }
-    );
+    $target.data("renewalIdControl", null);
+
+    const extraControls = {};
+    const $extraWrap = $target.find(".item-edit-extra-fields");
+
+    // UOM field
+    $extraWrap.append(`
+			<div class="col-md-4 item-edit-extra-cell">
+				<label>UOM</label>
+				<div class="item-edit-extra-control" data-fieldname="uom"></div>
+			</div>
+		`);
+    const $uomHolder = $extraWrap.find(".item-edit-extra-control[data-fieldname='uom']").last();
+    if ($uomHolder.length && frappe?.ui?.form?.make_control) {
+      const uomCtrl = frappe.ui.form.make_control({
+        parent: $uomHolder,
+        df: { fieldtype: "Link", fieldname: "uom", label: "", options: "UOM" },
+        render_input: true,
+      });
+      uomCtrl.set_value(row?.uom || "");
+      extraControls["uom"] = uomCtrl;
+      this.attachInlineLinkPortal(uomCtrl);
+    }
+
+    // Description field
+    $extraWrap.append(`
+			<div class="col-md-12 item-edit-extra-cell">
+				<label>Description</label>
+				<div class="item-edit-extra-control" data-fieldname="description"></div>
+			</div>
+		`);
+    const $descHolder = $extraWrap.find(".item-edit-extra-control[data-fieldname='description']").last();
+    if ($descHolder.length && frappe?.ui?.form?.make_control) {
+      const descCtrl = frappe.ui.form.make_control({
+        parent: $descHolder,
+        df: { fieldtype: "Text Editor", fieldname: "description", label: "" },
+        render_input: true,
+      });
+      descCtrl.set_value(row?.description || "");
+      extraControls["description"] = descCtrl;
+      const $input = descCtrl.$input || descCtrl.$wrapper?.find("textarea");
+      if ($input?.length) $input.css({ minHeight: "140px", resize: "vertical" });
+    }
+
+    $target.data("extraItemControls", extraControls);
 
     const toggleOrcFields = () => {
       const enabled = $target.find(".item-edit-orc").is(":checked");
@@ -4233,49 +5799,106 @@ class opportunitydatapage {
 
     $target.find(".item-edit-orc").off("change").on("change", toggleOrcFields);
     toggleOrcFields();
+
+    // Keep all label/control blocks aligned despite mixed native and frappe controls.
+    $target.find("label").css({ display: "block", marginBottom: "6px", fontWeight: "500" });
+    $target.find(".form-control").css({ minHeight: "38px" });
+    $target.find(".item-edit-input").css({ minHeight: "38px" });
+    $target.find(".item-code-link-control, .item-edit-sales-stage-control, .item-edit-opportunity-type-control").each(function () {
+      $(this).find(".frappe-control, .form-group, .clearfix").css({ marginBottom: "0" });
+      $(this).find(".control-input-wrapper, .awesomplete, .input-with-feedback").css({ width: "100%" });
+      $(this).find("input, select").css({ minHeight: "38px" });
+    });
+    $target.find(".item-inline-control .frappe-control").css({ marginTop: "0", paddingTop: "0" });
   }
 
-  addDetailItemRow() {
+  async addDetailItemRow(preset = {}) {
     const sourceDoc = this._currentOpportunityDoc || {};
     if (!Array.isArray(sourceDoc.items)) sourceDoc.items = [];
 
-    const existingNew = sourceDoc.items.find((row) => String(row?.name || "").startsWith("__new_row_"));
-    if (existingNew) {
-      const existingIdx = sourceDoc.items.findIndex((row) => row?.name === existingNew.name);
-      this.renderOpportunityItems(sourceDoc);
-      this.bindOpportunityItemRowActions();
-      this.enterOpportunityItemInlineEdit(existingNew.name, existingIdx);
-      return;
-    }
-
-    const newName = `__new_row_${Date.now()}`;
     const childDoctype = sourceDoc.items?.[0]?.doctype || "Opportunity Item";
     const defaultCloseDate = sourceDoc[OPP_CFG.EXPECTED_CLOSE_FIELD] || sourceDoc.expected_closing || frappe.datetime.nowdate();
 
+    // Flush whatever is currently in the live edit row back into sourceDoc.items
+    // so it survives the re-render. Always use the DOM row with data-editing="1"
+    // — not the first __new_row_ in the array — because after multiple adds the
+    // currently-editing row is never necessarily the first __new_row_ in the list.
+    const $editingRow = $("#detail-items-inline-editor-panel[data-editing='1'], #detail-items-tbody tr[data-editing='1']").first();
+    if ($editingRow.length) {
+      const editingRowName = ($editingRow.attr("data-row-name") || "").trim();
+      const docRow = sourceDoc.items.find((r) => r.name === editingRowName);
+
+      const linkControl = $editingRow.data("itemLinkControl");
+      const currentItemCode = (linkControl && typeof linkControl.get_value === "function")
+        ? (linkControl.get_value() || "").trim()
+        : String($editingRow.find(".item-code-link-control input, .item-edit-item-code").first().val() || "").trim();
+
+      if (!currentItemCode) {
+        // Nothing selected in the current edit row — re-focus it instead of adding a new one.
+        frappe.show_alert({ message: __("Please select an item in the current row first."), indicator: "orange" }, 3);
+        if (docRow) {
+          const existingIdx = sourceDoc.items.findIndex((r) => r.name === editingRowName);
+          await this.renderOpportunityItems(sourceDoc);
+          this.bindOpportunityItemRowActions();
+          this.enterOpportunityItemInlineEdit(editingRowName, existingIdx);
+        }
+        return;
+      }
+
+      // Write live DOM values back to sourceDoc so re-render shows them.
+      if (docRow) {
+        const liveSpqRate = parseFloat($editingRow.find(".item-edit-spq-rate").val() || "0") || 0;
+        docRow.item_code = currentItemCode;
+        docRow.item_name = currentItemCode;
+        docRow.qty = parseInt($editingRow.find(".item-edit-qty").val() || "1", 10) || 1;
+        docRow.rate = parseFloat($editingRow.find(".item-edit-rate").val() || "0") || 0;
+        docRow.amount = docRow.qty * docRow.rate;
+        docRow.spq_rate = liveSpqRate;
+        docRow.buying_rate = liveSpqRate;
+        docRow.purchase_rate = liveSpqRate;
+        docRow.spq_amount = docRow.qty * liveSpqRate;
+        docRow.buying_amount = docRow.spq_amount;
+        docRow.purchase_amount = docRow.spq_amount;
+        docRow.margin = docRow.amount - docRow.spq_amount;
+        const cachedMeta = $editingRow.data("itemMeta");
+        if (cachedMeta) {
+          docRow.brand = cachedMeta.brand || docRow.brand || "";
+          docRow.item_name = cachedMeta.item_name || currentItemCode;
+        }
+      }
+    }
+
+    // Add a fresh blank row and enter edit mode on it.
+    const newName = `__new_row_${Date.now()}`;
     sourceDoc.items.push({
       doctype: childDoctype,
       name: newName,
-      item_code: "",
-      item_name: "",
-      qty: 1,
-      rate: 0,
-      amount: 0,
-      spq_rate: 0,
-      spq_amount: 0,
-      margin: 0,
+      item_code: String(preset.item_code || ""),
+      item_name: String(preset.item_name || preset.item_code || ""),
+      qty: Number(preset.qty || 1) || 1,
+      rate: Number(preset.rate || 0) || 0,
+      amount: Number(preset.amount || 0) || 0,
+      spq_rate: Number(preset.spq_rate || 0) || 0,
+      spq_amount: Number(preset.spq_amount || 0) || 0,
+      margin: Number(preset.margin || 0) || 0,
       orc: 0,
       commission_type: "",
       rate_value: 0,
       sales_stage: sourceDoc.sales_stage || "",
-      opportunity_type: sourceDoc.opportunity_type || "",
-      forecast: sourceDoc.forecast || "",
-      renewal_id: "",
-      expected_date: defaultCloseDate || "",
+      opportunity_type: String(preset.opportunity_type || sourceDoc.opportunity_type || ""),
+      forecast: String(preset.forecast || sourceDoc.forecast || ""),
+      renewal_id: String(preset.renewal_id || ""),
+      expected_date: String(preset.expected_date || defaultCloseDate || ""),
+      description: String(preset.description || ""),
+      brand: String(preset.brand || ""),
+      item_group: String(preset.item_group || ""),
+      uom: String(preset.uom || ""),
+      hsncode: String(preset.hsncode || ""),
     });
 
     this._currentOpportunityDoc = sourceDoc;
     const newIdx = sourceDoc.items.length - 1;
-    this.renderOpportunityItems(sourceDoc);
+    await this.renderOpportunityItems(sourceDoc);
     this.bindOpportunityItemRowActions();
     this.enterOpportunityItemInlineEdit(newName, newIdx);
   }
@@ -4301,11 +5924,23 @@ class opportunitydatapage {
 
     const rowName = ($row.attr("data-row-name") || "").trim();
     const rowIdx = parseInt($row.attr("data-row-idx"), 10);
+    const getControlLiveValue = (ctrl, fallbackSelector = "") => {
+      const controlValue = (ctrl && typeof ctrl.get_value === "function") ? String(ctrl.get_value() || "").trim() : "";
+      if (controlValue) return controlValue;
+      if (ctrl?.$input?.length) {
+        const inputValue = String(ctrl.$input.val() || "").trim();
+        if (inputValue) return inputValue;
+      }
+      if (fallbackSelector) {
+        const domValue = String($row.find(fallbackSelector).val() || "").trim();
+        if (domValue) return domValue;
+      }
+      return "";
+    };
 
     const linkControl = $row.data("itemLinkControl");
-    const item_code = ((linkControl && typeof linkControl.get_value === "function")
-      ? linkControl.get_value()
-      : ($row.find(".item-edit-item-code").val() || "")).trim();
+    const item_code = getControlLiveValue(linkControl, ".item-code-link-control input, .item-edit-item-code");
+    const item_name = String($row.find(".item-edit-item-name").val() || item_code || "").trim();
     const qtyResult = toIntegerQty($row.find(".item-edit-qty").val());
     if (!qtyResult.valid) {
       frappe.msgprint(__("Qty must be a whole number."));
@@ -4316,6 +5951,19 @@ class opportunitydatapage {
     const spq_rate = toNumber($row.find(".item-edit-spq-rate").val());
     const spq_amount = qty * spq_rate;
     const margin = (qty * rate) - spq_amount;
+
+    // DEBUG: Log captured values from DOM
+    const domDebugSnapshot = {
+      rowName,
+      rowIdx,
+      item_code,
+      spq_rate,
+      spq_rate_raw: $row.find(".item-edit-spq-rate").val(),
+      qty,
+      rate,
+    };
+    console.log("DEBUG saveOpportunityItemInlineEdit - DOM values captured:", domDebugSnapshot);
+    console.log("DEBUG saveOpportunityItemInlineEdit - DOM values captured JSON:", JSON.stringify(domDebugSnapshot));
 
     if (!(spq_rate > 0)) {
       frappe.msgprint(__("SPQ Rate is required and must be greater than 0."));
@@ -4334,19 +5982,13 @@ class opportunitydatapage {
     const renewalIdControl = $row.data("renewalIdControl");
     const closureDateControl = $row.data("closureDateControl");
 
-    const sales_stage = (((salesStageControl && salesStageControl.get_value && salesStageControl.get_value())
-      || $row.find(".item-edit-sales-stage").val()
-      || "")).trim();
-    const opportunity_type = (((opportunityTypeControl && opportunityTypeControl.get_value && opportunityTypeControl.get_value())
-      || $row.find(".item-edit-opportunity-type").val()
-      || "")).trim();
+    const sales_stage = getControlLiveValue(salesStageControl, ".item-edit-sales-stage");
+    const opportunity_type = getControlLiveValue(opportunityTypeControl, ".item-edit-opportunity-type");
     const forecast = String($row.find(".item-edit-forecast").val() || "").trim();
-    const renewal_id = (((renewalIdControl && renewalIdControl.get_value && renewalIdControl.get_value())
-      || $row.find(".item-edit-renewal-id").val()
-      || "")).trim();
-    const closure_date = ((closureDateControl && closureDateControl.get_value && closureDateControl.get_value())
-      || $row.find(".item-edit-closure-date").val()
-      || "");
+    const renewal_id = getControlLiveValue(renewalIdControl, ".item-edit-renewal-id");
+    const closure_date = getControlLiveValue(closureDateControl, ".item-edit-closure-date");
+
+    const extraItemControls = $row.data("extraItemControls") || {};
 
     if (!String(closure_date || "").trim()) {
       frappe.msgprint(__("Expected Date is required."));
@@ -4354,11 +5996,12 @@ class opportunitydatapage {
     }
 
     if (!item_code) {
-      frappe.msgprint(__("Item Code is required."));
+      frappe.msgprint(__("Please set Item Code first."));
       return;
     }
 
     const latestDoc = await frappe.db.get_doc(OPP_CFG.DOCTYPE, docname);
+    const spqFieldCandidates = await this.getOpportunityItemSpqFieldCandidates();
     let targetRow = latestDoc.items?.find((r) => r.name === rowName)
       || (Number.isFinite(rowIdx) ? latestDoc.items?.[rowIdx] : null);
 
@@ -4371,10 +6014,30 @@ class opportunitydatapage {
       latestDoc.items.push(targetRow);
     }
 
+    const itemChildDoctype = String(
+      targetRow.doctype
+      || latestDoc.items?.[0]?.doctype
+      || this._currentOpportunityDoc?.items?.[0]?.doctype
+      || "Opportunity Item"
+    ).trim();
+    await frappe.model.with_doctype(itemChildDoctype);
+    const itemChildMeta = frappe.get_meta(itemChildDoctype);
+    const hasItemChildField = (fieldname) => Boolean(itemChildMeta?.fields?.some((df) => df.fieldname === fieldname));
+    const setItemChildField = (fieldCandidates, value) => {
+      const candidates = Array.isArray(fieldCandidates) ? fieldCandidates : [fieldCandidates];
+      for (const fieldname of candidates) {
+        if (!fieldname || !hasItemChildField(fieldname)) continue;
+        targetRow[fieldname] = value;
+        return true;
+      }
+      return false;
+    };
+
     const itemMeta = $row.data("itemMeta") || await this.getItemAutofill(item_code);
 
     Object.assign(targetRow, {
       item_code,
+      item_name,
       qty,
       rate,
       amount: qty * rate,
@@ -4385,15 +6048,66 @@ class opportunitydatapage {
       renewal_id,
     });
 
-    if (Object.prototype.hasOwnProperty.call(targetRow, "spq_rate")) {
-      targetRow.spq_rate = spq_rate;
-    }
-    if (Object.prototype.hasOwnProperty.call(targetRow, "spq_amount")) {
-      targetRow.spq_amount = spq_amount;
-    }
-    if (Object.prototype.hasOwnProperty.call(targetRow, "margin")) {
-      targetRow.margin = margin;
-    }
+    Object.entries(extraItemControls).forEach(([fieldname, ctrl]) => {
+      if (!fieldname || !ctrl) return;
+      try {
+        const value = (typeof ctrl.get_value === "function") ? ctrl.get_value() : undefined;
+        if (typeof value !== "undefined") {
+          targetRow[fieldname] = value;
+        }
+      } catch (e) {
+        // ignore failed control reads
+      }
+    });
+
+    setItemChildField(["spq_rate", "buying_rate", "purchase_rate", "custom_spq_rate"], spq_rate);
+    setItemChildField(["spq_amount", "buying_amount", "purchase_amount", "custom_spq_amount"], spq_amount);
+    setItemChildField(["margin"], margin);
+    (spqFieldCandidates?.rateFields || []).forEach((fieldname) => {
+      if (hasItemChildField(fieldname)) targetRow[fieldname] = spq_rate;
+    });
+    (spqFieldCandidates?.amountFields || []).forEach((fieldname) => {
+      if (hasItemChildField(fieldname)) targetRow[fieldname] = spq_amount;
+    });
+
+    const metaFieldNames = (itemChildMeta?.fields || []).map((df) => String(df?.fieldname || "")).filter(Boolean);
+    const dynamicRateFields = metaFieldNames.filter((fieldname) => (
+      /(spq|buying|purchase).*rate/i.test(fieldname)
+      && !/(commission|orc|value|sell|cost|valuation|list)/i.test(fieldname)
+    ));
+    const dynamicAmountFields = metaFieldNames.filter((fieldname) => (
+      /(spq|buying|purchase).*amount/i.test(fieldname)
+      && !/(commission|orc|value|sell|cost|valuation|list)/i.test(fieldname)
+    ));
+    dynamicRateFields.forEach((fieldname) => {
+      targetRow[fieldname] = spq_rate;
+    });
+    dynamicAmountFields.forEach((fieldname) => {
+      targetRow[fieldname] = spq_amount;
+    });
+
+    // Extra safety for schema variants: update any existing SPQ-like keys on this child row.
+    const rowKeys = Object.keys(targetRow || {});
+    rowKeys
+      .filter((key) => /(spq|buying).*rate/i.test(key) && !/(commission|orc|value)/i.test(key))
+      .forEach((key) => {
+        targetRow[key] = spq_rate;
+      });
+    rowKeys
+      .filter((key) => /purchase.*rate/i.test(key) && !/(commission|orc|value)/i.test(key))
+      .forEach((key) => {
+        targetRow[key] = spq_rate;
+      });
+    rowKeys
+      .filter((key) => /(spq|buying).*amount/i.test(key) && !/(commission|orc|value)/i.test(key))
+      .forEach((key) => {
+        targetRow[key] = spq_amount;
+      });
+    rowKeys
+      .filter((key) => /purchase.*amount/i.test(key) && !/(commission|orc|value)/i.test(key))
+      .forEach((key) => {
+        targetRow[key] = spq_amount;
+      });
 
     // Persist Opportunity Type in whichever schema field is available.
     if (Object.prototype.hasOwnProperty.call(targetRow, "opportunity_type")) {
@@ -4444,10 +6158,56 @@ class opportunitydatapage {
       args: { doc: latestDoc },
       freeze: true,
       freeze_message: __("Saving item..."),
-      callback: () => {
+      callback: (r) => {
+        const savedDoc = r?.message;
+        if (!savedDoc || savedDoc.doctype !== OPP_CFG.DOCTYPE) {
+          frappe.msgprint({
+            title: __("Error"),
+            message: __("Failed to update item"),
+            indicator: "red"
+          });
+          return;
+        }
+
+        const savedItems = Array.isArray(savedDoc.items) ? savedDoc.items : [];
+        const savedRow = savedItems.find((row) => String(row?.name || "") === rowName)
+          || (Number.isFinite(rowIdx) ? savedItems[rowIdx] : null);
+        if (savedRow) {
+          console.log("DEBUG saveOpportunityItemInlineEdit - Saved row SPQ fields:", {
+            rowName,
+            rowIdx,
+            saved_spq_rate: savedRow.spq_rate,
+            saved_buying_rate: savedRow.buying_rate,
+            saved_purchase_rate: savedRow.purchase_rate,
+            saved_spq_amount: savedRow.spq_amount,
+            saved_buying_amount: savedRow.buying_amount,
+            saved_purchase_amount: savedRow.purchase_amount,
+            saved_detected_rate_values: (spqFieldCandidates?.rateFields || []).reduce((acc, key) => {
+              acc[key] = savedRow?.[key];
+              return acc;
+            }, {}),
+            saved_detected_amount_values: (spqFieldCandidates?.amountFields || []).reduce((acc, key) => {
+              acc[key] = savedRow?.[key];
+              return acc;
+            }, {}),
+            saved_row_keys: Object.keys(savedRow || {}),
+          });
+        }
+
+        me._currentOpportunityDoc = savedDoc;
+        $(me.page.wrapper).find("tr.item-inline-edit-row").remove();
+        $(me.page.wrapper).find("#detail-items-inline-editor-panel").remove();
+        $(".table-wrap").removeClass("is-inline-editing");
         frappe.show_alert({ message: __("Item updated"), indicator: "green" });
         me.load_doc_details(docname);
       },
+      error: () => {
+        frappe.msgprint({
+          title: __("Error"),
+          message: __("Failed to save item. Please try again."),
+          indicator: "red"
+        });
+      }
     });
   }
 
@@ -5052,6 +6812,7 @@ class opportunitydatapage {
 
     const dialog = new frappe.ui.Dialog({
       title: __("Select Items for Quotation"),
+      size: "extra-large",
       fields: [
         {
           fieldname: "item_selector_html",
@@ -5060,101 +6821,266 @@ class opportunitydatapage {
       ],
       primary_action_label: __("Create Quotation"),
       primary_action: () => {
-        const selectedItems = [];
+        const selectedRowNames = new Set();
         const $wrapper = dialog.get_field("item_selector_html").$wrapper;
         $wrapper.find(".opp-quotation-item-check:checked").each(function () {
           const rowName = String($(this).data("row-name") || "").trim();
-          if (!rowName) return;
-          selectedItems.push({ name: rowName });
+          if (rowName) selectedRowNames.add(rowName);
         });
 
-        if (!selectedItems.length) {
-          frappe.msgprint(__("Please select at least one item"));
+        if (!selectedRowNames.size) {
+          frappe.show_alert({ message: __("Please select at least one item"), indicator: "red" }, 4);
           return;
         }
 
+        const selectedItems = (Array.isArray(doc?.items) ? doc.items : []).filter((row) =>
+          selectedRowNames.has(String(row?.name || "").trim())
+        );
+
+        const sourceContactRows =
+          (Array.isArray(doc?.contact_list) && doc.contact_list)
+          || (Array.isArray(doc?.contacts) && doc.contacts)
+          || (Array.isArray(doc?.party_contacts) && doc.party_contacts)
+          || [];
+
+        const contactList = sourceContactRows
+          .map((row) => {
+            const contact = String(
+              row?.contact
+              || row?.contact_person
+              || row?.contact_name
+              || row?.party_contact
+              || row?.name1
+              || row?.user_name
+              || ""
+            ).trim();
+            if (!contact) return null;
+
+            return {
+              contact,
+              full_name: String(row?.full_name || row?.contact_name || row?.person_name || "").trim(),
+              phone: String(row?.mobile_no || row?.contact_mobile || row?.phone || row?.phone_no || "").trim(),
+              email: String(row?.email_id || row?.contact_email || row?.email || "").trim(),
+              designation: String(row?.designation || row?.desgination || "").trim(),
+              tpoc: Number(row?.tpoc || row?.is_tpoc || row?.is_primary_contact || row?.is_primary || 0) === 1 ? 1 : 0,
+            };
+          })
+          .filter(Boolean);
+
+        frappe._pendingQuotationFromOpportunity = {
+          opportunity: sourceName,
+          customer: String(doc?.party_name || doc?.customer || "").trim(),
+          contact_person: String(doc?.contact_person || contactList?.[0]?.contact || "").trim(),
+          owner: String(doc?.owner || "").trim(),
+          company: String(doc?.company || "").trim(),
+          customer_address: String(doc?.customer_address || doc?.address || "").trim(),
+          shipping_address_name: String(doc?.shipping_address_name || doc?.shipping_address || "").trim(),
+          company_address: String(doc?.company_address || "").trim(),
+          contact_list: contactList,
+          sales_team: Array.isArray(doc?.sales_team) ? doc.sales_team : [],
+          items: selectedItems,
+        };
+
         dialog.hide();
-        frappe.model.open_mapped_doc({
-          method: OPP_CFG.API.make_quotation_from_opportunity,
-          source_name: sourceName,
-          args: {
-            selected_items: selectedItems,
-          },
-        });
+        frappe.set_route("quotation-list", "new");
       },
     });
 
-    const rowsHtml = normalizedItems.map((row, idx) => {
-      const itemLabel = frappe.utils.escape_html(row.item_name || row.item_code);
+    // Inject scoped styles once
+    if (!document.getElementById("opp-quotation-dialog-style")) {
+      const style = document.createElement("style");
+      style.id = "opp-quotation-dialog-style";
+      style.textContent = `
+				.opp-quot-dialog-header {
+					display: flex;
+					align-items: center;
+					justify-content: space-between;
+					margin-bottom: 14px;
+					gap: 12px;
+				}
+				.opp-quot-dialog-hint {
+					font-size: 13px;
+					color: #6b7280;
+					margin: 0;
+				}
+				.opp-quot-select-all-label {
+					display: inline-flex;
+					align-items: center;
+					gap: 7px;
+					font-size: 13px;
+					font-weight: 500;
+					color: #374151;
+					cursor: pointer;
+					white-space: nowrap;
+				}
+				.opp-quot-select-all-label input[type="checkbox"] {
+					width: 15px;
+					height: 15px;
+					cursor: pointer;
+					accent-color: #2563eb;
+				}
+				.opp-quot-table-wrap {
+					border: 1px solid #e5e7eb;
+					border-radius: 10px;
+					overflow: hidden;
+				}
+				.opp-quot-table-scroll {
+					max-height: 420px;
+					overflow-y: auto;
+					overflow-x: auto;
+				}
+				.opp-quot-table {
+					width: 100%;
+					border-collapse: collapse;
+					font-size: 13px;
+					min-width: 680px;
+				}
+				.opp-quot-table thead tr {
+					background: #f3f4f6;
+					border-bottom: 1px solid #e5e7eb;
+				}
+				.opp-quot-table thead th {
+					padding: 10px 14px;
+					font-weight: 600;
+					color: #374151;
+					text-align: left;
+					white-space: nowrap;
+				}
+				.opp-quot-table thead th.text-right { text-align: right; }
+				.opp-quot-table thead th.text-center { text-align: center; }
+				.opp-quot-table tbody tr {
+					border-bottom: 1px solid #f0f0f0;
+					transition: background 0.12s;
+				}
+				.opp-quot-table tbody tr:last-child { border-bottom: none; }
+				.opp-quot-table tbody tr:hover { background: #f9fafb; }
+				.opp-quot-table tbody tr.is-checked { background: #eff6ff; }
+				.opp-quot-table tbody td {
+					padding: 10px 14px;
+					color: #111827;
+					vertical-align: middle;
+				}
+				.opp-quot-table tbody td.text-right { text-align: right; }
+				.opp-quot-table tbody td.text-center { text-align: center; }
+				.opp-quot-item-check {
+					width: 15px;
+					height: 15px;
+					cursor: pointer;
+					accent-color: #2563eb;
+				}
+				.opp-quot-item-name {
+					font-weight: 500;
+					color: #111827;
+				}
+				.opp-quot-item-code {
+					color: #6b7280;
+					font-size: 12px;
+				}
+				.opp-quot-table tbody td .opp-quot-item-name + .opp-quot-item-code {
+					margin-top: 2px;
+				}
+				.opp-quot-footer-info {
+					margin-top: 12px;
+					font-size: 12px;
+					color: #6b7280;
+				}
+				.modal-dialog.modal-extra-large .modal-body {
+					padding: 20px 24px;
+				}
+			`;
+      document.head.appendChild(style);
+    }
+
+    const rowsHtml = normalizedItems.map((row) => {
+      const itemName = frappe.utils.escape_html(row.item_name || row.item_code);
       const itemCode = frappe.utils.escape_html(row.item_code || "-");
-      const qtyText = frappe.format(row.qty, { fieldtype: "Float" });
-      const rateText = fmtCurrency(row.rate || 0);
-      const amountText = fmtCurrency(row.amount || (row.qty * row.rate));
+      const rowNameSafe = frappe.utils.escape_html(row.name);
+      const qtyText = frappe.utils.escape_html(String(frappe.format(row.qty, { fieldtype: "Float" }) || "0"));
+      const rateText = frappe.utils.escape_html(String(fmtCurrency(row.rate || 0) || "0"));
+      const amountText = frappe.utils.escape_html(String(fmtCurrency(row.amount || (row.qty * row.rate)) || "0"));
       return `
-        <tr>
-          <td class="text-center">
-            <input
-              type="checkbox"
-              class="opp-quotation-item-check"
-              data-row-name="${frappe.utils.escape_html(row.name)}"
-              ${idx === 0 ? "autofocus" : ""}
-              checked
-            />
-          </td>
-          <td>${itemLabel}</td>
-          <td>${itemCode}</td>
-          <td class="text-right">${frappe.utils.escape_html(String(qtyText || "0"))}</td>
-          <td class="text-right">${frappe.utils.escape_html(String(rateText || "0"))}</td>
-          <td class="text-right">${frappe.utils.escape_html(String(amountText || "0"))}</td>
-        </tr>
-      `;
+				<tr class="is-checked">
+					<td class="text-center">
+						<input type="checkbox" class="opp-quot-item-check opp-quotation-item-check"
+							data-row-name="${rowNameSafe}" checked />
+					</td>
+					<td>
+						<div class="opp-quot-item-name">${itemName}</div>
+						<div class="opp-quot-item-code">${itemCode}</div>
+					</td>
+					<td class="text-right">${qtyText}</td>
+					<td class="text-right">${rateText}</td>
+					<td class="text-right">${amountText}</td>
+				</tr>
+			`;
     }).join("");
 
     const html = `
-      <div class="mb-2 d-flex align-items-center justify-content-between">
-        <div class="text-muted">${__("Select the items to include in the quotation")}</div>
-        <label class="mb-0 d-flex align-items-center" style="gap: 6px; cursor: pointer;">
-          <input type="checkbox" id="opp-quotation-select-all" checked />
-          <span>${__("Select All")}</span>
-        </label>
-      </div>
-      <div style="max-height: 360px; overflow: auto; border: 1px solid #e5e7eb; border-radius: 8px;">
-        <table class="table table-sm mb-0">
-          <thead>
-            <tr>
-              <th style="width: 46px;" class="text-center">#</th>
-              <th>${__("Item")}</th>
-              <th>${__("Item Code")}</th>
-              <th class="text-right">${__("Qty")}</th>
-              <th class="text-right">${__("Rate")}</th>
-              <th class="text-right">${__("Amount")}</th>
-            </tr>
-          </thead>
-          <tbody>${rowsHtml}</tbody>
-        </table>
-      </div>
-    `;
+			<div class="opp-quot-dialog-header">
+				<p class="opp-quot-dialog-hint">${__("Select the items to include in the quotation.")}</p>
+				<label class="opp-quot-select-all-label">
+					<input type="checkbox" id="opp-quotation-select-all" checked />
+					${__("Select All")}
+				</label>
+			</div>
+			<div class="opp-quot-table-wrap">
+				<div class="opp-quot-table-scroll">
+					<table class="opp-quot-table">
+						<thead>
+							<tr>
+								<th style="width:48px;" class="text-center">
+									<i class="fa fa-check" style="color:#9ca3af;font-size:11px;"></i>
+								</th>
+								<th>${__("Item")}</th>
+								<th class="text-right">${__("Qty")}</th>
+								<th class="text-right">${__("Rate")}</th>
+								<th class="text-right">${__("Amount")}</th>
+							</tr>
+						</thead>
+						<tbody id="opp-quot-tbody">${rowsHtml}</tbody>
+					</table>
+				</div>
+			</div>
+			<div class="opp-quot-footer-info">
+				${__("Total items")}: <strong>${normalizedItems.length}</strong>
+			</div>
+		`;
 
     dialog.get_field("item_selector_html").$wrapper.html(html);
 
     const $wrapper = dialog.get_field("item_selector_html").$wrapper;
+
     const updateSelectAllState = () => {
       const total = $wrapper.find(".opp-quotation-item-check").length;
       const checked = $wrapper.find(".opp-quotation-item-check:checked").length;
       $wrapper.find("#opp-quotation-select-all").prop("checked", total > 0 && checked === total);
+      $wrapper.find(".opp-quot-footer-info").html(
+        `${__("Selected")}: <strong>${checked}</strong> / ${total}`
+      );
     };
 
     $wrapper.off("change", "#opp-quotation-select-all").on("change", "#opp-quotation-select-all", function () {
-      const isChecked = !!$(this).is(":checked");
+      const isChecked = $(this).is(":checked");
       $wrapper.find(".opp-quotation-item-check").prop("checked", isChecked);
+      $wrapper.find(".opp-quot-table tbody tr").toggleClass("is-checked", isChecked);
+      updateSelectAllState();
     });
 
-    $wrapper.off("change", ".opp-quotation-item-check").on("change", ".opp-quotation-item-check", () => {
+    $wrapper.off("change", ".opp-quotation-item-check").on("change", ".opp-quotation-item-check", function () {
+      $(this).closest("tr").toggleClass("is-checked", $(this).is(":checked"));
       updateSelectAllState();
     });
 
     dialog.show();
     updateSelectAllState();
+
+    // Force modal to full usable width
+    setTimeout(() => {
+      $(dialog.$wrapper).find(".modal-dialog").css({
+        "max-width": "min(92vw, 900px)",
+        "width": "min(92vw, 900px)",
+      });
+    }, 0);
   }
 
   openAssignDialog(name) {
@@ -5418,22 +7344,21 @@ class opportunitydatapage {
               recipients: v.recipients,
               subject: v.subject,
               content: processedContent,
-              send_email: 1
+              send_email: 1,
             },
             freeze: true,
             freeze_message: __("Sending email..."),
             callback: () => {
               frappe.show_alert({ message: __("Email sent"), indicator: "green" });
               me.load_activity(name);
-              // Reload email cards if Email tab is active
               const activeTab = $(".panel__tabs .ptab.is-active").text().trim().replace(/^[^\w\s]+\s*/, "").trim();
               if (activeTab === "Email") {
                 me.loadPanelCards("Email");
               }
             },
-            error: () => frappe.msgprint(__("Failed to send email."))
+            error: () => frappe.msgprint(__("Failed to send email.")),
           });
-        }
+        },
       });
       d.show();
     });
@@ -7902,6 +9827,29 @@ class opportunitydatapage {
       let pop = $('<div class="filter-area">');
       await frappe.model.with_doctype(DOCTYPE);
 
+      // ===== CUSTOM SEARCH FILTERS (Brand, Product, Tenure, Years/Month) =====
+      let customFiltersHtml = $(`
+				<div class="custom-quick-filters mb-3 p-2" style="border-bottom: 1px solid #ddd; padding-bottom: 10px;">
+					<div class="filter-field mb-2">
+						<label class="block text-muted small" style="font-size: 11px; margin-bottom: 4px;">Brand</label>
+						<input type="text" class="form-control form-control-sm" placeholder="Search brand" data-filter-field="brand" style="font-size: 12px;">
+					</div>
+					<div class="filter-field mb-2">
+						<label class="block text-muted small" style="font-size: 11px; margin-bottom: 4px;">Product</label>
+						<input type="text" class="form-control form-control-sm" placeholder="Search product" data-filter-field="product" style="font-size: 12px;">
+					</div>
+					<div class="filter-field mb-2">
+						<label class="block text-muted small" style="font-size: 11px; margin-bottom: 4px;">Tenure</label>
+						<input type="text" class="form-control form-control-sm" placeholder="Search tenure" data-filter-field="tenure" style="font-size: 12px;">
+					</div>
+					<div class="filter-field mb-2">
+						<label class="block text-muted small" style="font-size: 11px; margin-bottom: 4px;">Years/Months</label>
+						<input type="text" class="form-control form-control-sm" placeholder="Search years/months" data-filter-field="years_months" style="font-size: 12px;">
+					</div>
+				</div>
+			`);
+      pop.append(customFiltersHtml);
+
       let FG = new frappe.ui.FilterGroup({
         parent: pop,
         doctype: DOCTYPE,
@@ -7929,8 +9877,26 @@ class opportunitydatapage {
 
       pop.append(footer);
 
+      // ===== HANDLE CUSTOM FILTER INPUTS =====
+      let customFilters = {};
+      customFiltersHtml.find('input[data-filter-field]').on('input', function () {
+        const field = $(this).data('filter-field');
+        const value = $(this).val().trim();
+        if (value) {
+          customFilters[field] = value;
+        } else {
+          delete customFilters[field];
+        }
+      });
+
       footer.find(".apply-filters").on("click", () => {
         me.saved_filters = FG.get_filters();
+
+        // Add custom filters to saved_filters
+        Object.entries(customFilters).forEach(([field, value]) => {
+          me.saved_filters.push([DOCTYPE, field, "like", `%${value}%`]);
+        });
+
         me._suspend_on_change = false;
         fetchWithFilters();
         updateCount($btn, me.saved_filters.length);
@@ -8773,63 +10739,18 @@ frappe.opportunitydata_page_template = {
           height: 12px;
         }
 
-        .new-opp-table{
-          width: 3400px !important;
-          min-width: 3400px !important;
-          table-layout: fixed !important;
-        }
-
-        .new-opp-table th,
-        .new-opp-table td{
-          font-size: 12px;
-          white-space: nowrap;
-        }
-
-        .new-opp-table-wrap .new-opp-table th,
-        .new-opp-table-wrap .new-opp-table td{
-          width: 120px;
-          min-width: 120px;
-        }
-
-        .new-opp-table-wrap .new-opp-table th:nth-child(1),
-        .new-opp-table-wrap .new-opp-table td:nth-child(1){ width: 150px; min-width: 150px; }
-        .new-opp-table-wrap .new-opp-table th:nth-child(2),
-        .new-opp-table-wrap .new-opp-table td:nth-child(2){ width: 150px; min-width: 150px; }
-        .new-opp-table-wrap .new-opp-table th:nth-child(3),
-        .new-opp-table-wrap .new-opp-table td:nth-child(3){ width: 90px; min-width: 90px; }
-        .new-opp-table-wrap .new-opp-table th:nth-child(4),
-        .new-opp-table-wrap .new-opp-table td:nth-child(4){ width: 90px; min-width: 90px; }
-        .new-opp-table-wrap .new-opp-table th:nth-child(5),
-        .new-opp-table-wrap .new-opp-table td:nth-child(5){ width: 110px; min-width: 110px; }
-        .new-opp-table-wrap .new-opp-table th:nth-child(8),
-        .new-opp-table-wrap .new-opp-table td:nth-child(8){ width: 180px; min-width: 180px; }
-        .new-opp-table-wrap .new-opp-table th:nth-child(12),
-        .new-opp-table-wrap .new-opp-table td:nth-child(12){ width: 90px; min-width: 90px; }
-        .new-opp-table-wrap .new-opp-table th:nth-child(13),
-        .new-opp-table-wrap .new-opp-table td:nth-child(13){ width: 90px; min-width: 90px; }
-        .new-opp-table-wrap .new-opp-table th:nth-child(16),
-        .new-opp-table-wrap .new-opp-table td:nth-child(16){ width: 140px; min-width: 140px; }
-        .new-opp-table-wrap .new-opp-table th:nth-child(19),
-        .new-opp-table-wrap .new-opp-table td:nth-child(19){ width: 70px; min-width: 70px; }
-        .new-opp-table-wrap .new-opp-table th:nth-child(22),
-        .new-opp-table-wrap .new-opp-table td:nth-child(22){ width: 72px; min-width: 72px; }
-
-        .new-opp-table .form-control{
-          min-height: 32px;
-          border-radius: 8px;
-          font-size: 12px;
-          padding: 5px 8px;
-        }
-
-        .new-opp-item-code-link-control .frappe-control,
-        .new-opp-item-code-link-control .form-group,
-        .new-opp-item-code-link-control .control-input-wrapper,
-        .new-opp-item-code-link-control .control-input,
+				.new-opp-item-code-link-control,
+				.new-opp-item-code-link-control .frappe-control,
+				.new-opp-item-code-link-control .form-group,
+				.new-opp-item-code-link-control .clearfix,
+				.new-opp-item-code-link-control .control-input-wrapper,
+				.new-opp-item-code-link-control .control-input,
         .new-opp-item-code-link-control .awesomplete,
         .new-opp-item-code-link-control .awesomplete input,
         .new-opp-item-code-link-control input.form-control{
           width: 100%;
           margin: 0 !important;
+					padding-bottom: 0 !important;
         }
 
         .new-opp-item-code-link-control .control-label,
@@ -8841,7 +10762,8 @@ frappe.opportunitydata_page_template = {
 
         .new-opp-item-code-link-control .awesomplete input,
         .new-opp-item-code-link-control input.form-control{
-          min-height: 32px;
+					min-height: 38px;
+					height: 38px;
           border-radius: 8px;
           font-size: 12px;
           padding: 5px 8px;
@@ -8865,7 +10787,110 @@ frappe.opportunitydata_page_template = {
           margin-top: 6px;
         }
 
+        /* ---- Wizard Stepper ---- */
+        .new-opp-wizard-bar{
+          display: flex;
+          align-items: center;
+          background: #fff;
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+          padding: 20px 24px;
+          margin-bottom: 16px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .new-opp-wizard-step{
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 6px;
+          flex: 0 0 auto;
+        }
+
+        .new-opp-wizard-circle{
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          background: #e5e7eb;
+          color: #9ca3af;
+          font-size: 14px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.2s, color 0.2s;
+        }
+
+        .new-opp-wizard-step.is-active .new-opp-wizard-circle{
+          background: #2563eb;
+          color: #fff;
+        }
+
+        .new-opp-wizard-step.is-done .new-opp-wizard-circle{
+          background: #16a34a;
+          color: #fff;
+        }
+
+        .new-opp-wizard-label{
+          font-size: 12px;
+          color: #9ca3af;
+          font-weight: 500;
+          white-space: nowrap;
+          text-align: center;
+        }
+
+        .new-opp-wizard-step.is-active .new-opp-wizard-label{
+          color: #2563eb;
+          font-weight: 600;
+        }
+
+        .new-opp-wizard-step.is-done .new-opp-wizard-label{
+          color: #16a34a;
+        }
+
+        .new-opp-wizard-connector{
+          flex: 1;
+          height: 2px;
+          background: #e5e7eb;
+          margin: 0 10px;
+          margin-bottom: 20px;
+          transition: background 0.2s;
+        }
+
+        .new-opp-wizard-connector.is-done{
+          background: #16a34a;
+        }
+
+        .new-opp-wizard-panel{
+          display: block;
+        }
+
+        .new-opp-wizard-panel.d-none{
+          display: none !important;
+        }
+
+        .new-opp-wizard-footer{
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 16px;
+          padding: 0 2px;
+        }
+
+        .new-opp-wizard-nav{
+          display: flex;
+          gap: 10px;
+          align-items: center;
+        }
+
         @media (max-width: 768px){
+          .new-opp-wizard-bar{
+            flex-wrap: wrap;
+            gap: 8px;
+          }
+          .new-opp-wizard-connector{
+            display: none;
+          }
           .new-opp-row.two-col{
             grid-template-columns: 1fr;
           }
@@ -9329,12 +11354,22 @@ frappe.opportunitydata_page_template = {
       background: #f9fafb;
       position: sticky;
       top: 0;
-      z-index: 1;
+      z-index: 2;
       font-weight: 600;
       white-space: nowrap;
       vertical-align: middle;
+      /* keep header visible when the table is scrolled horizontally */
+      transform: translateX(var(--line-items-scroll, 0px));
     }
 
+    .detail-table thead tr {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #f9fafb;
+    }
+
+    
     .detail-table thead th .th-ellipsis{
       display: block;
       width: 100%;
@@ -9381,6 +11416,130 @@ frappe.opportunitydata_page_template = {
       overflow: hidden;
       text-overflow: ellipsis;
     }
+		.detail-table tbody tr.new-opp-item-inline-editor > td,
+		.detail-table tbody tr.item-inline-edit-row > td{
+			white-space: normal;
+			overflow: visible;
+		}
+		.item-inline-header{
+			position: sticky;
+			top: 0;
+			left: 0;
+			right: 0;
+			z-index: 999;
+			background: #fff;
+			box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+			min-width: 0;
+			transform: translateX(var(--line-items-scroll, 0px));
+			will-change: transform;
+		}
+
+		.detail-table thead th {
+			position: relative;
+			top: auto;
+			transform: none;
+		}
+
+		.detail-table thead tr {
+			position: relative;
+		}
+
+
+		.new-opp-item-inline-editor-wrap {
+			overflow-y: auto;
+			overflow-x: auto;
+			max-width: 100%;
+		}
+
+		.detail-card--lineitems .table-wrap .item-inline-header,
+		#new-opp-items-table-wrap .item-inline-header {
+			position: sticky;
+			top: 0;
+			left: 0;
+			right: 0;
+			transform: translateX(var(--line-items-scroll, 0px));
+			z-index: 999;
+			background: #fff;
+		}
+
+		.item-inline-actions{
+			margin-left: auto;
+			position: sticky;
+			right: 8px;
+			z-index: 4;
+			background: #fff;
+			padding-left: 8px;
+			flex-shrink: 0;
+			min-width: max-content;
+		}
+		.item-inline-actions .item-row-save,
+		.item-inline-actions .item-row-cancel{
+			width: auto;
+			min-width: 84px;
+			height: 30px;
+			padding: 0 10px;
+			gap: 6px;
+			font-size: 12px;
+		}
+		.inline-edit-actions-col{
+			white-space: normal !important;
+			overflow: hidden !important;
+			vertical-align: top !important;
+			width: 72px !important;
+			min-width: 72px !important;
+			max-width: 72px !important;
+			padding: 6px 4px !important;
+		}
+		.inline-edit-actions-stack{
+			display: flex;
+			// flex-direction: column;
+			gap: 6px;
+			align-items: center;
+			min-width: 24px;
+			padding-top: 2px;
+			width: 100%;
+		}
+		.inline-edit-actions-stack .btn{
+			height: 24px;
+			width: 24px;
+			padding: 0;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0;
+		}
+		.inline-edit-actions-stack .item-row-save,
+		.inline-edit-actions-stack .item-row-cancel,
+		.inline-edit-actions-stack .new-opp-inline-apply,
+		.inline-edit-actions-stack .new-opp-inline-cancel{
+			width: 24px;
+			min-width: 24px;
+		}
+		@media (max-width: 992px){
+			.item-inline-actions{
+				position: static;
+				right: auto;
+				margin-left: auto;
+				padding-left: 8px;
+			}
+			.inline-edit-actions-stack{
+				min-width: 24px;
+			}
+		}
+		.item-inline-editor-panel,
+		.new-opp-item-inline-editor-wrap{
+			height: 420px;
+			max-height: 420px;
+			overflow-y: auto;
+			overflow-x: hidden;
+		}
+		@media (max-width: 1366px){
+			.item-inline-editor-panel,
+			.new-opp-item-inline-editor-wrap{
+				height: 360px;
+				max-height: 360px;
+			}
+		}
     .detail-table tbody tr[data-editing="1"] td{
       overflow: hidden;
       vertical-align: middle;
@@ -9439,17 +11598,42 @@ frappe.opportunitydata_page_template = {
       min-width: 72px;
       text-align: right;
     }
-    .item-code-link-control .frappe-control,
-    .item-code-link-control .control-input-wrapper,
-    .item-code-link-control .control-input{
+		.item-code-link-control,
+		.item-code-link-control .frappe-control,
+		.item-code-link-control .form-group,
+		.item-code-link-control .clearfix,
+		.item-code-link-control .control-input-wrapper,
+		.item-code-link-control .control-input{
       width: 100%;
+			margin-bottom: 0 !important;
+			padding-bottom: 0 !important;
+		  min-width: 0 !important;
+		  overflow: hidden !important;
     }
+		.item-code-link-control .control-label{ display: none !important; }
     .item-code-link-control .control-input{
-      min-height: 28px;
+			min-height: 38px;
+		  border-radius: 6px;
     }
     .item-code-link-control .awesomplete{
       width: 100%;
+		  display: block !important;
+		  overflow: hidden !important;
     }
+		.item-code-link-control .awesomplete > input{
+			min-height: 38px !important;
+			height: 38px !important;
+		  width: 100% !important;
+		  max-width: 100% !important;
+		  min-width: 0 !important;
+		  overflow: hidden !important;
+		  text-overflow: ellipsis;
+		  white-space: nowrap;
+		  padding-right: 28px !important;
+		}
+		.item-code-link-control .link-btn{
+		  right: 8px !important;
+		}
     .item-code-link-control .awesomplete > ul{
       z-index: 12;
       max-height: 220px;
@@ -11438,7 +13622,6 @@ frappe.opportunitydata_page_template = {
       <div class="detail-card detail-card--fullwidth detail-card--lineitems">
         <div class="d-flex align-items-center justify-content-between mb-2">
           <div class="card__title m-0">Line Items</div>
-          <button type="button" class="btn btn-default btn-sm" id="detail-add-item-row">+ Add Row</button>
         </div>
         <div class="table-wrap">
           <table class="detail-table">
@@ -11465,13 +13648,20 @@ frappe.opportunitydata_page_template = {
             </thead>
             <tbody id="detail-items-tbody">
               <tr>
-                <td colspan="17" class="muted">No line items</td>
+                <td colspan="9" class="muted">No line items</td>
               </tr>
             </tbody>
           </table>
         </div>
         <div class="detail-add-row-wrap">
-          <button type="button" class="btn btn-default btn-sm" id="detail-add-item-row-bottom">+ Add Row</button>
+					<div class="dropdown" id="detail-add-item-actions">
+						<button type="button" class="btn btn-dark btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Actions</button>
+						<ul class="dropdown-menu">
+							<li><a class="dropdown-item" href="#" id="detail-add-item-row-action">Add Row</a></li>
+							<li><a class="dropdown-item" href="#" id="detail-add-item-row-renewal">Renewal</a></li>
+							<li><a class="dropdown-item" href="#" id="detail-add-item-row-additional">Additional</a></li>
+						</ul>
+					</div>
         </div>
         <datalist id="item-code-suggestions"></datalist>
       </div>
@@ -11699,118 +13889,132 @@ frappe.opportunitydata_page_template = {
       <!-- NEW VIEW -->
       <div class="opportunity-data-new d-none">
         <div class="new-opportunity-wrap">
-          <div class="row">
-            <div class="col-12">
-              <div class="page-title-head d-flex align-items-center">
-                <div class="flex-grow-1">
-                  <h3 class="fs-xl fw-bold m-0">Opportunities</h3>
-                </div>
-                <div class="text-end">
-                  <ol class="breadcrumb m-0 py-0" style="background-color: transparent;">
-                    <li class="breadcrumb-item"><a href="javascript:void(0);">CRM</a></li>
-                    <li class="breadcrumb-item active">Opportunities</li>
-                  </ol>
-                </div>
-              </div>
+
+          <!-- Wizard Step Bar -->
+          <div class="new-opp-wizard-bar">
+            <div class="new-opp-wizard-step is-active" data-step="1">
+              <div class="new-opp-wizard-circle">1</div>
+              <div class="new-opp-wizard-label">Basic Info</div>
+            </div>
+            <div class="new-opp-wizard-connector"></div>
+            <div class="new-opp-wizard-step" data-step="2">
+              <div class="new-opp-wizard-circle">2</div>
+              <div class="new-opp-wizard-label">Contact &amp; Address</div>
+            </div>
+            <div class="new-opp-wizard-connector"></div>
+            <div class="new-opp-wizard-step" data-step="3">
+              <div class="new-opp-wizard-circle">3</div>
+              <div class="new-opp-wizard-label">Items</div>
+            </div>
+            <div class="new-opp-wizard-connector"></div>
+            <div class="new-opp-wizard-step" data-step="4">
+              <div class="new-opp-wizard-circle">4</div>
+              <div class="new-opp-wizard-label">Description</div>
             </div>
           </div>
 
-          <div class="new-opp-footer mt-2">
-            <button class="btn btn-default mr-2" id="new-opp-cancel" type="button">Cancel</button>
-            <button class="btn btn-primary1" id="new-opp-save" type="button">Create Opportunity</button>
-          </div>
-
-          <div class="new-opportunity-card">
-            <div class="card__title">New Opportunity</div>
-
-            <div class="new-opportunity-form">
-              <div class="new-opp-row three-col">
-                <div class="new-opp-col">
+          <!-- Step 1: Basic Info -->
+          <div class="new-opp-wizard-panel" data-panel="1">
+            <div class="new-opportunity-card">
+              <div class="card__title">Basic Information</div>
+              <div class="new-opportunity-form">
+                <div class="new-opp-row two-col">
                   <div class="new-opp-field">
-                    <label id="new-opp-party-label">Customer</label>
+                    <label id="new-opp-party-label">Customer <span style="color:#eb9091">*</span></label>
                     <div id="new-opp-party-name-control" class="new-opp-link-control"></div>
-                  </div>
-                  <div class="new-opp-field">
-                    <label class="control-label reqd">Contact Person <span style="color:#eb9091">*</span> <i id="new-opp-contact-quick-add" class="fa fa-plus text-primary ms-1" title="Add Contact"></i></label>
-                    <div id="new-opp-contact-display" class="new-opp-contact-list"><span class="new-opp-contact-empty">No contacts added.</span></div>
-                  </div>
-                  
-                </div>
-
-                <div class="new-opp-col">
-                  <div class="new-opp-field">
-                    <label>Details</label>
-                    <textarea id="new-opp-description" class="form-control" rows="6" placeholder="Add details"></textarea>
-                  </div>
-                  <div class="new-opp-field">
-                    <label>Transaction Date</label>
-                    <input id="new-opp-transaction-date" type="date" class="form-control" />
-                  </div>
-                </div>
-
-                <div class="new-opp-col">
-                  <div class="new-opp-field">
-                    <label class="control-label reqd">Sales Team <span style="color:#eb9091">*</span> <i id="new-opp-sales-team-quick-add" class="fa fa-plus text-primary ms-1" title="Add Sales Person"></i></label>
-                    <div id="new-opp-sales-team-display" class="new-opp-contact-list"><span class="new-opp-contact-empty">No sales person selected.</span></div>
-                  </div>
-                  <div class="new-opp-field">
-                    <label>Opportunity Owner</label>
-                    <div id="new-opp-owner-control" class="new-opp-link-control"></div>
                   </div>
                   <div class="new-opp-field">
                     <label>Company</label>
                     <div id="new-opp-company-control" class="new-opp-link-control"></div>
                   </div>
                 </div>
+                <div class="new-opp-field">
+                  <label>Sales Person</label>
+                  <div id="new-opp-sales-person-control" class="new-opp-link-control" style="display:none;"></div>
+                  <div id="new-opp-sales-person-display" style="margin-top:8px;"></div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="new-opportunity-card mt-3">
-            <div class="new-opportunity-form">
-              <div class="new-opp-row one-col">
+          <!-- Step 2: Contact & Address -->
+          <div class="new-opp-wizard-panel d-none" data-panel="2">
+            <div class="new-opportunity-card">
+              <div class="card__title">Contact &amp; Address</div>
+              <div class="new-opportunity-form">
                 <div class="new-opp-field">
-                  <div class="new-opp-subhead d-flex align-items-center justify-content-between">
-                    <label class="m-0">Items</label>
-                  </div>
-                  <div class="table-wrap new-opp-table-wrap" id="new-opp-items-table-wrap">
-                    <table class="detail-table new-opp-table">
-                      <thead>
-                        <tr>
-                          <th><span class="th-ellipsis" title="Item Code">Item Code</span></th>
-                          <th><span class="th-ellipsis" title="Item Name">Item Name</span></th>
-                          <th><span class="th-ellipsis" title="Rate">Rate</span></th>
-                          <th><span class="th-ellipsis" title="Qty">Qty</span></th>
-                          <th><span class="th-ellipsis" title="Amount">Amount</span></th>
-                          <th><span class="th-ellipsis" title="Brand">Brand</span></th>
-                          <th><span class="th-ellipsis" title="Item Group">Item Group</span></th>
-                          <th><span class="th-ellipsis" title="Description">Description</span></th>
-                          <th><span class="th-ellipsis" title="HSN Code">HSN Code</span></th>
-                          <th><span class="th-ellipsis" title="SPQ Rate">SPQ Rate</span></th>
-                          <th><span class="th-ellipsis" title="SPQ Amount">SPQ Amount</span></th>
-                          <th><span class="th-ellipsis" title="Margin">Margin</span></th>
-                          <th><span class="th-ellipsis" title="UOM">UOM</span></th>
-                          <th><span class="th-ellipsis" title="Opportunity Type">Opportunity Type</span></th>
-                          <th><span class="th-ellipsis" title="Forecast">Forecast</span></th>
-                          <th><span class="th-ellipsis" title="Renewal ID">Renewal ID</span></th>
-                          <th><span class="th-ellipsis" title="Sales Stage">Sales Stage</span></th>
-                          <th><span class="th-ellipsis" title="Expected Date">Expected Date</span></th>
-                          <th><span class="th-ellipsis" title="ORC">ORC</span></th>
-                          <th><span class="th-ellipsis" title="Commission Type">Commission Type</span></th>
-                          <th><span class="th-ellipsis" title="Rate / Value">Rate / Value</span></th>
-                          <th class="actions-col line-items-center"><span class="th-ellipsis" title="Edit"><i class="fa fa-pencil"></i></span></th>
-                        </tr>
-                      </thead>
-                      <tbody id="new-opp-items-table-body"></tbody>
-                    </table>
-                  </div>
-                  <div class="new-opp-add-row-wrap">
-                    <button class="btn btn-default btn-sm" type="button" id="new-opp-add-item">+ Add Row</button>
+                  <label class="control-label reqd">Contact Person <span style="color:#eb9091">*</span> <i id="new-opp-contact-quick-add" class="fa fa-plus text-primary ms-1" title="Add Contact"></i></label>
+                  <div id="new-opp-contact-display" class="new-opp-contact-list"><span class="new-opp-contact-empty">No contacts added.</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3: Items -->
+          <div class="new-opp-wizard-panel d-none" data-panel="3">
+            <div class="new-opportunity-card">
+              <div class="card__title">Items</div>
+              <div class="new-opportunity-form">
+                <div class="new-opp-row one-col">
+                  <div class="new-opp-field">
+                    <div class="table-wrap new-opp-table-wrap" id="new-opp-items-table-wrap">
+					  <table class="detail-table">
+                        <thead>
+                          <tr>
+                            <th><span class="th-ellipsis" title="Item Name">Item Name</span></th>
+													 
+													 <th><span class="th-ellipsis" title="Qty">Qty</span></th>
+														<th><span class="th-ellipsis" title="Price">Rate</span></th>
+														<th><span class="th-ellipsis" title="Amount">Amount</span></th>
+														<th><span class="th-ellipsis" title="SPQ Rate">SPQ Rate</span></th>
+														<th><span class="th-ellipsis" title="Margin">Margin</span></th>
+														<th><span class="th-ellipsis" title="Forecast">Forecast</span></th>
+														<th><span class="th-ellipsis" title="Sales Stage">Sales Stage</span></th>
+														<th class="actions-col line-items-center"><span class="th-ellipsis" title="Edit">Edit</span></th>
+                          </tr>
+                        </thead>
+                        <tbody id="new-opp-items-table-body"></tbody>
+                      </table>
+                    </div>
+                    <div class="new-opp-add-row-wrap">
+											<div class="dropdown" id="new-opp-add-item-actions">
+												<button class="btn btn-dark btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Actions</button>
+												<ul class="dropdown-menu">
+													<li><a class="dropdown-item" href="#" id="new-opp-add-item">Add Row</a></li>
+													<li><a class="dropdown-item" href="#" id="new-opp-add-item-renewal">Renewal</a></li>
+													<li><a class="dropdown-item" href="#" id="new-opp-add-item-additional">Additional</a></li>
+												</ul>
+											</div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+
+          <!-- Step 4: Description -->
+          <div class="new-opp-wizard-panel d-none" data-panel="4">
+            <div class="new-opportunity-card">
+              <div class="card__title">Description</div>
+              <div class="new-opportunity-form">
+                <div class="new-opp-field">
+                  <label>Description / Notes</label>
+                  <textarea id="new-opp-description" class="form-control" rows="8" placeholder="Add details about this opportunity"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Wizard Footer Navigation -->
+          <div class="new-opp-wizard-footer">
+            <button class="btn btn-default" id="new-opp-cancel" type="button">Cancel</button>
+            <div class="new-opp-wizard-nav">
+              <button class="btn btn-default d-none" id="new-opp-back" type="button">&#8592; Back</button>
+              <button class="btn btn-primary1" id="new-opp-next" type="button">Next &#8594;</button>
+              <button class="btn btn-primary1 d-none" id="new-opp-save" type="button">Create Opportunity</button>
+            </div>
+          </div>
+
         </div>
       </div>
 

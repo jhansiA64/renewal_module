@@ -1,6 +1,6 @@
 import frappe
 from frappe.model.mapper import get_mapped_doc
-from frappe.utils import flt
+from frappe.utils import cint, cstr, flt
 from erpnext.setup.utils import get_exchange_rate
 
 @frappe.whitelist()
@@ -11,6 +11,110 @@ def get_filters():
         fields=["name as value", "full_name as label", "user_image"]
     )
     return {"owners": owners}
+
+
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def search_items_for_link(doctype, txt, searchfield, start, page_len, filters=None):
+    filters = frappe.parse_json(filters) if isinstance(filters, str) else (filters or {})
+    meta = frappe.get_meta("Item")
+
+    start = max(cint(start or 0), 0)
+    page_len = max(1, min(cint(page_len or 10), 50))
+
+    item_code = cstr(txt).strip()
+    brand = cstr(filters.get("brand")).strip()
+    tenure = cstr(filters.get("tenure")).strip()
+    years_months = cstr(filters.get("years_months")).strip()
+    product = cstr(filters.get("product")).strip()
+
+    conditions = ["ifnull(disabled, 0) = 0"]
+    values = {
+        "start": start,
+        "page_len": page_len,
+    }
+
+    if item_code:
+        values["item_code"] = f"%{item_code}%"
+        conditions.append(
+            "(" 
+            "name like %(item_code)s "
+            "or ifnull(item_name, '') like %(item_code)s "
+            "or ifnull(description, '') like %(item_code)s"
+            ")"
+        )
+
+    if brand and meta.has_field("brand"):
+        values["brand"] = f"%{brand}%"
+        conditions.append("ifnull(brand, '') like %(brand)s")
+
+    if product:
+        values["product"] = product
+        conditions.append("ifnull(item_group, '') = %(product)s")
+
+    tenure_fields = [
+        fieldname
+        for fieldname in ["tenure", "custom_tenure", "renewal_option"]
+        if meta.has_field(fieldname)
+    ]
+    if tenure and tenure_fields:
+        values["tenure"] = f"%{tenure}%"
+        conditions.append(
+            "(" + " or ".join([f"ifnull(`{fieldname}`, '') like %(tenure)s" for fieldname in tenure_fields]) + ")"
+        )
+
+    tenure_normalized = tenure.strip().lower()
+    if tenure_normalized == "years" and meta.has_field("years"):
+        conditions.append("ifnull(years, 0) > 0")
+    elif tenure_normalized == "months" and meta.has_field("months"):
+        conditions.append("ifnull(months, 0) > 0")
+
+    years_months_clauses = []
+    if years_months:
+        values["years_months"] = f"%{years_months}%"
+        if meta.has_field("years") and tenure_normalized != "months":
+            years_months_clauses.append("cast(ifnull(years, '') as char) like %(years_months)s")
+        if meta.has_field("months") and tenure_normalized != "years":
+            years_months_clauses.append("cast(ifnull(months, '') as char) like %(years_months)s")
+        if meta.has_field("years") and meta.has_field("months") and tenure_normalized not in {"years", "months"}:
+            years_months_clauses.append(
+                "concat(ifnull(years, ''), ' year ', ifnull(months, ''), ' month') like %(years_months)s"
+            )
+        if years_months_clauses:
+            conditions.append("(" + " or ".join(years_months_clauses) + ")")
+
+    tenure_summary_parts = []
+    if meta.has_field("tenure"):
+        tenure_summary_parts.append("ifnull(tenure, '')")
+
+    if meta.has_field("years"):
+        tenure_summary_parts.append("concat(ifnull(years, ''), 'Y')")
+    if meta.has_field("months"):
+        tenure_summary_parts.append("concat(ifnull(months, ''), 'M')")
+
+    tenure_summary_sql = (
+        f"concat_ws(' ', {', '.join(tenure_summary_parts)})"
+        if tenure_summary_parts
+        else "''"
+    )
+
+    rows = frappe.db.sql(
+        f"""
+        select
+            name,
+            ifnull(item_name, '') as item_name,
+            ifnull(brand, '') as brand,
+            {tenure_summary_sql} as tenure_summary
+        from `tabItem`
+        where {' and '.join(conditions)}
+        order by name asc
+        limit %(start)s, %(page_len)s
+        """,
+        values,
+        as_list=True,
+    )
+
+    return rows
 
 
 @frappe.whitelist()
@@ -1010,3 +1114,116 @@ def get_list_data(start=0, page_length=20, status="", probability="", owners=Non
     )
 
     return {"data": rows, "total": total}
+
+
+@frappe.whitelist()
+def update_opportunity_item_spq_rate(opportunity_docname, child_row_name, spq_rate):
+    """
+    Update the SPQ rate for a specific opportunity item (child row).
+    This method explicitly handles the nested field update to ensure persistence.
+    
+    Args:
+        opportunity_docname: Name/ID of the Opportunity document
+        child_row_name: Name/ID of the child row in opportunity.items
+        spq_rate: New SPQ rate value to set
+    
+    Returns:
+        {"success": true, "message": "..."}
+    """
+    try:
+        print(f"\n=== update_opportunity_item_spq_rate called ===")
+        print(f"opportunity_docname: {opportunity_docname}")
+        print(f"child_row_name: {child_row_name}")
+        print(f"spq_rate: {spq_rate}")
+        
+        spq_rate = flt(spq_rate)
+        
+        print(f"spq_rate after flt(): {spq_rate}")
+        
+        if spq_rate <= 0:
+            msg = "SPQ Rate must be greater than 0"
+            print(f"ERROR: {msg}")
+            return {"success": False, "message": msg}
+        
+        # Get the opportunity document
+        print(f"Getting Opportunity doc: {opportunity_docname}")
+        opp_doc = frappe.get_doc("Opportunity", opportunity_docname)
+        print(f"Got Opportunity doc, items count: {len(opp_doc.items)}")
+        
+        # Find the child row
+        target_row = None
+        for idx, row in enumerate(opp_doc.items):
+            print(f"  Item {idx}: name={row.name}, doctype={row.doctype}")
+            if row.name == child_row_name:
+                target_row = row
+                print(f"  -> MATCHED!")
+                break
+        
+        if not target_row:
+            msg = f"Item row {child_row_name} not found in opportunity"
+            print(f"ERROR: {msg}")
+            return {"success": False, "message": msg}
+        
+        print(f"Found target row, doctype: {target_row.doctype}")
+        
+        # Determine which SPQ rate field exists in the schema
+        item_child_meta = frappe.get_meta(target_row.doctype)
+        print(f"Child doctype fields: {[f.fieldname for f in item_child_meta.fields]}")
+        
+        # Update all SPQ rate variants that exist in the schema
+        spq_rate_fields = ["spq_rate", "buying_rate", "custom_spq_rate"]
+        updated_fields = []
+        for fieldname in spq_rate_fields:
+            if item_child_meta.has_field(fieldname):
+                print(f"Updating {fieldname} = {spq_rate}")
+                target_row.set(fieldname, spq_rate)
+                updated_fields.append(fieldname)
+        
+        print(f"Updated SPQ rate fields: {updated_fields}")
+        
+        # Calculate and update amount-related fields
+        qty = flt(target_row.qty) or 1
+        spq_amount = qty * spq_rate
+        rate = flt(target_row.rate) or 0
+        margin = (qty * rate) - spq_amount
+        
+        print(f"Calculated: qty={qty}, spq_amount={spq_amount}, rate={rate}, margin={margin}")
+        
+        # Update amount fields - all variants
+        spq_amount_fields = ["spq_amount", "buying_amount", "custom_spq_amount"]
+        for fieldname in spq_amount_fields:
+            if item_child_meta.has_field(fieldname):
+                print(f"Updating {fieldname} = {spq_amount}")
+                target_row.set(fieldname, spq_amount)
+        
+        # Update margin if field exists
+        if item_child_meta.has_field("margin"):
+            print(f"Updating margin = {margin}")
+            target_row.set("margin", margin)
+        
+        # Save the opportunity with modified child row
+        print(f"Saving Opportunity doc...")
+        opp_doc.save(ignore_permissions=False)
+        print(f"Saved successfully!")
+        
+        result = {
+            "success": True,
+            "message": "SPQ Rate updated successfully",
+            "updated_fields": {
+                "spq_rate": spq_rate,
+                "spq_amount": spq_amount,
+                "margin": margin
+            }
+        }
+        print(f"Returning: {result}")
+        return result
+    
+    except Exception as e:
+        error_msg = frappe.get_traceback()
+        print(f"EXCEPTION in update_opportunity_item_spq_rate:")
+        print(error_msg)
+        frappe.log_error(error_msg, "update_opportunity_item_spq_rate")
+        return {
+            "success": False,
+            "message": f"Error updating SPQ Rate: {str(e)}"
+        }
