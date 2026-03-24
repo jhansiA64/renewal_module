@@ -228,7 +228,7 @@ def get_conditions(filters):
 	if filters.get("timespan") != "custom":
 		if filters.get("timespan") == "this year":
 			date = frappe.db.get_value("Fiscal Year",{'auto_created':1},["year_start_date","year_end_date"])
-			frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date)))
+			# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date)))
 		date_range = get_timespan_date_range(filters.get("timespan")) 
 		date1 = datetime.strptime(str(date_range[0]),"%Y-%m-%d").date()
 		date2 = datetime.strptime(str(date_range[1]),"%Y-%m-%d").date()

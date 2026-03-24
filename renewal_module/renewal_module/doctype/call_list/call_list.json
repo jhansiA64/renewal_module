@@ -87,7 +87,7 @@
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Held\nScheduled\nCancelled"
+   "options": "Held\nScheduled\nCancelled\nNot Responding"
   },
   {
    "fieldname": "start_timing",
@@ -183,7 +183,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-01-08 10:27:23.863218",
+ "modified": "2026-02-04 08:37:50.240989",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Call List",

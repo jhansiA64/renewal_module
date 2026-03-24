@@ -337,3 +337,362 @@ def send_approval_email(doc):
 	)
 
 
+# customer without contacts report to share permission to user 
+import frappe
+import json
+from frappe import _
+
+@frappe.whitelist()
+def bulk_assign_customer_to_salesperson_by_user(customers, user_email):
+    if isinstance(customers, str):
+        customers = json.loads(customers)
+
+    if not frappe.db.exists("User", user_email):
+        frappe.throw(f"User {user_email} does not exist.")
+
+    for customer in customers:
+        if not frappe.db.exists("Customer", customer):
+            frappe.msgprint(f"Customer {customer} does not exist, skipping.")
+            continue
+
+        # ✅ Update 'account_manager' field on Customer
+        try:
+            frappe.db.set_value("Customer", customer, "account_manager", user_email)
+        except Exception as e:
+            frappe.log_error(f"Failed to update account_manager for {customer}", str(e))
+
+        # ✅ Debugging block to trace Sales Team update issue
+        try:
+            # Step 1: Find Employee linked to user
+            employee = frappe.db.get_value("Employee", {"user_id": user_email},["name","cell_number"])
+            if not employee:
+                frappe.log_error("Sales Team Debug", f"No Employee linked to user: {user_email}")
+                continue
+            employee_name,mobile_no=employee
+            # Step 2: Find Sales Person linked to employee
+            sales_person_data = frappe.db.get_value("Sales Person", {"employee": employee_name}, ["name","parent_sales_person"])
+            if not sales_person_data:
+                frappe.log_error("Sales Team Debug", f"No Sales Person linked to Employee {employee}")
+                continue
+            sales_person,team_name=sales_person_data
+            # Step 3: Load and modify Customer doc
+            customer_doc = frappe.get_doc("Customer", customer)
+            #frappe.log_error("Sales Team Debug", f"Loaded Customer Doc {customer}")
+            # Step 4: Clear and update sales_team
+            customer_doc.sales_team = []
+            customer_doc.append("sales_team", {
+                "sales_person": sales_person,
+                "allocated_percentage": 100,
+                "team_name":team_name or '',
+                "mobile_no":mobile_no or '',
+                "email_id":user_email or ''
+            })
+            # Step 5: Save changes
+            customer_doc.flags.ignore_mandatory=True
+            customer_doc.save(ignore_permissions=True)
+            frappe.db.commit()
+            frappe.log_error("Sales Team Debug", f"Customer {customer} saved successfully")
+        except Exception as e:
+            frappe.log_error("Sales Team Update Error", f"Customer: {customer} | Error: {str(e)}")
+
+        # Share the Customer
+        try:
+            frappe.share.add("Customer", customer, user_email, read=1)
+        except Exception as e:
+            frappe.log_error(f"Failed to share Customer {customer}: {str(e)}")
+
+        # Share linked Contacts (via Dynamic Link)
+        contact_names = frappe.db.sql("""
+            SELECT DISTINCT dl.parent AS name
+            FROM `tabDynamic Link` dl
+            JOIN `tabContact` c ON c.name = dl.parent
+            WHERE dl.link_doctype = 'Customer' AND dl.link_name = %s
+        """, (customer,), as_dict=True)
+
+        for cont in contact_names:
+            try:
+                frappe.share.add("Contact", cont.name, user_email, read=1)
+            except Exception as e:
+                frappe.log_error(f"Failed to share Contact {cont.name}: {str(e)}")
+
+        # Share linked Addresses (via Dynamic Link)
+        address_names = frappe.db.sql("""
+            SELECT DISTINCT dl.parent AS name
+            FROM `tabDynamic Link` dl
+            JOIN `tabAddress` a ON a.name = dl.parent
+            WHERE dl.link_doctype = 'Customer' AND dl.link_name = %s
+        """, (customer,), as_dict=True)
+
+        for addr in address_names:
+            try:
+                frappe.share.add("Address", addr.name, user_email, read=1)
+            except Exception as e:
+                frappe.log_error(f"Failed to share Address {addr.name}: {str(e)}")
+
+        # Share Opportunities
+        opportunity_names = frappe.get_all("Opportunity", filters={"party_name": customer}, pluck="name")
+        for opp in opportunity_names:
+            try:
+                frappe.share.add("Opportunity", opp, user_email, read=1)
+            except Exception as e:
+                frappe.log_error(f"Failed to share Opportunity {opp}: {str(e)}")
+                
+        # Share Quotations
+        quotations = frappe.get_all("Quotation", filters={"party_name": customer}, pluck="name")
+        for quo in quotations:
+            try:
+                frappe.share.add("Quotation", quo, user_email, read=1)
+            except Exception as e:
+                frappe.log_error(f"Failed to share Quotation {quo}: {str(e)}")
+
+        # Share Customer Order Forms (COFs)
+        cofs = frappe.get_all("Customer Order Form", filters={"customer": customer}, pluck="name")
+        for cof in cofs:
+            try:
+                frappe.share.add("Customer Order Form", cof, user_email, read=1)
+            except Exception as e:
+                frappe.log_error(f"Failed to share Customer Order Form {cof}: {str(e)}")
+
+        # Share Renewal Lists
+        renewals = frappe.get_all("Renewal List", filters={"customer_name": customer}, pluck="name")
+        for renewal in renewals:
+            try:
+                frappe.share.add("Renewal List", renewal, user_email, read=1)
+            except Exception as e:
+                frappe.log_error(f"Failed to share Renewal List {renewal}: {str(e)}")
+
+    frappe.db.commit()
+    return "ok"
+
+
+
+
+# sales person api to get sales persons for user on customer data Report
+# This function retrieves salespersons based on the user's roles and employee association.
+# If the user is an Administrator or System Manager, it returns all enabled salespersons.
+# If the user is an employee, it returns the salespersons associated with that employee.
+# import frappe
+# @frappe.whitelist()
+# def get_salespersons_for_user():
+#     user = frappe.session.user
+#     user_roles = frappe.get_roles()
+
+#     if user == "Administrator" or "System Manager" in user_roles:
+#         sales_persons = frappe.get_all("Sales Person", fields=["name", "parent_sales_person"],filters={"enabled": 1})
+#     else:
+#         employee = frappe.db.get_value("Employee", {"user_id": user}, "name")
+#         if not employee:
+#             return []
+#         sales_person_doc = frappe.get_all(
+#             "Sales Person",
+#             filters={"employee": employee},
+#             fields=["name", "is_group", "parent_sales_person"]
+#         )
+#         if not sales_person_doc:
+#             return []
+#         sales_person = sales_person_doc[0]
+#         result = [sales_person]
+#         if sales_person["is_group"]:
+#             child_salespersons = frappe.get_all(
+#                 "Sales Person",
+#                 filters={"parent_sales_person": sales_person["name"]},
+#                 fields=["name", "parent_sales_person"]
+#             )
+#             result.extend(child_salespersons)
+#         return result
+
+#     return sales_persons
+import frappe
+
+@frappe.whitelist()
+def get_salespersons_for_user():
+    user = frappe.session.user
+    roles = frappe.get_roles(user)
+
+    # Admin → all
+    if user == "Administrator" or "System Manager" in roles:
+        return frappe.get_all(
+            "Sales Person",
+            filters={"enabled": 1},
+            fields=["name", "parent_sales_person"]
+        )
+
+    # Fetch allowed Sales Persons from User Permission
+    permitted_sales_persons = frappe.get_all(
+        "User Permission",
+        filters={
+            "user": user,
+            "allow": "Sales Person"
+        },
+        fields=["for_value"]
+    )
+
+    if not permitted_sales_persons:
+        return []
+
+    sales_person_names = [d.for_value for d in permitted_sales_persons]
+
+    result = []
+
+    for sp_name in sales_person_names:
+        sp = frappe.db.get_value(
+            "Sales Person",
+            sp_name,
+            ["name", "is_group", "parent_sales_person"],
+            as_dict=True
+        )
+        if not sp:
+            continue
+
+        result.append({
+            "name": sp.name,
+            "parent_sales_person": sp.parent_sales_person
+        })
+
+        # If group → include children
+        if sp.is_group:
+            children = frappe.get_all(
+                "Sales Person",
+                filters={"parent_sales_person": sp.name, "enabled": 1},
+                fields=["name", "parent_sales_person"]
+            )
+            result.extend(children)
+
+    # Remove duplicates
+    unique = {row["name"]: row for row in result}
+    return list(unique.values())
+
+
+
+
+
+#duplicate customers merge the customers
+import frappe
+from frappe import _
+from frappe.model.rename_doc import rename_doc
+import json
+
+@frappe.whitelist()
+def merge_customers(main_customer, duplicate_customers):
+    skipped = []
+
+    try:
+        # Ensure list format
+        if isinstance(duplicate_customers, str):
+            duplicate_customers = json.loads(duplicate_customers)
+
+        for dup in duplicate_customers:
+            dup = dup.strip()
+            if not dup or dup == main_customer or dup in ("[", "]", ",", "<br>"):
+                skipped.append(dup)
+                continue
+
+            if not frappe.db.exists("Customer", dup):
+                skipped.append(dup)
+                continue
+
+            rename_doc("Customer", dup, main_customer, merge=True, force=True)
+
+        return {
+            "status": "ok",
+            "skipped": skipped
+        }
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Merge Error")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+
+
+### support page template methods start
+@frappe.whitelist()
+def get_support_page():
+    """Return the rendered support page HTML."""
+    html = frappe.render_template("renewal_module/templates/includes/support_page.html", {})
+    return {"ok": True, "rendered_html": html}
+
+@frappe.whitelist()
+def global_search(txt, limit=5):
+    # frappe.msgprint("Hi")
+    results = []
+    doctypes = frappe.get_all("DocType", filters={
+        "istable": 0,
+        "issingle": 0,
+        "name": ["like", f"%{txt}%"]
+    }, fields=["name"],limit_page_length=limit)
+    for dt in doctypes:
+        results.append({"doctype": dt.name})
+        # try:
+        #     items = frappe.get_all(dt.name, filters=[["name", "like", f"%{txt}%"]], fields=["name"], limit_page_length=limit)
+        #     for item in items:
+        #         results.append({"doctype": dt.name})
+        # except Exception:
+        #     continue
+    return results
+
+
+@frappe.whitelist()
+def get_user_notifications(offset=0, limit=10):
+    user = frappe.session.user
+    notifications = frappe.get_all(
+        "Notification Log",
+        filters={"for_user": user},
+        fields=["name", "subject", "email_content", "creation", "read"],
+        order_by="creation desc",
+        limit_start=int(offset),
+        limit_page_length=int(limit)
+    )
+    return notifications
+
+
+
+import frappe
+
+@frappe.whitelist()
+def mark_all_as_read():
+    user = frappe.session.user
+    frappe.db.sql("""
+        UPDATE `tabNotification Log`
+        SET `read` = 1
+        WHERE for_user = %s AND coalesce(`read`, 0) = 0
+    """, (frappe.session.user,))
+    frappe.db.commit()
+
+    return True
+
+@frappe.whitelist()
+def mark_notification_as_read(notification_name):
+    if notification_name:
+        frappe.db.set_value("Notification Log", notification_name, "read", 1)
+        frappe.db.commit()
+    return {"status": "success"}
+
+
+
+###ended support page tempalte
+
+### when the custom page to after login to show ##
+import frappe
+
+def redirect_after_login():
+    """Redirect after login based on user roles — works reliably on Desk."""
+    
+    user = frappe.session.user
+    roles = frappe.get_roles(user)
+
+    # Debug Log
+    frappe.logger().info(f"[redirect_after_login] user={user} roles={roles}")
+
+    # List of roles allowed to redirect
+    tech_support_roles = [
+        "L1 - Tech Support",
+        "Tech Support",
+        "L2 - Tech Support",
+        "L3 - Tech Support"
+    ]
+
+    # If user has any of these roles → redirect
+    if any(role in roles for role in tech_support_roles):
+        frappe.local.response["home_page"] = "/app/support-dashboard"

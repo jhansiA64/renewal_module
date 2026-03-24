@@ -1,0 +1,133 @@
+@media (min-width: 1200px) {
+
+    .container-xl,
+    .container-lg,
+    .container-md,
+    .container-sm,
+    .container {
+        max-width: 100% !important;
+        padding-left: 24px !important;
+        padding-right: 24px !important;
+    }
+}
+
+.fc .fc-button-group {
+    gap: 5px;
+}
+
+.page-head {
+    display: none !important;
+}
+
+.week-label-size {
+    font-weight: 600;
+}
+
+.week-number-size {
+    font-size: 20px;
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
+.day-number {
+    font-size: 20px;
+}
+
+#grid-lines {
+    scrollbar-gutter: stable both-edges;
+}
+
+#view-selector .selected {
+    border: none !important;
+    /* removes normal borders */
+    box-shadow: none !important;
+    /* removes Tailwind rings */
+}
+
+.font-mini-calendar {
+    font-size: 10px !important;
+}
+
+#mini-calendar-month .text-lg {
+    font-size: 12px !important;
+}
+
+.mini-calendar-highlight {
+    background-color: #C2E7FF;
+}
+
+.layout-main {
+    background-color: #f3f3f3;
+}
+
+a {
+    text-decoration: none !important;
+}
+
+.month-label-size {
+    font-weight: 600;
+    font-size: 20px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 10px;
+}
+
+.sidebar {
+    z-index: 1100 !important;
+}
+
+
+.sidebar-label {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.sidebar-icon {
+    width: 20px;
+    height: 20px;
+}
+
+/* Mobile (max 640px) */
+@media screen and (max-width: 640px) {
+    .month-label-size {
+        font-size: 12px;
+    }
+
+    .week-number-size {
+        font-size: 12px;
+        width: 1.8rem;
+        height: 1.8rem;
+    }
+
+    .sidebar-label {
+        font-size: 12px;
+    }
+
+    .sidebar-icon {
+        width: 14px;
+        height: 14px;
+    }
+}
+
+/* Tablet (641px to 1024px) */
+@media screen and (min-width: 641px) and (max-width: 1024px) {
+    .month-label-size {
+        font-size: 14px;
+    }
+
+    .week-number-size {
+        font-size: 14px;
+        width: 2rem;
+        height: 2rem;
+    }
+
+    .sidebar-label {
+        font-size: 13px;
+    }
+
+    .sidebar-icon {
+        width: 16px;
+        height: 16px;
+    }
+}

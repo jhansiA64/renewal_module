@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+
+<div class="app" id="support-app-root">
+    <!-- TOPBAR -->
+    <header class="topbar" role="banner">
+        <div class="top-left">
+            <div class="brand">
+                <div class="log">
+                    <a href="{{ support_home_href or '/app' }}">
+                        <img src="/assets/renewal_module/images/logo.png" alt="" srcset="">
+                    </a>
+                </div>
+            </div>
+            <button class="hamburger" aria-label="Toggle menu"><i class="fa fa-bars"></i></button>
+        </div>
+
+        <div class="top-right gap-1">
+            <div class="search-outer" title="Quick search">
+                <i class="fa fa-magnifying-glass search-icon"></i>
+                <input type="search" id="quickSearch" class="search-input" placeholder="Quick Search..." />
+            </div>
+
+
+            <!-- Notification Wrapper -->
+            <div class="notifications-wrapper">
+
+                <!-- Bell Button -->
+                <button class="icon-btn" id="notifBtn" aria-haspopup="true" aria-expanded="false">
+                    <i class="fa fa-bell"></i>
+                    <span class="notif-badge" id="notifCount"></span>
+                </button>
+
+                <!-- Dropdown -->
+                <div class="notif-dropdown" id="notifDropdown" aria-hidden="true">
+
+                    <!-- Header -->
+                    <div class="notif-header">
+                        <span>Notifications</span>
+                        <span id="total-notifications">0</span>
+                    </div>
+
+                    <!-- Notification List -->
+                    <div class="notif-list" id="notification-list">
+                        <!-- JS injects notifications -->
+                    </div>
+
+                    <!-- Footer -->
+                    <div id="see-more-btn" class="notif-footer"><a href="javascript:void(0);">See More</a></div>
+
+                </div>
+            </div>
+
+
+
+
+            <!-- User menu -->
+            <div class="user-menu" id="userMenuBtn" tabindex="0" aria-haspopup="true" aria-expanded="false"
+                role="button">
+                <span id="topbar-user-avatar1"
+                    class="rounded-circle1 bg-navblue text-white d-flex align-items-center justify-content-center"
+                    style="width: 32px; height: 32px; font-weight: 600; font-size: 14px;">
+                </span>
+
+                <div class="user-dropdown" id="userDropdown" role="menu" aria-hidden="true">
+
+                    <ul class="user-dropdown-list" role="none">
+                        <li role="none"><a role="menuitem" href="/app/user-profile" class="user-item">
+                                <i class="fa fa-user-circle"></i> My Profile</a>
+                        </li>
+                        <li role="none"><a role="menuitem" href="javascript:void(0);"
+                                onclick="frappe.set_route('Form', 'User', frappe.session.user)" class="user-item">
+                                <i class="fa fa-cog"></i>My Settings</a>
+                        </li>
+                        <li role="none"><a role="menuitem" href="javascript:void(0);" class="user-item"
+                                onclick="location.reload()"><i class="fa fa-refresh"></i>
+                                Reload</a></li>
+                        <li role="none"><a role="menuitem" href="/apps" class="user-item">
+                                <i class="fa fa-cubes"></i> Apps</a>
+                        </li>
+                        <li role="none"><a role="menuitem" href="/" class="user-item">
+                                <i class="fa fa-eye"></i>View Website</a>
+                        </li>
+
+                        <li role="none"><a role="menuitem" href="javascript:void(0);" class="user-item danger"
+                                onclick="frappe.app.logout()">
+                                <i class="fa fa-power-off"></i> Log Out</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN -->
+    <div class="main">
+        <!-- SIDEBAR -->
+        <aside class="sidebar" aria-label="Main navigation">
+            <nav>
+                <ul class="side-nav">
+                    <!-- CRM Menu -->
+                    <li class="side-nav-item menu-parent" data-menu-id="crm-menu">
+                        <a href="#" class="side-nav-link menu-toggle">
+                            <i class="fa fa-handshake"></i>
+                            <span class="text-truncate" title="CRM">CRM</span>
+                            <i class="fa fa-chevron-down menu-arrow"></i>
+                        </a>
+                        <ul class="sub-menu">
+                            <li class="side-nav-item">
+                                <a href="javascript:void(0)" class="side-nav-link" data-page="customers"
+                                    data-href="/app/customers">
+                                    <span class="text-truncate" title="Customers">Customers</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="javascript:void(0)" class="side-nav-link" data-page="contacts"
+                                    data-href="/app/contacts">
+                                    <span class="text-truncate" title="Contacts">Contacts</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="javascript:void(0)" class="side-nav-link" data-page="opportunity-list"
+                                    data-href="/app/opportunity-list">
+                                    <span class="text-truncate" title="Opportunity">Opportunity</span>
+                                </a>
+                            </li>
+
+                            <!-- Nested Reports Menu -->
+                            <li class="side-nav-item menu-parent menu-nested" data-menu-id="reports-menu" data-parent-id="crm-menu">
+                                <a href="#" class="side-nav-link menu-toggle">
+                                    <span class="text-truncate" title="Reports">Reports</span>
+                                    <i class="fa fa-chevron-down menu-arrow"></i>
+                                </a>
+                                <ul class="sub-menu">
+                                    <li class="side-nav-item">
+                                        <a href="javascript:void(0)" class="side-nav-link"
+                                            data-page="non-billing-customer"
+                                            data-href="/app/non-billing-customer">
+                                            <span class="text-truncate" title="Non Billing Customer">Non Billing Customer</span>
+                                        </a>
+                                    </li>
+                                    <li class="side-nav-item">
+                                        <a href="javascript:void(0)" class="side-nav-link customer-analysis-link" data-page="customer-analysis"
+                                            data-href="/app/query-report/Customers%20Analysis?based_on=Customers">
+                                            <span class="text-truncate" title="Customer Analysis">Customer Analysis</span>
+                                        </a>
+                                    </li>
+                                    <li class="side-nav-item">
+                                        <a href="javascript:void(0)" class="side-nav-link renewal-analysis-link"
+                                            data-page="renewal-analysis"
+                                            data-href="/app/query-report/Renewals%20Analytics?company=64+Network+Security+Pvt+Ltd+-+TG&timespan=this+month&based_on=End+Date&group_by=Renewals">
+                                            <span class="text-truncate" title="Renewal Analysis">Renewal Analysis</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+
+                        </ul>
+                    </li>
+                    <!-- Support Menu -->
+                    <li class="side-nav-item menu-parent" data-menu-id="support-menu">
+                        <a href="#" class="side-nav-link menu-toggle">
+                            <i class="fa fa-headphones"></i>
+                            <span class="text-truncate" title="Support">Support</span>
+                            <i class="fa fa-chevron-down menu-arrow"></i>
+                        </a>
+                        <ul class="sub-menu">
+                            <li class="side-nav-item">
+                                <a href="javascript:void(0)" class="side-nav-link" data-page="support-dashboard"
+                                    data-href="/app/support-dashboard">
+                                    <span class="text-truncate" title="Support Dashboard">Support Dashboard</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="javascript:void(0)" class="side-nav-link" data-page="ticket"
+                                    data-href="/app/ticket">
+                                    <span class="text-truncate" title="Tickets">Tickets</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li class="side-nav-item menu-parent" data-menu-id="activity-menu">
+                        <a href="#" class="side-nav-link menu-toggle">
+                            <i class="fa fa-tasks"></i>
+                            <span class="text-truncate" title="Activity">Activity</span>
+                            <i class="fa fa-chevron-down menu-arrow"></i>
+                        </a>
+                        <ul class="sub-menu">
+                            <li class="side-nav-item">
+                                <a href="javascript:void(0)" class="side-nav-link appointment-link"
+                                    data-page="appointment"
+                                    data-href="/app/appointment">
+                                    <span class="text-truncate" title="Appointment">Appointment</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="javascript:void(0)" class="side-nav-link custom-calendar-link"
+                                    data-page="custom-calendar"
+                                    data-href="/app/events-calendar">
+                                    <span class="text-truncate" title="Calendar">Calendar</span>
+                                </a>
+                            </li>
+                        </ul>
+
+                    </li>    
+
+                    
+                    
+
+                </ul>
+            </nav>
+        </aside>
+        <!-- PAGE CONTENT -->
+        <div class="content1" id="support-page-content"></div>
+    </div>
+</div>

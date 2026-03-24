@@ -1,0 +1,18 @@
+{
+ "content": null,
+ "creation": "2026-03-09 12:51:38.239282",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2026-03-09 12:51:38.239282",
+ "modified_by": "Administrator",
+ "module": "Custom Module",
+ "name": "opportunity-list",
+ "owner": "Administrator",
+ "page_name": "opportunity-list",
+ "roles": [],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0
+}

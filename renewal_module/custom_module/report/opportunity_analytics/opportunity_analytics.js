@@ -61,7 +61,7 @@ frappe.query_reports["Opportunity Analytics"] = {
 			"fieldname": "group_by",
 			"label": __("Group By"),
 			"fieldtype": "Select",
-			"options": "Opportunity\nSales Person\nCustomer\nBrand\nTerritory\nMonthly",
+			"options": "Opportunity\nSales Person\nCustomer\nBrand\nItem Group\nTerritory\nMonthly",
 			"default": "Opportunity"
 		},
 		{

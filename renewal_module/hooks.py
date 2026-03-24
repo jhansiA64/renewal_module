@@ -16,6 +16,29 @@ app_license = "MIT"
 # app_include_css = "/assets/renewal_module/css/renewal_module.css"
 # app_include_js = "/assets/renewal_module/js/renewal_module.js"
 
+# app_include_css =[
+#     "/assets/renewal_module/css/issue_themes/app.min.css",
+#     "/assets/renewal_module/css/issue_themes/vendors.min.css",
+#      "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css",
+#     "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+# ]
+app_include_css = [
+	 "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+]
+app_include_js = [
+    "/assets/renewal_module/js/issue_themes/brandlogo.js",
+]
+# app_include_js = [
+#     "/assets/renewal_module/js/issue_themes/vendors.min.js",
+#     "https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js",
+#     "/assets/renewal_module/js/issue_themes/app.min.js",
+#     "/assets/renewal_module/js/issue_themes/config.js",
+#     "/assets/renewal_module/js/issue_themes/custom_table.js",
+#     "https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js",
+# app_include_js = [ 
+# 	"https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js",
+# ]   
+# ]
 # include js, css files in header of web template
 # web_include_css = "/assets/renewal_module/css/renewal_module.css"
 # web_include_js = "/assets/renewal_module/js/renewal_module.js"
@@ -67,7 +90,8 @@ fixtures = [{"dt": "Custom Field", "filters": [["name", "in", [
 # role_home_page = {
 #	"Role": "home_page"
 # }
-
+# Generel
+auth_hooks = ["renewal_module.api.redirect_after_login"]
 # Generators
 # ----------
 
@@ -145,6 +169,9 @@ doc_events = {
 	}
 }
 
+permission_query_conditions = {
+    "Appointment": "renewal_module.appointment_permission.appointment_permission_query",
+}
 
 # Scheduled Tasks
 # ---------------
@@ -178,6 +205,9 @@ doc_events = {
 # override_whitelisted_methods = {
 # 	"frappe.desk.doctype.event.event.get_events": "renewal_module.event.get_events"
 # }
+override_doctype_class = {
+    "Appointment":"renewal_module.appointment_override.CustomAppointment"
+}
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
