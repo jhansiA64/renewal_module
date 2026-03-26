@@ -33,7 +33,11 @@
   "section_break_19",
   "description",
   "sales_team_section",
-  "sales_team"
+  "sales_team",
+  "more_info_section",
+  "posting_date",
+  "opportunity",
+  "column_break_gnrz"
  ],
  "fields": [
   {
@@ -179,11 +183,32 @@
    "fieldtype": "Table",
    "label": "Sales Team",
    "options": "Sales Team"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "more_info_section",
+   "fieldtype": "Section Break",
+   "label": "More Info"
+  },
+  {
+   "fieldname": "opportunity",
+   "fieldtype": "Link",
+   "label": "Opportunity",
+   "options": "Opportunity"
+  },
+  {
+   "fieldname": "column_break_gnrz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-01-08 10:27:23.863218",
+ "modified": "2024-12-05 15:16:04.078441",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Call List",

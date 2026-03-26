@@ -161,3 +161,33 @@ def get_orc_details(doc,event):
         doc.custom_total_orc_amount = total_amount
         doc.custom_total_orc_paid_amount = total_amount - total_outstanding
         doc.custom_total_orc_outstanding = total_outstanding   
+
+
+# change renewal status lost 
+@frappe.whitelist()
+def mark_renewal_lost(renewal_id):
+    renewal= frappe.get_doc("Renewal List",renewal_id)
+    renewal.status= "Lost"
+    renewal.save()
+    frappe.db.commit()
+    return true
+
+#get pending COFs Data
+@frappe.whitelist()
+def get_pending_cofs():
+    count = frappe.db.sql("""
+        SELECT COUNT(DISTINCT `tabQuotation`.name)
+        FROM `tabQuotation`
+        LEFT JOIN `tabCustomer Order Form` 
+        ON `tabQuotation`.name = `tabCustomer Order Form`.quotation_id
+        WHERE `tabCustomer Order Form`.quotation_id IS NULL
+        AND `tabQuotation`.docstatus = 1
+    """)[0][0]
+    # frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(count)))
+
+    
+    return {
+        "value": count,  # Numeric value to be displayed
+        "formatted": str(count),  # Formatted string for display (important)
+        "fieldtype": "Int"  # Type of field (optional, but can be useful)
+    }

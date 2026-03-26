@@ -50,14 +50,14 @@ frappe.query_reports["Opportunity Report"] = {
 			"depends_on": "eval:doc.timespan == 'custom'",
 			"reqd": 1
 		},
-		// {
-		// 	fieldname: "Based ON",
-		// 	label: __("based_on"),
-		// 	fieldtype: "Select",
-		// 	options: ["Posting Date","Expected Date"],
-		// 	default: "Posting Date",
-		// 	reqd: 1
-		// },
+		{
+			fieldname: "based_on",
+			label: __("Based ON"),
+			fieldtype: "Select",
+			options: ["Posting Date","Expected Date"],
+			default: "Posting Date",
+			reqd: 1
+		},
 		
 		{
 			"fieldname":"item_code",
@@ -94,16 +94,46 @@ frappe.query_reports["Opportunity Report"] = {
 			"options": "Opportunity"
 		},
 		
-		{
-			"fieldname":"party_name",
-			"label": __("Party"),
-			"fieldtype": "MultiSelectList",
-			"options": "Customer",
-                        get_data: function(txt) {
-				return frappe.db.get_link_options('Customer', txt);
-			},	 
+		// {
+		// 	"fieldname":"party_name",
+		// 	"label": __("Party"),
+		// 	"fieldtype": "MultiSelectList",
+		// 	"options": "Customer",
+        //                 get_data: function(txt) {
+		// 		return frappe.db.get_link_options('Customer', txt);
+		// 	},	 
 
-		},
+		// },
+		{
+            "fieldname": "party_name",
+            "label": "Partner",
+            "fieldtype": "MultiSelectList",
+            "options": "Customer",
+            "width": 100,
+            "get_data": function (txt) {
+                return frappe.db.get_link_options("Customer", txt);
+            },
+            "change": function () {
+                frappe.query_report.set_filter_value("contact_person", null);
+                frappe.query_report.refresh();
+            }
+        },
+        {
+            "fieldname": "contact_person",
+            "label": "Contact Person",
+            "fieldtype": "MultiSelectList",
+            "options": "Contact",
+            "width": 100,
+            "get_data": function (txt) {
+                let customers = frappe.query_report.get_filter_value("party_name") || [];
+                if (customers.length > 0) {
+                    return frappe.db.get_link_options("Contact", txt, {
+                        link_name: ["in", customers]
+                    });
+                }
+                return frappe.db.get_link_options("Contact", txt);
+            }
+        },
 		{
 			"fieldname":"sales_person",
 			"label": __("Sales Person"),
@@ -136,12 +166,12 @@ frappe.query_reports["Opportunity Report"] = {
 			
 		},
 
-		// {
-		// 	"fieldname":"forecast",
-		// 	"label": __("Forecast"),
-		// 	"fieldtype": "Select",
-		// 	"options": "\nInclude\nExclude",
-		// },
+		{
+			"fieldname":"forecast",
+			"label": __("Forecast"),
+			"fieldtype": "Select",
+			"options": "\nInclude\nExclude",
+		},
 
 	],
 	onload: function(report) {

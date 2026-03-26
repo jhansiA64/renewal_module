@@ -85,6 +85,12 @@ def get_columns():
 			"fieldtype":"Date",
 			"width":150
 		},
+		{
+			"fieldname":"followup_date",
+			"label":_("Followup Date"),
+			"fieldtype":"Date",
+			"width":150
+		},
 		
                  {
                         "label": _("Sales Stage"),
@@ -237,6 +243,7 @@ def get_data(filters):
 				`tabOpportunity Item`.forecast, `tabOpportunity Item`.opportunity_type,
 				`tabOpportunity Item`.renewal_id,
 				`tabOpportunity Item`.description,`tabOpportunity Item`.expected_date,
+				`tabOpportunity Item`.custom_followup_date as followup_date,
 				`tabOpportunity Item`.item_group,`tabOpportunity Item`.sales_stage,
 				`tabOpportunity Item`.brand, `tabOpportunity Item`.item_name,
 				`tabOpportunity Item`.qty as qty,
@@ -274,14 +281,22 @@ def get_conditions(filters):
 		if filters.get("timespan") == "this year":
 			date = frappe.db.get_value("Fiscal Year",["year_start_date"])
 			# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date)))
+		
 		date_range = get_timespan_date_range(filters.get("timespan")) 
 		date1 = datetime.strptime(str(date_range[0]),"%Y-%m-%d").date()
 		date2 = datetime.strptime(str(date_range[1]),"%Y-%m-%d").date()
 		# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(date1)))
-		conditions.append(f" and DATE(`tabOpportunity`.transaction_date) >= '{date1}' and DATE(`tabOpportunity`.transaction_date) <= '{date2}'")	
+		if filters.get("based_on") == "Posting Date":
+			conditions.append(f" and DATE(`tabOpportunity`.transaction_date) >= '{date1}' and DATE(`tabOpportunity`.transaction_date) <= '{date2}'")
+		elif filters.get("based_on") == "Expected Date":
+			conditions.append(f" and DATE(`tabOpportunity Item`.expected_date ) >= '{date1}' and DATE(`tabOpportunity Item`.expected_date) <= '{date2}'")
+
 	if filters.get("timespan") == "custom":
+		if filters.get("based_on") == "Posting Date":
+			conditions.append(" and DATE(`tabOpportunity`.transaction_date) >= %(from_date)s and DATE(`tabOpportunity`.transaction_date) <= %(to_date)s")
+		else:
+			conditions.append(" and DATE(`tabOpportunity Item`.expected_date) >= %(from_date)s and DATE(`tabOpportunity Item`.expected_date) <= %(to_date)s")
 		
-		conditions.append(" and DATE(`tabOpportunity`.transaction_date) >= %(from_date)s and DATE(`tabOpportunity`.transaction_date) <= %(to_date)s")
 	
 
 	if filters.get("item_code"):
@@ -295,6 +310,9 @@ def get_conditions(filters):
 
 	if filters.get("party_name"):
 		conditions.append(" and `tabOpportunity`.party_name in %(party_name)s")
+	
+	if filters.get("contact_person"):
+		conditions.append(" and trc.user_name in %(contact_person)s")
 
 	if filters.get("sales_person"):
 		conditions.append(" and `tabOpportunity`.sales_person in %(sales_person)s")	
@@ -303,7 +321,10 @@ def get_conditions(filters):
 		conditions.append(" and `tabOpportunity Item`.opportunity_type in %(opportunity_type)s")		
 
 	if filters.get("sales_stage"):
-		conditions.append(" and `tabOpportunity Item`.sales_stage in %(sales_stage)s")		
+		conditions.append(" and `tabOpportunity Item`.sales_stage in %(sales_stage)s")
+
+	if filters.get("forecast"):
+		conditions.append(" and `tabOpportunity Item`.forecast = %(forecast)s")			
 
 	return " ".join(conditions) if conditions else ""
 
@@ -324,7 +345,11 @@ def get_join(filters):
 				WHERE tol.docstatus  = 1 and tol.status != "Duplicate") as torc on  torc.opportunity_id = `tabOpportunity Item`.parent and `tabOpportunity Item`.item_code = torc.item_code 
 				and `tabOpportunity Item`.qty = torc.qty and `tabOpportunity Item`.rate = torc.rate and `tabOpportunity Item`.description = torc.description
 				left join `tabSales Team` on `tabOpportunity`.name = `tabSales Team`.parent
-                               LEFT JOIN `tabUser` tu on `tabSales Team`.sales_person = tu.full_name"""
+                LEFT JOIN `tabUser` tu on `tabSales Team`.sales_person = tu.full_name
+				LEFT JOIN (SELECT DISTINCT parent,user_name, GROUP_CONCAT(email_id SEPARATOR ', ') as emails
+				FROM `tabRenewal Contacts`
+				GROUP BY parent
+				) trc ON trc.parent = `tabOpportunity`.name"""
 
 	
 
@@ -339,6 +364,10 @@ def get_report_summary(filters,columns, currency, data):
 	won_count,lost_count, prospect_count, total_count = 0,0,0, 0
 
 	opportunity_seen = set()
+	total_list = []
+	won_list = []
+	lost_list = []
+	prospecting_list = []
 
 
 	# Dictionary to store seen opportunities and track sales amounts
@@ -348,17 +377,25 @@ def get_report_summary(filters,columns, currency, data):
 		# if filters.group_by == "Opportunity":
 			
 		# frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(period)))
-		if period.name not in opportunity_seen:
-			opportunity_seen.add(period.name)  # Mark this parent Opportunity as processed
-			total_count += 1
-			total += flt(period.base_net_amount)
-			if period.sales_stage == "Closed Won":
+		# if period.name not in opportunity_seen:
+			# opportunity_seen.add(period.name)  # Mark this parent Opportunity as processed
+		if period.name :
+			if period.name not in total_list:
+				total_list.append(period.name)
+				total_count += 1
+			# total += flt(period.base_net_amount)
+			if period.sales_stage == "Closed Won" and period.name not in won_list:
+				won_list.append(period.name)
 				won_count += 1
 				
-			if period.sales_stage == "Closed Lost":
+			if period.sales_stage == "Closed Lost" and period.name not in lost_list:
+				lost_list.append(period.name)
 				lost_count += 1
-			if period.sales_stage == "Prospecting":
+			if period.sales_stage == "Prospecting" and period.name not in prospecting_list:
+				prospecting_list.append(period.name)
 				prospect_count += 1
+		if period.name:
+			total += flt(period.base_net_amount)
 
 		if period.sales_stage == "Closed Won":
 			closed_won += flt(period.base_net_amount)
@@ -374,11 +411,11 @@ def get_report_summary(filters,columns, currency, data):
 
 	won_label = ("Closed Won")
 	lost_label = _("Closed Lost")
-	prospect_label = _("Open")
+	prospect_label = _("Prospecting")
 
 	won_count_label = _("Closed Won") + " (" + str(won_count) + ")"
 	lost_count_label = _("Closed Lost") + " (" + str(lost_count) + ")"
-	prospect_count_label = _("Open") + " (" + str(prospect_count) + ")"
+	prospect_count_label = _("Prospecting") + " (" + str(prospect_count) + ")"
 	total_label = _("Total Opportunities") + " (" + str(total_count) + ")"
 	
 

@@ -43,6 +43,7 @@ def execute(filters=None):
 				"item_group",
 				"brand",
 				"description",
+				"serial_nos",
 				"qty",
 				"rate",
 				"base_amount",
@@ -169,6 +170,12 @@ def get_columns(group_wise_columns, filters):
 				"label": _("Description"),
 				"fieldname": "description",
 				"fieldtype": "Data",
+				"width": 100,
+			},
+			"serial_nos": {
+				"label": _("Serial No"),
+				"fieldname": "serial_nos",
+				"fieldtype": "Small Text",
 				"width": 100,
 			},
 			"warehouse": {
@@ -306,6 +313,7 @@ def get_column_names():
 			"item_group": "item_group",
 			"brand": "brand",
 			"description": "description",
+			"serial_nos":"serial_nos",
 			"qty": "qty",
 			"rate": "rate",			
 			"base_amount": "selling_amount",
@@ -480,7 +488,7 @@ class GrossProfitGenerator(object):
 				`tabRenewal Item`.new_add as "renewal_type",
 				`tabRenewal Item`.item_code,`tabRenewal Item`.idx,
 				`tabRenewal Item`.item_name, `tabRenewal Item`.description,
-				tsii.item_group,
+				tsii.item_group,`tabRenewal List`.serial_nos,
 				`tabRenewal Item`.brand as brand,
 				`tabRenewal Item`.start_date,
 				`tabRenewal Item`.invoice_no,
@@ -593,6 +601,7 @@ class GrossProfitGenerator(object):
 				"item_code": None,
 				"item_name": None,
 				"description": None,
+				"serail_nos":row.serail_nos,
 				"item_group": None,
 				"brand": None,
 				"qty": None,
@@ -628,6 +637,7 @@ class GrossProfitGenerator(object):
 				"item_code": item.item_code,
 				"item_name": item_name,
 				"description": description,
+				"serial-nos":None,
 				"view_button":None,
 				"warehouse": product_bundle.warehouse,
 				"item_group": item_group,
@@ -651,7 +661,7 @@ class GrossProfitGenerator(object):
 
 
 def get_report_summary(filters,columns, currency, data):
-	new_amount,renewal_amount, renewed_count ,x_renewal,lost_renewal, total_amount, new_count,renewal_count, total_count, quoted_count= 0.0, 0.0, 0.0,0.0, 0.0,0.0,0.0,0.0,0.0, 0.0
+	new_amount,renewal_amount,cofed, renewed_count ,x_renewal,lost_renewal, total_amount, new_count,renewal_count, total_count, quoted_count,draft_count, out_count= 0.0,0.0, 0.0, 0.0, 0.0, 0.0,0.0, 0.0,0.0,0.0,0.0,0.0, 0.0
 	total_count= 0.0	
 
 	for p in data:
@@ -678,7 +688,13 @@ def get_report_summary(filters,columns, currency, data):
 			    if p.status == "Lost":
 				    lost_renewal += 1	
 			    if p.status == "Quoted":
-			    	quoted_count += 1				
+			    	quoted_count += 1	
+			    if p.status == "Cofed":
+				    cofed += 1
+			    if p.status == "Draft":
+				    draft_count += 1
+			    if p.status == "Out Of Business":
+				    out_count += 1						
 		
 			
 		
@@ -704,6 +720,9 @@ def get_report_summary(filters,columns, currency, data):
 			{"value":round(renewal_count,2),"indicator": "Green", "label": "Active Renewals", "datatype": "Data"},
 			{"value":round(renewed_count,2),"indicator": "Green", "label": "Renewed", "datatype": "Data"},
 			{"value":round(quoted_count,2),"indicator": "Blue", "label": "Quoted", "datatype": "Data"},
+			{"value":round(cofed,2),"indicator": "Blue", "label": "Cofed", "datatype": "Data"},
+			{"value":round(draft_count,2),"indicator": "Blue", "label": "Draft", "datatype": "Data"},
+			{"value":round(out_count,2),"indicator": "Blue", "label": "Out Of Business", "datatype": "Data"},
 			{"value":round(x_renewal,2),"indicator": "light blue", "label": "X Renewals", "datatype": "Data"},
 			{"value":round(lost_renewal,2),"indicator": "Red", "label": "Lost Renewals", "datatype": "Data"},
 		]	
@@ -779,7 +798,7 @@ def get_report_summary(filters,columns, currency, data):
 
 def get_chart_data(filters, columns, data):
     
-    new_amount,renewal_amount , total_amount,new_count,renewal_count,x_renewal,lost_renewal, total_count,renewed,quoted_count= 0.0, 0.0, 0.0, 0.0,0.0,0.0,0.0,0.0,0.0,0.0
+    new_amount,renewal_amount , total_amount,new_count,renewal_count,x_renewal,lost_renewal, total_count,renewed, cofed,quoted_count= 0.0, 0.0, 0.0, 0.0, 0.0,0.0,0.0,0.0,0.0,0.0,0.0
     # frappe.msgprint("<pre>{}</pre>".format(frappe.as_json(data)))
 	
 	# labels = ["sales_amount" , "purchase_amount"]	
@@ -810,6 +829,8 @@ def get_chart_data(filters, columns, data):
 			        renewed += 1
 			    if p.status == "Quoted":
 			    	quoted_count += 1
+			    if p.status == "Cofed":
+			    	cofed += 1	
 		
 
     datasets = [{"name":"New Amount","values":[0.0]},
@@ -840,10 +861,10 @@ def get_chart_data(filters, columns, data):
 	    return {
 			'type':'pie',
 			'data':{
-				'labels':["New Opp","Active", "Renewed","Lost","X-Renewal","Quoted"],
+				'labels':["New Opp","Active", "Renewed","Lost","X-Renewal","Quoted","Cofed"],
 				'datasets':[
 					{
-						"values":[new_count,renewal_count, renewed,lost_renewal,x_renewal, quoted_count]
+						"values":[new_count,renewal_count, renewed,lost_renewal,x_renewal, quoted_count,cofed]
 					}
 					]
 			},

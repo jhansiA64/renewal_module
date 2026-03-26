@@ -1,0 +1,22 @@
+{
+ "creation": "2025-05-05 22:13:48.979562",
+ "docstatus": 0,
+ "doctype": "Number Card",
+ "filters_config": "[{\n\t\"fieldname\": \"company\",\n\t\"label\": __(\"Company\"),\n\tfieldtype: \"Link\",\n\toptions: \"Company\",\n\tdefault: frappe.defaults.get_user_default(\"Company\"),\n\treqd: 1\n}]",
+ "filters_json": "{\"company\":\"ECAPS COMPUTERS INDIA PVT LTD\"}",
+ "function": "Count",
+ "idx": 0,
+ "is_public": 1,
+ "is_standard": 1,
+ "label": "Pending COF",
+ "method": "renewal_module.api.get_pending_cofs",
+ "modified": "2025-05-05 22:47:21.026514",
+ "modified_by": "Administrator",
+ "module": "Renewal Module",
+ "name": "Pending COF",
+ "owner": "Administrator",
+ "report_function": "Sum",
+ "show_percentage_stats": 1,
+ "stats_time_interval": "Daily",
+ "type": "Custom"
+}
