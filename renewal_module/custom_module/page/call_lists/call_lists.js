@@ -66,8 +66,8 @@ class calllistspage {
 		if (route.length === 1) {
 			return this.show_list();
 		}
-		// call-lists/new-call_lists
-		if (route.length === 2 && route[1] === "new-call_lists") {
+		// call-lists/new
+		if (route.length === 2 && route[1] === "new") {
 			return this.show_new();
 		}
 		// call-lists/<call_list_id>
@@ -2721,6 +2721,16 @@ class calllistspage {
 				return Array.from(map.values());
 			};
 
+			const getCurrentUserEmailSignature = async () => {
+				try {
+					const response = await frappe.db.get_value("User", frappe.session.user, "email_signature");
+					return String(response?.message?.email_signature || "").trim();
+				} catch (err) {
+					console.warn("Unable to fetch current user email signature", err);
+					return "";
+				}
+			};
+
 			const normalizeOptionValue = (option) => {
 				if (!option) return null;
 				if (typeof option === "string") return option;
@@ -2778,6 +2788,10 @@ class calllistspage {
 
 			// Merge all options and deduplicate
 			const email_options = normalizeEmails([...call_list_emails, ...systemUserEmails]);
+			const userEmailSignature = await getCurrentUserEmailSignature();
+			const defaultMessageContent = userEmailSignature
+				? `${"<p><br></p>".repeat(5)}${userEmailSignature}`
+				: "";
 
 			// Create email dialog
 			const email_dialog = new frappe.ui.Dialog({
@@ -2826,7 +2840,8 @@ class calllistspage {
 						label: __("Message"),
 						fieldname: "content",
 						fieldtype: "TextEditor",
-						reqd: 1
+						reqd: 1,
+						default: defaultMessageContent
 					},
 					{
 						fieldtype: "Section Break",
@@ -3650,11 +3665,75 @@ class calllistspage {
 		$(".call_list-list-view").addClass("d-none");
 		$(".call_list-details-view").addClass("d-none");
 		$(".new-call_lists").removeClass("d-none");
-		this.bind_new_form_events();
+		const urlParams = new URLSearchParams(window.location.search || "");
+		const prefilledCustomer = (urlParams.get("customer") || "").trim();
+		const prefilledReference = (urlParams.get("reference") || "").trim();
+		const prefilledReferenceTo = (urlParams.get("reference_to") || "").trim();
+		this._newCallListCurrentStep = 1;
+		this.bind_new_form_events({ customer: prefilledCustomer, reference: prefilledReference, reference_to: prefilledReferenceTo });
+		this.gotoNewCallListWizardStep(1);
 	}
 
-	async bind_new_form_events() {
+	gotoNewCallListWizardStep(step) {
+		const safeStep = Math.min(3, Math.max(1, cint(step) || 1));
+		this._newCallListCurrentStep = safeStep;
+
+		const $root = $(this.page.wrapper);
+		$root.find(".new-cl-wizard-step").each(function () {
+			const s = cint($(this).attr("data-step")) || 1;
+			$(this).toggleClass("is-active", s === safeStep);
+			$(this).toggleClass("is-done", s < safeStep);
+		});
+
+		$root.find(".new-cl-wizard-connector").each(function (idx) {
+			$(this).toggleClass("is-done", (idx + 1) < safeStep);
+		});
+
+		$root.find(".new-cl-wizard-panel").addClass("d-none");
+		$root.find(`.new-cl-wizard-panel[data-panel="${safeStep}"]`).removeClass("d-none");
+
+		$root.find("#new-cl-back").toggleClass("d-none", safeStep === 1);
+		$root.find("#new-cl-next").toggleClass("d-none", safeStep === 3);
+		$root.find("#save-call_list-btn").toggleClass("d-none", safeStep !== 3);
+	}
+
+	validateNewCallListWizardStep(step, controls = {}) {
+		if (step === 1) {
+			const series = controls.series?.get_value?.();
+			if (!series) {
+				frappe.msgprint(__("Please select Series before continuing."));
+				return false;
+			}
+		}
+
+		if (step === 2) {
+			const startDate = controls.start_date?.get_value?.();
+			const endDate = controls.end_date?.get_value?.();
+			if (startDate && endDate && endDate < startDate) {
+				frappe.msgprint(__("End Date cannot be earlier than Start Date."));
+				return false;
+			}
+		}
+
+		if (step === 3) {
+			const relatedTo = (controls.related_to?.get_value?.() || "").trim();
+			const name1 = (controls.name1?.get_value?.() || "").trim();
+			if (relatedTo && !name1) {
+				frappe.msgprint(__("Please select Full Name for the selected Related To value."));
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	async bind_new_form_events(opts = {}) {
 		const me = this;
+		const prefilledCustomer = (opts && opts.customer) ? String(opts.customer).trim() : "";
+		const prefilledReference = (opts && opts.reference) ? String(opts.reference).trim() : "";
+		const prefilledReferenceTo = (opts && opts.reference_to) ? String(opts.reference_to).trim() : "";
+		me._newCallListPrefilledReference = prefilledReference;
+		me._newCallListPrefilledReferenceTo = prefilledReferenceTo;
 		const form = document.getElementById("new-call_list-form");
 		if (!form) return;
 
@@ -3758,10 +3837,46 @@ class calllistspage {
 		});
 		relatedtoControl.set_value("Customer");
 
+		if (prefilledCustomer) {
+			relatedtoControl.set_value("Customer");
+			fullnameControl.set_value(prefilledCustomer);
+		}
+		// reference and reference_to are saved but not shown as form controls
+
 		let descriptionControl = frappe.ui.form.make_control({
 			df: { fieldtype: "Long Text", label: "Description", fieldname: "description" },
 			parent: document.getElementById("description-field"),
 			render_input: true
+		});
+
+		const controls = {
+			series: seriesControl,
+			start_date: startDateControl,
+			end_date: endDateControl,
+			related_to: relatedtoControl,
+			name1: fullnameControl
+		};
+
+		const $scope = $(this.page.wrapper[0] || this.page.wrapper);
+		$scope.find("#new-cl-cancel").off("click").on("click", function () {
+			frappe.set_route("call-lists");
+		});
+
+		$scope.find("#new-cl-back").off("click").on("click", function () {
+			me.gotoNewCallListWizardStep((me._newCallListCurrentStep || 1) - 1);
+		});
+
+		$scope.find("#new-cl-next").off("click").on("click", function () {
+			const current = me._newCallListCurrentStep || 1;
+			if (!me.validateNewCallListWizardStep(current, controls)) return;
+			me.gotoNewCallListWizardStep(current + 1);
+		});
+
+		$scope.find(".new-cl-wizard-step").off("click").on("click", function () {
+			const targetStep = cint($(this).attr("data-step")) || 1;
+			const current = me._newCallListCurrentStep || 1;
+			if (targetStep > current && !me.validateNewCallListWizardStep(current, controls)) return;
+			me.gotoNewCallListWizardStep(targetStep);
 		});
 
 		let custom_date_value = frappe.datetime.get_today();
@@ -3769,14 +3884,26 @@ class calllistspage {
 		// Initialize sales_team data (done during save)
 
 		// Prevent accidental form submission from nested buttons
-		form.addEventListener("submit", function (e) {
+		$(form).off("submit.newCallList").on("submit.newCallList", function (e) {
 			e.preventDefault();
 		});
 
 		// Bind save logic to the specific Save button
 		const saveBtn = form.querySelector("#save-call_list-btn");
-		saveBtn.addEventListener("click", async function (e) {
+		$(saveBtn).off("click.newCallList").on("click.newCallList", async function (e) {
 			e.preventDefault();
+			if (!me.validateNewCallListWizardStep(1, controls)) {
+				me.gotoNewCallListWizardStep(1);
+				return;
+			}
+			if (!me.validateNewCallListWizardStep(2, controls)) {
+				me.gotoNewCallListWizardStep(2);
+				return;
+			}
+			if (!me.validateNewCallListWizardStep(3, controls)) {
+				me.gotoNewCallListWizardStep(3);
+				return;
+			}
 
 			const series = seriesControl.get_value();
 			const subject = subjectControl.get_value();
@@ -3791,6 +3918,8 @@ class calllistspage {
 			const custom_sales_person = custom_sales_person_value;
 			const custom_date = custom_date_value;
 			const description = descriptionControl.get_value();
+			const reference = String(me._newCallListPrefilledReference || "").trim();
+			const reference_to = String(me._newCallListPrefilledReferenceTo || "").trim();
 
 
 			if (!series) {
@@ -3816,7 +3945,9 @@ class calllistspage {
 				name1,
 				custom_sales_person,
 				custom_date,
-				description
+				description,
+				...(reference ? { reference } : {}),
+				...(reference_to ? { reference_to } : {}),
 			};
 
 			console.log("submitting call_list", new_call_list);
@@ -3942,7 +4073,7 @@ frappe.call_lists_page_template = {
 									</button>
 								</div>
 
-								<a id="new-call_list-btn" href="/app/call-lists/new-call_lists" class="btn btn-sm btn-primary1 mr-2">
+								<a id="new-call_list-btn" href="/app/call-lists/new" class="btn btn-sm btn-primary1 mr-2">
 									<i class="fa fa-plus me-1"></i> New Call List
 								</a>
 
@@ -4086,82 +4217,73 @@ frappe.call_lists_page_template = {
 				<div class="col-lg-12 col-12">
 					<div class="rounded p-0 call_list-form-container" style="background-color: transparent;">
 						<form id="new-call_list-form" autocomplete="off">
-							<!-- Customer Details Card -->
-							<div class="card mb-4 border">
-								<div class="card-header bg-white border-bottom-0 pb-0 pt-3">
-									<h6 class="fw-bold mb-0 text-dark" style="font-size: 15px;">Customer Details</h6>
+							<div class="new-cl-wrap">
+								<div class="new-cl-wizard-bar">
+									<button type="button" class="new-cl-wizard-step is-active" data-step="1">
+										<div class="new-cl-wizard-circle">1</div>
+										<div class="new-cl-wizard-label">Basic</div>
+									</button>
+									<div class="new-cl-wizard-connector"></div>
+									<button type="button" class="new-cl-wizard-step" data-step="2">
+										<div class="new-cl-wizard-circle">2</div>
+										<div class="new-cl-wizard-label">Schedule</div>
+									</button>
+									<div class="new-cl-wizard-connector"></div>
+									<button type="button" class="new-cl-wizard-step" data-step="3">
+										<div class="new-cl-wizard-circle">3</div>
+										<div class="new-cl-wizard-label">Related &amp; Notes</div>
+									</button>
 								</div>
-								<div class="card-body">
-									<div class="row">
-										<div class="col-md-6">
-											<div id="series-field"></div>
-										</div>
-									</div>
-									<div class="row">
-										<div class="col-md-6">
-											<div id="subject-field"></div>
-										</div>
-										<div class="col-md-6">
-											<div id="status-field"></div>
-										</div>
-									</div>
 
-									<div class="row">
-										<div class="col-md-6">
-											<div id="start-date-field"></div>
-										</div>
-										<div class="col-md-6">
-											<div id="start-time-field"></div>
+								<div class="new-cl-wizard-panel" data-panel="1">
+									<div class="card mb-3 border new-cl-card">
+										<div class="card-body">
+											<div class="new-cl-row one-col"><div class="new-cl-field" id="series-field"></div></div>
+											<div class="new-cl-row two-col">
+												<div class="new-cl-field" id="subject-field"></div>
+												<div class="new-cl-field" id="status-field"></div>
+											</div>
+											<div class="new-cl-row one-col"><div class="new-cl-field" id="direction-field"></div></div>
 										</div>
 									</div>
+								</div>
 
-									<div class="row">
-										<div class="col-md-6">
-											<div id="end-date-field"></div>
-										</div>
-										<div class="col-md-6">
-											<div id="end-time-field"></div>
-										</div>
-									</div>
-
-									<div class="row">
-										<div class="col-md-6">
-											<div id="direction-field"></div>
-										</div>
-									</div>
-
-									<div class="row">
-										<div class="col-md-6">
-											<div id="related-to-field"></div>
-										</div>
-										<div class="col-md-6">
-											<div id="full-name-field"></div>
-										</div>
-									</div>
-
-									<div class="row">
-										<div class="col-md-6">
-											<div id="sales-person-field"></div>
-										</div>
-									</div>
-                                    
-									<div class="row">
-										<div class="col-12">
-											<div id="description-field"></div>
-										</div>
-									</div>
-								
-									<div class="row">
-										<div class="col-12">	
-											<div class="d-flex gap-2 justify-content-between align-items-center mb-2">
-												<button type="button" id="save-call_list-btn" class="btn btn-primary btn-sm rounded">
-													Save
-												</button>
+								<div class="new-cl-wizard-panel d-none" data-panel="2">
+									<div class="card mb-3 border new-cl-card">
+										<div class="card-body">
+											<div class="new-cl-row two-col">
+												<div class="new-cl-field" id="start-date-field"></div>
+												<div class="new-cl-field" id="start-time-field"></div>
+											</div>
+											<div class="new-cl-row two-col">
+												<div class="new-cl-field" id="end-date-field"></div>
+												<div class="new-cl-field" id="end-time-field"></div>
 											</div>
 										</div>
-									</div>	
+									</div>
 								</div>
-							</div>	
+
+								<div class="new-cl-wizard-panel d-none" data-panel="3">
+									<div class="card mb-3 border new-cl-card">
+										<div class="card-body">
+											<div class="new-cl-row two-col">
+												<div class="new-cl-field" id="related-to-field"></div>
+												<div class="new-cl-field" id="full-name-field"></div>
+											</div>
+											<div class="new-cl-row one-col"><div class="new-cl-field" id="description-field"></div></div>
+										</div>
+									</div>
+								</div>
+
+								<div class="new-cl-wizard-footer">
+									<button type="button" id="new-cl-cancel" class="btn btn-default btn-sm">Cancel</button>
+									<div class="new-cl-wizard-nav">
+										<button type="button" id="new-cl-back" class="btn btn-default btn-sm d-none">&#8592; Back</button>
+										<button type="button" id="new-cl-next" class="btn btn-primary1 btn-sm">Next</button>
+										<button type="button" id="save-call_list-btn" class="btn btn-primary btn-sm rounded d-none">Save</button>
+									</div>
+								</div>
+							</div>
 						</form>
 					</div>
 				</div>

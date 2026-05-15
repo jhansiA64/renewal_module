@@ -77,9 +77,7 @@ frappe.pages['job-posting'].on_page_show = function (wrapper) {
 		frappe.require(["/assets/renewal_module/js/issue_themes/support_layout2.js"], () => {
 			setTimeout(cb, 10);
 		});
-		frappe.require([
-			"/assets/renewal_module/css/issue_themes/support_theme2.css",
-		]);
+		frappe.require(["/assets/renewal_module/css/issue_themes/support_theme2.css"]);
 	};
 
 	ensureSupportLayoutLoaded(() => {
@@ -1653,11 +1651,23 @@ class jobpostingpage {
 
 		// Update subject (title) and department in card header
 		const subject = wrapper.querySelector("#detail-subject");
-		if (subject) subject.textContent = displayOrDash(job.title);
+		if (subject) {
+			subject.textContent = displayOrDash(job.title);
+			subject.setAttribute("title", displayOrDash(job.title));
+		}
 
 		// Update department in blue header
 		const departmentBadge = wrapper.querySelector("#detail-department");
-		if (departmentBadge) departmentBadge.textContent = displayOrDash(job.dept);
+		const departmentText = String(job.dept || "").trim();
+		if (departmentBadge) {
+			departmentBadge.textContent = departmentText || "";
+			departmentBadge.style.display = departmentText ? "inline-flex" : "none";
+		}
+
+		const separator = wrapper.querySelector(".job-subject-separator");
+		if (separator) {
+			separator.style.display = departmentText ? "inline" : "none";
+		}
 
 		// Update status badge
 		const statusBadge = wrapper.querySelector("#job-status-badge");
@@ -2262,7 +2272,7 @@ frappe.job_posting_page_template = {
 								<div class="job-header-left">
 									<h5 class="job-subject-line">
 										<span class="job-subject" id="detail-subject" title=""></span>
-										<span class="mx-1">–</span>
+										<span class="mx-1 job-subject-separator">–</span>
 										<span id="detail-department" class="department-badge"></span>
 									</h5>
 								</div>

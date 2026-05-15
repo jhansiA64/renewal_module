@@ -259,6 +259,55 @@ def apply_assignment_rule(doctype, name):
 
     return {"status": "failed"}
 
+
+@frappe.whitelist()
+def rename_address(old_name, new_name, merge=0):
+    old_name = str(old_name or "").strip()
+    new_name = str(new_name or "").strip()
+
+    try:
+        merge = int(merge or 0)
+    except (TypeError, ValueError):
+        merge = 0
+
+    if not old_name:
+        frappe.throw("Address name is missing")
+
+    if not new_name:
+        frappe.throw("New address name is required")
+
+    if old_name == new_name and not merge:
+        return old_name
+
+    address = frappe.get_doc("Address", old_name)
+    address.check_permission("write")
+
+    from frappe.model.rename_doc import rename_doc as model_rename_doc
+
+    if merge:
+        if not frappe.db.exists("Address", new_name):
+            frappe.throw(
+                frappe._("Address {0} does not exist.").format(frappe.bold(new_name))
+            )
+
+        target_doc = frappe.get_doc("Address", new_name)
+        if not (target_doc.has_permission("read") or target_doc.has_permission("write")):
+            frappe.throw(
+                frappe._("You do not have permission to merge into Address {0}.").format(
+                    frappe.bold(new_name)
+                ),
+                frappe.PermissionError,
+            )
+
+    return model_rename_doc(
+        doctype="Address",
+        old=old_name,
+        new=new_name,
+        merge=merge,
+        ignore_permissions=merge,
+        show_alert=False,
+    )
+
 @frappe.whitelist()
 def get_addresses_permissions():
     """

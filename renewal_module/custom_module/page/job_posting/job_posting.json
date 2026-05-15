@@ -4,13 +4,23 @@
  "docstatus": 0,
  "doctype": "Page",
  "idx": 0,
- "modified": "2026-03-18 13:49:19.225934",
+ "modified": "2026-04-16 11:28:31.243062",
  "modified_by": "Administrator",
  "module": "Custom Module",
  "name": "job-posting",
  "owner": "Administrator",
  "page_name": "job-posting",
- "roles": [],
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Administrator"
+  },
+  {
+   "role": "HR User"
+  }
+ ],
  "script": null,
  "standard": "Yes",
  "style": null,

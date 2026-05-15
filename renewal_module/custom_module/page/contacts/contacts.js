@@ -1,442 +1,399 @@
-frappe.pages['contacts'].on_page_load = function (wrapper) {
-	var page = frappe.ui.make_app_page({
-		parent: wrapper,
-		title: 'None',
-		single_column: true
-	});
-}
 
 frappe.pages['contacts'].on_page_load = (wrapper) => {
-	// 	console.log("on_page_load triggered");
+	localStorage.removeItem('contacts_page_length');
 	new contactsPage(wrapper);
 };
 
-frappe.router.on('change', () => {
-	const route = frappe.get_route();
-	const current_page = route[0];
-	console.log("Route changed:", route.join("/"));
+frappe.pages['contacts'].on_page_show = (wrapper) => {
+	console.log("🔄 contacts page showing");
+	const pageWrapper = wrapper || $(".page")[0] || document.body;
+	const ensureSupportLayoutLoaded = (cb) => {
+		if (typeof loadSupportLayout === "function") return cb();
+		frappe.require(["/assets/renewal_module/js/issue_themes/support_layout2.js"], () => {
+			setTimeout(cb, 10);
+		});
+		frappe.require([
+			"/assets/renewal_module/css/issue_themes/support_theme2.css",
+		]);
+	};
+	ensureSupportLayoutLoaded(() => {
+		loadSupportLayout(pageWrapper, () => {
+			if (!frappe.contacts_page || frappe.contacts_page.wrapper !== pageWrapper) {
+				frappe.contacts_page = new contactsPage(pageWrapper);
+			}
+			frappe.contacts_page.render();
+		});
+	});
+};
 
-	if (current_page !== "contacts") {
-		console.log("Cleaning up new-issue assets...");
-		frappe.contacts_page.cleanup();
+class contactsPage {
+	constructor(wrapper) {
+		this.wrapper = wrapper;
+		this.page = frappe.ui.make_app_page({
+			parent: wrapper,
+			title: '',
+			single_column: true
+		});
+
+		this.page_length = 20;
+		this.visible_count = 0;
+		this.all_contacts = [];
+		this.total_records = 0;
+		this.selected_contacts = new Set();
+		this.saved_filters = [];
+		this.active_filters = {
+			status: "",
+			name: "",
+			fullname: "",
+			company_name: "",
+		}
 	}
-	// coming back to issue-theme-details
-	if (current_page === "contacts") {
-		console.log("Re-initializing new-issue assets...");
-		//frappe.issue_theme_details_page.reapply();
-		setTimeout(() => {
-			frappe.contacts_page.reapply();
-		}, 300);
 
-	}
-});
-
-if (!window.MycontactsPageDefined) {
-	window.MycontactsPageDefined = true;
-
-	class contactsPage {
-		constructor(wrapper) {
-			this.wrapper = wrapper;
-			this.page = frappe.ui.make_app_page({
-				parent: wrapper,
-				title: '',
-				single_column: true
-			});
-
-			// paging and state
-			this.page_length = 20;
-			this.LOAD_MORE_SIZE = 50;
-			this.visible_count = 0;
-			this.all_contacts = [];
-			this.start = 0;
-			this.total = 0;
-			this.selected_contacts = new Set();
-			this.initSelectAll();
-			// saved/active filters
-			this.saved_filters = [];
-			this.active_filters = {
-				status: "",
-				email_id: "",
-				customer_name: "",
-				contact_person: "",
-				search: ""
-			};
-
-			setTimeout(() => {
-				this.bindCustomerNameFilter();   // ✅ NOW input exists
-			}, 50);
-			// internal flags
-			this._fetch_in_progress = false;
-			// lifecycle flags for filters
-			this._filtersPopulated = false;     // true when selects are populated with options
-			this._filtersApplied = false;       // true when URL values applied + active_filters synced
-			this._filtersInitialized = false;  // true when listeners attached and safe to trigger reloads
-
-			// cache for assets (if you use it)
-			this._cache = {
-				css: [],
-				js: [],
-				inlineScripts: [],
-				rendered_html: null
-			};
-
-			this.make();
-			// convenience reference (matches your previous usage)
-			frappe.contacts_page = this.createAssetManager ? this.createAssetManager(this, "contacts") : this;
-		}
-
-		// ---- lifecycle / UI build ----
-		make() {
-			if (frappe.contacts_page && frappe.contacts_page.body) {
-				$(this.page.main).append(frappe.contacts_page.body);
-			}
-			// load support page HTML + assets
-			this.load_support_page();
-
-			// Controlled startup: populate filters -> apply URL -> attach listeners -> initial load
-			setTimeout(async () => {
-				try {
-					await this.loadFilters();             // populate selects
-					this.applyURLFiltersToUI();           // apply URL params into selects & search
-					this._filtersPopulated = true;
-					this._filtersApplied = true;
-					this.bindFilterEvents();              // attach advanced filter popover & clear handlers
-					this.bindevents();                    // attach basic listeners (safe now)
-					this.attachClearFilterButton();
-					this._filtersInitialized = true;      // it's now safe for listeners to call reloadList()
-					this.bindActionDropdownHandler();
-					// initial load (once)
-					this.reloadList();
-
-				} catch (err) {
-					console.error("contactsPage.make error:", err);
-				}
-			}, 200);
-		}
-
-		load_support_page() {
-			return new Promise((resolve, reject) => {
-				frappe.call({
-					method: "renewal_module.api.get_support_page",
-					callback: (r) => {
-						if (r.message && r.message.rendered_html) {
-							this.process_and_render_html(r.message.rendered_html);
-							resolve();
-						} else {
-							reject("Support page HTML missing");
-						}
-					},
-					error: (err) => reject(err)
-				});
-			});
-		}
-
-		// main injection function
-		async process_and_render_html(html) {
-			const temp = document.createElement("div");
-			temp.innerHTML = html;
-
-			// --- CSS injection ---
-			temp.querySelectorAll('link[href]').forEach(link => {
-				const href = link.getAttribute('href');
-				if (!href) return;
-				if (!this._cache.css.includes(href)) this._cache.css.push(href);
-
-				if (!document.querySelector(`link[href="${href}"][data-contacts="true"]`)) {
-					const css = document.createElement('link');
-					css.rel = 'stylesheet';
-					css.href = href;
-					css.dataset.contacts = "true";
-					document.head.appendChild(css);
-				}
-			});
-
-			// --- JS injection ---
-			const scriptPromises = [];
-			temp.querySelectorAll('script[src]').forEach(script => {
-				const src = script.getAttribute('src');
-				if (!src) return;
-				if (src.toLowerCase().includes("popper")) {
-					console.warn("Skipping Popper injection to avoid duplicate loading:", src);
-					return;
-				}
-				if (!this._cache.js.includes(src)) this._cache.js.push(src);
-
-				if (!document.querySelector(`script[src="${src}"][data-contacts="true"]`)) {
-					const promise = new Promise((resolve, reject) => {
-						const s = document.createElement('script');
-						s.src = src;
-						s.defer = true;
-						s.dataset.contacts = "true";
-						s.onload = () => {
-							console.log(`Loaded JS: ${src}`);
-							resolve(src);
-						};
-						s.onerror = () => {
-							reject(src);
-						};
-						document.body.appendChild(s);
-					});
-					scriptPromises.push(promise);
-				}
-			});
-
-			// --- Inline script collection ---
-			this._cache.inlineScripts = this._cache.inlineScripts || [];
-			temp.querySelectorAll('script:not([src])').forEach(script => {
-				const code = script.textContent?.trim();
-				if (code) this._cache.inlineScripts.push(code);
-				script.remove();
-			});
-
-			this._cache.rendered_html = temp.innerHTML;
-			temp.querySelectorAll('style').forEach(styleTag => {
-				styleTag.dataset.contacts = "true";
-			});
-
-			temp.querySelectorAll('link, script').forEach(tag => tag.remove());
-
-			const $wrapper = $(this.page.main).find('.wrapper');
-			const $contentPage = $wrapper.find('.content-page').first();
-
-			if ($contentPage.length) {
-				$contentPage.before(temp.innerHTML);
-			} else if ($wrapper.length) {
-				$wrapper.prepend(temp.innerHTML);
-			} else {
-				$(this.page.main).prepend(temp.innerHTML);
-				console.warn(".wrapper not found, HTML inserted in page.main");
-			}
-
-			try {
-				await Promise.allSettled(scriptPromises);
-				this._cache.inlineScripts.forEach(code => {
-					try { new Function(code)(); } catch (err) { console.error("Inline script error:", err); }
-				});
-				setTimeout(() => {
-					this.initialize_theme_scripts();
-				}, 800);
-
-			} catch (err) {
-				console.error("Script load error:", err);
-				this.initialize_theme_scripts();
-				setTimeout(() => this.reinit_bootstrap_ui(), 300);
-			}
-		}
-
-		initialize_theme_scripts() {
-			try {
-				if (typeof App !== "undefined") new App().init();
-				if (typeof LayoutCustomizer !== "undefined") new LayoutCustomizer().init();
-				if (typeof Plugins !== "undefined") new Plugins().init();
-				if (typeof I18nManager !== "undefined") new I18nManager().init();
-			} catch (err) {
-				console.error("Theme init failed:", err);
-			}
-		}
-
-		async loadcontact(opts = false) {
-			// normalize opts
-			let reset = false;
-			let saved_filters = null;
-			if (typeof opts === "boolean") {
-				reset = opts;
-			} else if (typeof opts === "object" && opts !== null) {
-				reset = !!opts.reset;
-				saved_filters = opts.saved_filters ?? null;
-			}
-
-			// if advanced saved_filters passed, store them locally
-			if (Array.isArray(saved_filters)) {
-				this.saved_filters = saved_filters;
-			}
-
-			if (reset) {
-				this.start = 0;
-				const tbody = document.querySelector("#contact-table-body");
-				if (tbody) tbody.innerHTML = "";
-			}
-
-			// ensure active_filters reflect the current UI before fetching
-			this.updateActiveFilters();
-
-			// Prevent concurrent fetches
-			if (this._fetch_in_progress) return;
-			this._fetch_in_progress = true;
-
-			try {
-				// Always send JSON-encoded string for filters and saved_filters
-				const filters_to_send = JSON.stringify(this.active_filters || {});
-				const saved_filters_to_send = this.saved_filters && this.saved_filters.length ? JSON.stringify(this.saved_filters) : "";
-
-				const res = await frappe.call({
-					method: "renewal_module.custom_module.page.contacts.contacts.get_contact_list",
-					args: {
-						start: this.start,
-						page_length: this.page_length,
-						filters: filters_to_send,
-						saved_filters: saved_filters_to_send
-					}
-				});
-
-				const rows = (res && res.message && res.message.rows) ? res.message.rows : [];
-				this.total = (res && res.message && res.message.total) ? res.message.total : 0;
-				console.log("data received:", rows, "Total:", this.total);
-
-				// append rows to table
-				this.renderCustomerRows(rows);
-
-				// Update counts
-				const visible = document.querySelectorAll("#contact-table-body tr").length;
-				document.getElementById("visible-count").innerHTML = visible.toLocaleString();
-				document.getElementById("total-count").innerHTML = this.total.toLocaleString();
-				// advance pointer for next load-more call
-				this.start += this.page_length;
-			} catch (err) {
-				console.error("loadcontact error:", err);
-			} finally {
-				this._fetch_in_progress = false;
-			}
-		}
-
-		// ---- apply URL params to UI selects / search
-		// Called only once after populateFilter() has populated <option> elements
-		applyURLFiltersToUI() {
-			try {
-				const url = new URL(window.location.href);
-
-				// basic filters...
-				const email_id = url.searchParams.get("email_id") || "";
-				const status = url.searchParams.get("status") || "";
-				const customer = url.searchParams.get("customer_name") || "";
-				const contact_person = url.searchParams.get("contact_person") || "";
-				const search = url.searchParams.get("search") || "";
-
-				// apply basic UI values
-				const t = document.querySelector('[data-table-filter="email_id"]');
-				if (t && [...t.options].some(o => o.value === email_id)) t.value = email_id;
-
-				const am = document.querySelector('[data-table-filter="status"]');
-				if (am && [...am.options].some(o => o.value === status)) am.value = status;
-
-				const cg = document.querySelector('[data-table-filter="customer_name"]');
-				if (cg && [...cg.options].some(o => o.value === customer)) cg.value = customer;
-
-				const cn = document.querySelector('[data-table-filter="contact_person"]');
-				if (cn) cn.value = contact_person;
-
-				const si = document.querySelector('[data-table-search]');
-				if (si) si.value = search;
-
-				// update active filters
-				this.active_filters = {
-					status: status,
-					email_id,
-					customer_name: customer,
-					contact_person,
-					search
-				};
-
-				// ---------- RESTORE SAVED FILTERS ----------
-				const filterParam = url.searchParams.get("filters");
-				if (filterParam) {
-					try {
-						const decoded = decodeURIComponent(filterParam);
-						this.saved_filters = JSON.parse(decoded);
-					} catch (e) {
-						console.error("Failed to parse saved filters", e);
-					}
-				}
-
-			} catch (err) {
-				console.error("applyURLFiltersToUI error:", err);
-			}
-		}
-
-		renderCustomerRows(list) {
-			if (!list || !Array.isArray(list)) {
-				console.warn("renderCustomerRows() received invalid list:", list);
+	render() {
+		const waitForContent = () => {
+			const $content = $("#support-page-content");
+			if (!$content.length) {
+				setTimeout(waitForContent, 50);
 				return;
 			}
+			$content.empty().append(frappe.contacts_page_template.body);
+			this.handleRoute();
+			this.bindActionDropdown();
+		};
 
-			const tbody = document.querySelector("#contact-table-body");
-			if (!tbody) return;
-			//console.log("%c[renderCustomerRows] Adding rows:", "color: green", list.length);
+		waitForContent();
+	}
 
-			// build a fragment for performance
-			const frag = document.createDocumentFragment();
-			list.forEach(c => {
-				const tr = document.createElement("tr");
-				const checked = this.selected_contacts.has(c.name) ? "checked" : "";
+	handleRoute() {
+		const route = frappe.get_route();
+		console.log("handleRoute:", route);
 
-				const avatarHtml = c.image
-					? `<img src="${c.image}" class="img-fluid rounded-circle" alt="">`
-					: `<span class="avatar-title rounded-circle bg-primary text-white">${this.escapeHtml((c.contact_person || "?").substring(0, 1))}</span>`;
-
-				tr.innerHTML = `
-					<td>
-						<input class="row-check form-check-input form-check-input-light fs-14 mt-0" type="checkbox" data-id="${c.name}" ${checked}>
-					</td>
-					<td>
-						<div class="d-flex align-items-center gap-2">
-							<div class="avatar avatar-sm">${avatarHtml}</div>
-							<div>
-								<h5 class="mb-0 lh-base fs-base ellipsis" title="${this.escapeHtml(c.contact_person || "")}" style="width:150px;">
-									${this.escapeHtml(c.contact_person || "")}
-								</h5>
-								<p class="text-muted fs-xs mb-0 ellipsis" title="${this.escapeHtml(c.email_id || "")}" style="width:150px;">
-									${this.escapeHtml(c.email_id || "")}
-								</p>
-							</div>
-						</div>
-					</td>
-					<td><span class="badge bg-info-subtle text-info badge-label">${this.escapeHtml(c.status || "Active")}</span></td>
-					<td>${this.escapeHtml(c.mobile_no || "")}</td>
-					<td>${this.escapeHtml(c.email_id || "")}</td>
-					<td>${this.escapeHtml(c.employees || "")}</td>
-					<td>${this.escapeHtml(c.status || "")}</td>
-					<td>
-						<div class="d-flex align-items-center justify-content-center gap-1">
-							<span title="${this.escapeHtml(c.modified || "")}">${this.formatModifiedDate(c.modified)}</span>
-							<span class="d-flex align-items-center gap-1">
-								<i class="ti ti-message-circle fs-lg"></i>
-								${c.comment_count || 0}
-							</span>
-						</div>
-					</td>
-				`;
-				frag.appendChild(tr);
-			});
-
-			// Append rows
-			tbody.appendChild(frag);
-
-			// --- SYNC / PRUNE against actual visible DOM rows ---
-			// Gather visible ids from DOM (this includes any existing rows in the table)
-			const visibleChecks = document.querySelectorAll("#contact-table-body .row-check");
-			const visibleIds = new Set(Array.from(visibleChecks).map(chk => chk.dataset.id));
-
-			// Remove any selected ids that are no longer visible
-			for (const id of Array.from(this.selected_contacts)) {
-				if (!visibleIds.has(id)) {
-					this.selected_contacts.delete(id);
-				}
-			}
-
-			// Ensure the DOM checkboxes reflect selected_contacts (important after prune)
-			visibleChecks.forEach(chk => {
-				const id = chk.dataset.id;
-				const shouldBeChecked = this.selected_contacts.has(id);
-				// only set property if different to avoid triggering change listeners unnecessarily
-				if (chk.checked !== shouldBeChecked) chk.checked = shouldBeChecked;
-			});
-
-			this.bindRowCheckboxEvents();
-			this.updateSelectAllState();
-			this.updateActionBar();
+		if (route.length === 1) {
+			return this.show_list();
 		}
 
-		formatModifiedDate(dateString) {
+		if (route.length === 2 && route[1] === "new") {
+			return this.show_new();
+		}
+
+		if (route.length === 2) {
+			const contact_id = route[1];
+			return this.show_details(contact_id);
+		}
+	}
+
+	show_list() {
+		$(".contacts-list-view").removeClass("d-none");
+		$(".contacts-details-view").addClass("d-none");
+		$(".new-contacts").addClass("d-none");
+		this.setPageTitle("Contacts");
+		this.setActiveSidebar();
+
+		setTimeout(() => {
+			try {
+				this.bindActionDropdown();
+				this.bindContactRowClick();
+				this.bindRowSelectionHandler();
+				this.bindPaginationEvents();
+				this.bindFilterEvents();
+				this.applyRoleBasedActionVisibility();
+				this.bindActionDropdownHandler();
+				this.applyUrlFilters();
+			} catch (err) {
+				console.error("Error in show_list bindings:", err);
+			}
+
+		}, 200);
+	}
+
+	show_details(contact_id) {
+		$(".contacts-list-view").addClass("d-none");
+		$(".contacts-details-view").removeClass("d-none");
+		$(".new-contacts").addClass("d-none");
+		this.setPageTitle(`Contacts/${contact_id}`);
+		this.setActiveSidebar();
+		this.current_contact_id = contact_id;
+		this.load_contact_details(contact_id);
+	}
+
+	show_new() {
+		$(".contacts-list-view").addClass("d-none");
+		$(".contacts-details-view").addClass("d-none");
+		$(".new-contacts").removeClass("d-none");
+		this.setPageTitle("New Contacts");
+		this.setActiveSidebar();
+		this._newContactCurrentStep = 1;
+		this.bind_contact_form_events();
+		this.gotoNewContactWizardStep(1);
+	}
+
+	setPageTitle(title) {
+		document.title = title;
+		this.page.set_title(title);
+	}
+
+	setActiveSidebar() {
+		const route = frappe.get_route();
+		const baseRoute = route[0];
+		$(".side-nav-link").removeClass("active-menu");
+		$(".side-nav-item").removeClass("active-menu-item");
+		$(".menu-parent").removeClass("active");
+
+		$(".side-nav-link[data-page]").each(function () {
+			const linkPage = $(this).data("page");
+			if (!linkPage) return;
+			if (linkPage === baseRoute) {
+				$(this).addClass("active-menu");
+				const $item = $(this).closest(".side-nav-item");
+				$item.addClass("active-menu-item");
+				const $parent = $(this).closest(".menu-parent");
+				if ($parent.length) {
+					$parent.addClass("active");
+					//$parent.children(".sub-menu").slideDown(0);
+					$parent.closest(".sub-menu").each((idx, el) => {
+						const $ancestor = $(el).closest(".menu-parent");
+						if ($ancestor.length) {
+							$ancestor.addClass("active");
+						}
+					});
+				}
+			}
+		});
+
+		if (window.syncSupportSidebarArrows) {
+			window.syncSupportSidebarArrows();
+		}
+	}
+
+	async fetch_list_data({ reset = false, saved_filters = [], override_filters = {} } = {}) {
+		console.log("Fetching contacts list data...", { reset, saved_filters, override_filters });
+		return new Promise(async (resolve, reject) => {
+			if (!this.page_length) this.page_length = 20;
+			if (this._fetch_in_progress) {
+				console.log("Fetch already in progress, skipping new fetch.");
+				return resolve();
+			}
+			this._fetch_in_progress = true;
+			const requestId = (this._fetch_seq || 0) + 1;
+			this._fetch_seq = requestId;
+			try {
+				if (reset) {
+					this.all_contacts = [];
+					this.visible_count = 0;
+					this.filtered_contacts = [];
+				}
+				const wrapper = this.page.wrapper[0] || this.page.wrapper;
+				const nameVal = wrapper.querySelector('[data-table-filter="name"]');
+				const fullnameVal = wrapper.querySelector('[data-table-filter="fullname"]');
+				const companyNameVal = wrapper.querySelector('[data-table-filter="customer_name"]');
+				const statusVal = wrapper.querySelector('[data-table-filter="status"]');
+
+				this.active_filters.name = override_filters.name !== undefined ? override_filters.name : (nameVal?.value?.trim() || "");
+				this.active_filters.fullname = override_filters.fullname !== undefined ? override_filters.fullname : (fullnameVal?.value?.trim() || "");
+				this.active_filters.company_name = override_filters.company_name !== undefined ? override_filters.company_name : (companyNameVal?.value?.trim() || "");
+				this.active_filters.status = override_filters.status !== undefined ? override_filters.status : (statusVal?.value || "");
+
+				console.log("%c[debug]-> active_filters:", "color: blue;", this.active_filters);
+				const normalizedFilters = (saved_filters || []).map(f => {
+					if (Array.isArray(f)) {
+						let field = "";
+						let operatorRaw = "=";
+						let valueRaw = "";
+
+						// FilterGroup commonly returns [doctype, field, operator, value, ...]
+						if (f.length >= 4) {
+							[, field, operatorRaw, valueRaw] = f;
+						} else if (f.length === 3) {
+							[field, operatorRaw, valueRaw] = f;
+						}
+						const operator = (operatorRaw || "=").toLowerCase();
+						let value = valueRaw;
+						if (operator === "between" && typeof value === "string" && value.includes(",")) {
+							value = value.split(",").map(v => v.trim());
+						}
+						return { field, operator, value };
+					}
+					if (typeof f === "object" && f !== null) {
+						const field = f.fieldname || f.field || "";
+						const operator = (f.operator || "=").toLowerCase();
+						let value = f.value;
+						if (operator === "between" && typeof value === "string" && value.includes(",")) {
+							value = value.split(",").map(v => v.trim());
+						}
+						return { field, operator, value };
+					}
+					return {};
+				});
+
+				const filtersPayload = normalizedFilters.map(f => {
+					if (f.field && f.operator) {
+						let val = f.value;
+						if (f.operator === "between") {
+							if (typeof val === "string" && val.includes(",")) {
+								val = val.split(",").map(v => v.trim());
+							} else if (!Array.isArray(val)) {
+								val = [val, val];
+							}
+						}
+						return [f.field, f.operator, val];
+					}
+					return f;
+				});
+
+				console.log("%c[DEBUG] → filtersPayload:", "color: #4caf50;", filtersPayload);
+				frappe.call({
+					method: "renewal_module.custom_module.page.contacts.contacts.get_list_data",
+					args: {
+						start: reset ? 0 : (this.all_contacts ? this.all_contacts.length : 0),
+						page_length: this.page_length,
+						status: this.active_filters.status || "",
+						name: this.active_filters.name || "",
+						full_name: this.active_filters.fullname || "",
+						company_name: this.active_filters.company_name || "",
+						filters: JSON.stringify(filtersPayload)
+					},
+					callback: (r) => {
+						try {
+							if (requestId !== this._fetch_seq) {
+								return resolve();
+							}
+							if (!r || !r.message) {
+								console.warn("[loadcontacts]empty response");
+								if (reset) {
+									this.all_contacts = [];
+									this.visible_count = 0;
+									this.total_records = 0;
+								}
+								this.render_rows(true);
+								this._fetch_in_progress = false;
+								return resolve();
+							}
+							const { data = [], total = 0 } = r?.message || {};
+							console.log("data received:", data, "total:", total);
+							this.total_records = Number.isFinite(total) ? parseInt(total, 10) : (data.length || 0);
+
+							if (reset) {
+								this.all_contacts = Array.isArray(data) ? data.slice() : [];
+							} else if (Array.isArray(data) && data.length) {
+								this.all_contacts = [...(this.all_contacts || []), ...data];
+							}
+
+							this.visible_count = Math.min((this.all_contacts || []).length, this.total_records || 0);
+							if (this.total_records === 0) {
+								this.all_contacts = [];
+								this.visible_count = 0;
+							}
+							document.getElementById("visible-count").innerHTML = this.visible_count.toLocaleString();
+							document.getElementById("total-count").innerHTML = this.total_records.toLocaleString();
+							const countHeader = document.getElementById("count-header");
+							if (countHeader) {
+								countHeader.setAttribute(
+									"title",
+									`${this.visible_count.toLocaleString()} of ${this.total_records.toLocaleString()}`
+								);
+							}
+							this.filtered_contacts = this.all_contacts.slice();
+							this.render_rows(true);
+							resolve();
+						} catch (err) {
+							reject(err);
+						}
+						finally {
+							if (requestId === this._fetch_seq) {
+								this._fetch_in_progress = false;
+							}
+						}
+					},
+					error: (err) => {
+						if (requestId === this._fetch_seq) {
+							this._fetch_in_progress = false;
+						}
+						console.error("contacts fetch_list_data error", err);
+						reject(err);
+					}
+				});
+			} catch (err) {
+				this._fetch_in_progress = false;
+				console.error("contacts fetch_list_data error", err);
+				reject(err);
+			}
+		});
+	}
+
+	render_rows(useFiltered = false) {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const tbody = wrapper.querySelector(".contacts-table tbody");
+		if (!tbody) return;
+
+		tbody.innerHTML = "";
+		const data = useFiltered && this.filtered_contacts ? this.filtered_contacts : (this.all_contacts || []);
+
+		if (!Array.isArray(data) || data.length === 0) {
+			tbody.insertAdjacentHTML("beforeend", `
+				<tr>
+					<td colspan="9" class="text-center text-muted py-4">No contacts found.</td>
+				</tr>
+			`);
+			const infoBlocksEmpty = wrapper.querySelectorAll(".pagination-info");
+			infoBlocksEmpty.forEach(info => {
+				const visibleCountEl = info.querySelector(".visible-count");
+				const totalCountEl = info.querySelector(".total-count");
+				if (visibleCountEl) visibleCountEl.textContent = 0;
+				if (totalCountEl) totalCountEl.textContent = this.total_records || 0;
+			});
+
+			// Hide load more button
+			const loadMoreBtnEmpty = wrapper.querySelector(".btn-more");
+			if (loadMoreBtnEmpty) loadMoreBtnEmpty.style.display = "none";
+			return;
+		}
+		this.visible_count = Math.min(
+			this.visible_count || rows.length,
+			this.total_records || rows.length
+		);
+		const visible_contacts = data.slice(0, this.visible_count || data.length);
+		visible_contacts.forEach((contact) => {
+			const tr = document.createElement("tr");
+			tr.innerHTML = `
+				<td class="checkbox-cell">
+					<input class="row-check form-check-input form-check-input-light fs-14 contact-item-check" type="checkbox" data-contact="${this.escapeHtml(contact.name)}">
+				</td>
+				<td class="contacts-name contact-row-link ellipsis"data-contact="${this.escapeHtml(contact.name)}" title="${this.escapeHtml(contact.full_name)}">${this.escapeHtml(contact.full_name)}</td>
+				<td class="ellipsis" title="${this.escapeHtml(contact.email_id)}">${this.escapeHtml(contact.email_id)}</td>
+				<td>${contact.status ? `<span class="pill text-white" title="${this.escapeHtml(contact.status)}">${this.escapeHtml(contact.status)}</span>` : "-"}</td>
+				<td class="ellipsis" title="${this.escapeHtml(contact.phone || contact.mobile_no)}">${this.escapeHtml(contact.phone || contact.mobile_no)}</td>
+				<td class="ellipsis" title="${this.escapeHtml(contact.company_name)}">${this.escapeHtml(contact.company_name)}</td>
+				<td class="ellipsis" title="${this.escapeHtml(contact.user)}">${this.escapeHtml(contact.user)}</td>
+				<td title="${this.escapeHtml(contact.name)}">${this.escapeHtml(contact.name)}</td>
+				<td>
+					<div class="d-flex align-items-center justify-content-center gap-1 contact-row-link" data-contact="${this.escapeHtml(contact.name)}"  style="cursor:pointer;">
+						<span title="${escapeHtml(contact.modified || "")}">${formatModifiedDate(contact.modified)}</span>
+						<span class="d-flex align-items-center gap-1 ml-1" title="${contact.comment_count || 0}">
+							<i class="fa fa-comment fs-lg"></i>
+							${contact.comment_count || 0}
+						</span>
+					</div>
+				</td>
+			`;
+			tbody.appendChild(tr);
+		});
+		const visibleChecks = document.querySelectorAll(".contacts-table tbody .row-check");
+		const visibleIds = new Set(Array.from(visibleChecks).map(chk => chk.dataset.contact));
+
+
+		for (const id of Array.from(this.selected_contacts)) {
+			if (!visibleIds.has(id)) {
+				this.selected_contacts.delete(id);
+			}
+		}
+
+		visibleChecks.forEach(chk => {
+			const id = chk.dataset.contact;
+			const shouldBeChecked = this.selected_contacts.has(id);
+			if (chk.checked !== shouldBeChecked) chk.checked = shouldBeChecked;
+		});
+
+		function formatModifiedDate(dateString) {
 			if (!dateString) return "";
 
 			const modifiedDate = new Date(dateString);
@@ -457,334 +414,228 @@ if (!window.MycontactsPageDefined) {
 			if (minutes > 0) return minutes + "m";
 			return seconds + "s";
 		}
+		function escapeHtml(s) {
+			if (s == null) return "";
+			return String(s)
+				.replace(/&/g, "&amp;")
+				.replace(/</g, "&lt;")
+				.replace(/>/g, "&gt;")
+				.replace(/"/g, "&quot;")
+				.replace(/'/g, "&#039;");
+		}
+
+		{
+			const table = wrapper.querySelector(".contacts-table");
+			const newContactsBtn = wrapper.querySelector("#new-contacts-btn");
+			const actionsDropdownEl = wrapper.querySelector("#actions-dropdown");
+
+			if (table) {
+				const all = table.querySelectorAll('tbody input[type="checkbox"]').length;
+				const checked = table.querySelectorAll('tbody input[type="checkbox"]:checked').length;
+				const selectAll = table.querySelector('#contactscheckAll');
+				if (selectAll) selectAll.checked = (all > 0 && all === checked);
+				// update the action/new-ticket visibility
+				this.updateActionBarState(table, newContactsBtn, actionsDropdownEl);
+			}
+		}
+	}
 
 
-		bindRowCheckboxEvents() {
-			// select all visible row checkboxes
-			const checkboxes = document.querySelectorAll("#contact-table-body .row-check");
+	bindContactRowClick() {
+		$(document)
+			.off("click", ".contact-row-link")
+			.on("click", ".contact-row-link", (e) => {
+				const id = e.currentTarget.dataset.contact;
 
-			//console.log("%c[bindRowCheckboxEvents] Found row checkboxes:", "color: purple", checkboxes.length);
+				if (!id) return;
 
-			checkboxes.forEach(chk => {
-				// Avoid attaching multiple listeners to the same element
-				if (chk.dataset.listenerAttached === "1") return;
+				const qs = window.location.search || "";
+				localStorage.setItem("contacts_list_url_filters", qs);
+				localStorage.setItem("contacts_page_length", this.page_length);
 
-				const handler = (e) => {
-					const id = e.target.dataset.id;
-
-					if (e.target.checked) {
-						this.selected_contacts.add(id);
-						console.log("%c[Row Selected] →", "color: lime", id);
-					} else {
-						this.selected_contacts.delete(id);
-						console.log("%c[Row Unselected] →", "color: orange", id);
-					}
-
-					console.log("[Selected Contacts Set]", Array.from(this.selected_contacts));
-
-					// After any single-row change, ensure Select-All reflects the visible rows
-					this.updateSelectAllState();
-					this.updateActionBar();
-				};
-
-				chk.addEventListener("change", handler);
-				chk.dataset.listenerAttached = "1";
+				console.log("Opening contact:", id);
+				frappe.set_route("contacts", id);
 			});
-		}
-
-		updateActionBar() {
-			const wrapper = this.page.wrapper[0] || this.page.wrapper;
-			const newBtn = wrapper.querySelector("#new-contact-btn");
-			const actionsDropdown = wrapper.querySelector("#actions-dropdown");
-
-			if (!newBtn || !actionsDropdown) return;
-
-			if (this.selected_contacts.size > 0) {
-				newBtn.classList.add("d-none");
-				actionsDropdown.classList.remove("d-none");
-			} else {
-				newBtn.classList.remove("d-none");
-				actionsDropdown.classList.add("d-none");
-			}
-		}
+	}
 
 
-		initSelectAll() {
-			const selectAll = document.querySelector("#checkAll");
+	bindFilterEvents() {
+		const me = this;
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const nameFilter = wrapper.querySelector('[data-table-filter="name"]');
+		const fullNameFilter = wrapper.querySelector('[data-table-filter="fullname"]');
+		const companyNameFilter = wrapper.querySelector('[data-table-filter="customer_name"]');
+		const statusFilter = wrapper.querySelector('[data-table-filter="status"]');
+		const filterButton = wrapper.querySelector('.filter-button');
 
-			// If not found, retry quietly
-			if (!selectAll) {
-				setTimeout(() => this.initSelectAll(), 150);
-				return;
-			}
-
-			// Prevent multiple listeners
-			if (selectAll.dataset.listenerAttached === "1") return;
-			selectAll.dataset.listenerAttached = "1";
-
-			// Bind event
-			selectAll.addEventListener("change", (e) => {
-				const checked = e.target.checked;
-
-				const visibleRows = document.querySelectorAll("#contact-table-body .row-check");
-
-				visibleRows.forEach(chk => {
-					chk.checked = checked;
-					const id = chk.dataset.id;
-					if (checked) this.selected_contacts.add(id);
-					else this.selected_contacts.delete(id);
-				});
-
-				// Prune any stale selections
-				const visibleIds = new Set(Array.from(visibleRows).map(chk => chk.dataset.id));
-				for (const id of Array.from(this.selected_contacts)) {
-					if (!visibleIds.has(id)) this.selected_contacts.delete(id);
-				}
-
-				this.updateSelectAllState();
-				this.updateActionBar();
-			});
-		}
-
-
-		updateSelectAllState() {
-			const selectAll = document.querySelector("#checkAll");
-			if (!selectAll) return;
-
-			const rows = document.querySelectorAll("#contact-table-body .row-check");
-
-			// NEW FIX 👇
-			if (rows.length === 0) {
-				selectAll.checked = false;
-				return;
-			}
-
-			const allSelected = Array.from(rows).every(chk =>
-				this.selected_contacts.has(chk.dataset.id)
-			);
-
-			//console.log("%c[updateSelectAllState] allSelected =", "color: yellow", allSelected);
-			selectAll.checked = allSelected;
-		}
-
-
-		// ---- fetch filter options and populate selects ----
-		async loadFilters() {
-			try {
-				const res = await frappe.call({
-					method: "renewal_module.custom_module.page.contacts.contacts.get_contact_filters"
-				});
-				const filters = (res && res.message) ? res.message : {};
-
-				this.populateFilter("status", filters.status);
-				this.populateFilter("email_id", filters.email_id);
-				this.populateFilter("customer_name", filters.customer_name);
-
-			} catch (err) {
-				console.error("loadFilters error:", err);
-			}
-		}
-
-		//safe populate: avoids direct innerHTML append for whole doc (but keeps simple)
-		populateFilter(fieldname, list) {
-			let select = document.querySelector(`select[data-table-filter="${fieldname}"]`);
-			if (!select) return;
-
-			// Store previously selected value
-			const oldValue = select.value || "";
-
-			// Reset the select with its placeholder
-			const label = select.getAttribute("data-table-filter").replace("_", " ");
-			select.innerHTML = `<option value="">${this.escapeHtml(label)}</option>`;
-
-			// Append new options
-			(list || []).forEach(item => {
-				const val = typeof item === "string" ? item : (item.value ?? "");
-				const lbl = typeof item === "string" ? item : (item.label ?? val);
-
-				const opt = document.createElement("option");
-				opt.value = val;
-				opt.textContent = lbl;
-				select.appendChild(opt);
-			});
-
-			// Restore selected value ONLY if it exists in the new options
-			if ([...select.options].some(o => o.value === oldValue)) {
-				select.value = oldValue;
-			}
-			this.setupFilterTooltip(select);
-		}
-
-		// safe tooltip setup — fallback to native title if bootstrap.js is absent
-		setupFilterTooltip(select) {
-			if (!select) return;
-			// avoid duplicating listeners / tooltip instances
-			if (select.dataset.tooltipInitialized === "1") return;
-			select.dataset.tooltipInitialized = "1";
-			// helper to compute label text
-			const getLabelText = () => {
-				const opt = select.options[select.selectedIndex];
-				return opt ? (opt.textContent || "").trim() : "";
+		if (statusFilter) {
+			this.syncPlaceholder(statusFilter);
+			statusFilter.onchange = () => {
+				this.syncPlaceholder(statusFilter);
 			};
-			const text = getLabelText();
-			// If bootstrap tooltip JS is present, use it safely
-			if (window.bootstrap && typeof window.bootstrap.Tooltip === "function") {
-				// dispose any previous instance (defensive)
-				try {
-					const old = window.bootstrap.Tooltip.getInstance(select);
-					if (old) old.dispose();
-				} catch (e) {
-					// ignore - some bootstrap versions may not implement getInstance on the prototype
-				}
-				// ensure no native title to avoid double tooltip
-				select.removeAttribute("title");
-				// set bootstrap tooltip source text
-				select.setAttribute("data-bs-original-title", text);
-				// create new tooltip
-				try {
-					new window.bootstrap.Tooltip(select, {
-						placement: "bottom",
-						trigger: "hover",
-						container: "body"
-					});
-				} catch (e) {
-					// If initialization fails, fall back to native title
-					select.setAttribute("title", text);
-				}
-
-				// update tooltip text on change
-				select.addEventListener("change", () => {
-					const updated = getLabelText();
-					select.setAttribute("data-bs-original-title", updated);
-
-					// update bootstrap tooltip instance content if available
-					try {
-						const t = window.bootstrap.Tooltip.getInstance(select);
-						if (t && typeof t.setContent === "function") {
-							t.setContent({ '.tooltip-inner': updated });
-						} else if (t) {
-							// older bootstrap versions - dispose & re-create to update text
-							t.dispose();
-							new window.bootstrap.Tooltip(select, {
-								placement: "bottom",
-								trigger: "hover",
-								container: "body"
-							});
-						}
-					} catch (e) {
-						// ignore, fallback to title attribute
-					}
-
-					// also keep native title in sync (good fallback for non-bootstrap)
-					select.setAttribute("title", updated);
-				});
-
-				return;
-			}
-			// Use native title attribute to show a tooltip (browser default)
-			select.removeAttribute("data-bs-original-title");
-			select.setAttribute("title", text);
-			// keep native title updated on change
-			select.addEventListener("change", () => {
-				const updated = getLabelText();
-				select.setAttribute("title", updated);
-			});
 		}
 
+		const advancedFilterForm = $(wrapper).find('.advanced-filter-form, .filter-section, .filter-container').first().length
+			? $(wrapper).find('.advanced-filter-form, .filter-section, .filter-container').first()
+			: $(wrapper);
 
+		let filter_group = null;
+		me.saved_filters = me.saved_filters || [];
+		setTimeout(() => {
+			if (filterButton && me.saved_filters && me.saved_filters.length > 0) {
+				const $btn = $(filterButton);
+				update_filter_button_count($btn, me.saved_filters.length);
+			} else if (filterButton) {
+				const $btn = $(filterButton);
+				update_filter_button_count($btn, 0);
+			}
+		}, 100);
 
-		// ---- filter popover + basic filter events
-		bindFilterEvents() {
-			const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		me.clearBasicFilterUI = function () {
 			const me = this;
-			// only proceed if DOM exists
-			if (!wrapper) return;
-			// Initialize advancedFilterForm wrapper
-			const advancedFilterForm = $(wrapper).find('.advanced-filter-form, .filter-section, .filter-container').first().length
-				? $(wrapper).find('.advanced-filter-form, .filter-section, .filter-container').first()
-				: $(wrapper);
-
-			me.saved_filters = me.saved_filters || [];
-
-			// Setup the popover handler (keeps most of your original logic)
-			advancedFilterForm.find('.filter-button').off('click').on("click", async function (e) {
-				e.preventDefault();
-				e.stopPropagation();
-
-				const $btn = $(this);
-				if ($btn.data("bs.popover")) {
-					teardownGuards($btn);
-					$btn.popover("dispose");
-					return;
+			const statusFilter = wrapper.querySelector('#filterStatus');
+			const nameFilter = wrapper.querySelector('#filtername');
+			const fullNameFilter = wrapper.querySelector('#filterfullname');
+			const companyNameFilter = wrapper.querySelector('[data-table-filter="customer_name"]');
+			if (statusFilter) statusFilter.value = "";
+			if (nameFilter) nameFilter.value = "";
+			if (fullNameFilter) fullNameFilter.value = "";
+			if (companyNameFilter) companyNameFilter.value = "";
+			me.saved_filters = [];
+			me.active_filters = {
+				status: "",
+				name: "",
+				fullname: "",
+				company_name: ""
+			}
+			if (statusFilter) {
+				const sel = statusFilter;
+				function updateSelectColor() {
+					if (!sel.value) sel.classList.add("placeholder");
+					else sel.classList.remove("placeholder");
 				}
+				updateSelectColor();
+				sel.addEventListener("change", updateSelectColor);
+			}
+			if (filterButton) {
+				const $btn = $(filterButton);
+				const $label = $btn.find(".button-label");
+				if ($label && $label.length) $label.text("Filter");
+			}
+		};
 
-				let popover_content = $('<div class="filter-area">');
-				await frappe.model.with_doctype("Customer");
-				const filter_group = new frappe.ui.FilterGroup({
-					parent: popover_content,
-					doctype: "Customer",
-					on_change: function () {
-						me.saved_filters = filter_group.get_filters();
-						// immediate apply saved filters and reset list
-						me.loadcontact({ reset: true, saved_filters: me.saved_filters });
-						update_filter_button_count($btn, me.saved_filters.length);
-						updateUrlWithFilters(me.saved_filters);
-					}
-				});
+		if (statusFilter) statusFilter.addEventListener("change", () => {
+			me.active_status = statusFilter.value || "";
+			me.fetch_list_data({ reset: true, saved_filters: me.saved_filters });
+			this.updateUrlWithFilters(me.saved_filters)
+		});
 
-				filter_group.update_filter_button = function () { };
-				let lastDownInsidePopover = false;
-				let lastDownOnRemove = false;
+		if (nameFilter) nameFilter.addEventListener("input", () => {
+			me.active_name = nameFilter.value?.trim() || "";
+			if (!me.active_name) {
+				me.saved_filters = [];
+			}
+			me.fetch_list_data({ reset: true, saved_filters: me.saved_filters });
+			updateUrlWithFilters(me.saved_filters);
+		});
 
-				function isDatepickerNode(node) {
-					if (!node) return false;
-					return !!node.closest && !!node.closest(
-						'.flatpickr-calendar, .ui-datepicker, .datepicker, .bootstrap-datetimepicker-widget, .pika-single, .daterangepicker'
-					);
+		if (fullNameFilter) fullNameFilter.addEventListener("input", () => {
+			me.active_fullname = fullNameFilter.value?.trim() || "";
+			if (!me.active_fullname) {
+				me.saved_filters = [];
+			}
+			me.fetch_list_data({ reset: true, saved_filters: me.saved_filters });
+			updateUrlWithFilters(me.saved_filters);
+		});
+
+		if (companyNameFilter) companyNameFilter.addEventListener("input", () => {
+			me.active_filters.company_name = companyNameFilter.value?.trim() || "";
+			if (!me.active_filters.company_name) {
+				me.saved_filters = [];
+			}
+			me.fetch_list_data({ reset: true, saved_filters: me.saved_filters });
+			updateUrlWithFilters(me.saved_filters);
+		});
+
+		advancedFilterForm.find('.filter-button').on("click", async function (e) {
+			me._suspend_on_change = true;
+			e.preventDefault();
+			e.stopPropagation();
+
+			const $btn = $(this);
+			if ($btn.data("bs.popover")) {
+				teardownGuards($btn);
+				$btn.popover("dispose");
+				return;
+			}
+
+			let popover_content = $('<div class="filter-area">');
+			await frappe.model.with_doctype("Contact");
+			filter_group = new frappe.ui.FilterGroup({
+				parent: popover_content,
+				doctype: "Contact",
+				on_change: function () {
+					me.saved_filters = filter_group.get_filters();
+					// immediate apply saved filters and reset list
+					me.fetch_list_data({ reset: true, saved_filters: me.saved_filters });
+					update_filter_button_count($btn, me.saved_filters.length);
+					updateUrlWithFilters(me.saved_filters);
 				}
+			});
 
-				function onDocMouseDownCapture(ev) {
-					const inside = !!ev.target.closest(".filter-popover");
-					const onRemove = !!ev.target.closest(".filter-popover .filter-remove, .filter-popover .remove-filter");
-					const clickedDatepicker =
-						isDatepickerNode(ev.target) ||
-						(ev.composedPath && ev.composedPath().some(n => n && n.classList && (
-							n.classList.contains('flatpickr-calendar') ||
-							n.classList.contains('ui-datepicker') ||
-							n.classList.contains('datepicker') ||
-							n.classList.contains('bootstrap-datetimepicker-widget') ||
-							n.classList.contains('pika-single') ||
-							n.classList.contains('daterangepicker')
-						)));
+			filter_group.update_filter_button = function () { };
+			let lastDownInsidePopover = false;
+			let lastDownOnRemove = false;
 
-					lastDownInsidePopover = inside || clickedDatepicker;
-					lastDownOnRemove = onRemove;
-				}
+			function isDatepickerNode(node) {
+				if (!node) return false;
+				return !!node.closest && !!node.closest(
+					'.flatpickr-calendar, .ui-datepicker, .datepicker, .bootstrap-datetimepicker-widget, .pika-single, .daterangepicker'
+				);
+			}
 
-				function onDatepickerPointerDown(ev) {
-					if (isDatepickerNode(ev.target)) {
-						lastDownInsidePopover = true;
-					}
-				}
+			function onDocMouseDownCapture(ev) {
+				const inside = !!ev.target.closest(".filter-popover");
+				const onRemove = !!ev.target.closest(".filter-popover .filter-remove, .filter-popover .remove-filter");
+				const clickedDatepicker =
+					isDatepickerNode(ev.target) ||
+					(ev.composedPath && ev.composedPath().some(n => n && n.classList && (
+						n.classList.contains('flatpickr-calendar') ||
+						n.classList.contains('ui-datepicker') ||
+						n.classList.contains('datepicker') ||
+						n.classList.contains('bootstrap-datetimepicker-widget') ||
+						n.classList.contains('pika-single') ||
+						n.classList.contains('daterangepicker')
+					)));
 
-				document.addEventListener("mousedown", onDocMouseDownCapture, true);
-				document.addEventListener("pointerdown", onDatepickerPointerDown, true);
+				lastDownInsidePopover = inside || clickedDatepicker;
+				lastDownOnRemove = onRemove;
+			}
 
-				popover_content.on("pointerdown", ".filter-remove, .remove-filter", function (ev) {
-					ev.stopPropagation();
+			function onDatepickerPointerDown(ev) {
+				if (isDatepickerNode(ev.target)) {
 					lastDownInsidePopover = true;
-					lastDownOnRemove = true;
-				});
+				}
+			}
 
-				setTimeout(() => {
-					if (me.saved_filters && me.saved_filters.length) {
-						filter_group.add_filters(me.saved_filters);
-					} else {
-						filter_group.add_filter("Customer", "name", "=", "", false);
-					}
-				}, 0);
+			document.addEventListener("mousedown", onDocMouseDownCapture, true);
+			document.addEventListener("pointerdown", onDatepickerPointerDown, true);
 
-				let footer = $(` 
+			popover_content.on("pointerdown", ".filter-remove, .remove-filter", function (ev) {
+				ev.stopPropagation();
+				lastDownInsidePopover = true;
+				lastDownOnRemove = true;
+			});
+
+			setTimeout(() => {
+				if (me.saved_filters && me.saved_filters.length) {
+					filter_group.add_filters(me.saved_filters);
+				} else {
+					filter_group.add_filter("Contact", "name", "=", "", false);
+				}
+			}, 0);
+
+			let footer = $(` 
 					<div class="filter-action-buttons mt-1 flex justify-between items-center">
 						<button class="text-muted add-filter btn btn-xs">+ Add a Filter</button>
 						<div>
@@ -794,425 +645,1649 @@ if (!window.MycontactsPageDefined) {
 					</div>
 				`);
 
-				popover_content.find(".filter-action-buttons").remove();
-				popover_content.append(footer);
-				footer.find('.add-filter').on("click", () => filter_group.add_filter("Customer", "name", "=", "", false));
+			popover_content.find(".filter-action-buttons").remove();
+			popover_content.append(footer);
+			footer.find('.add-filter').off("click").on("click", () => filter_group.add_filter("Contact", "name", "=", "", false));
 
-				// --- Popover: Clear button (explicitly reset UI + state + URL + fetch + close popover)
-				footer.find('.clear-filters').on("click", () => {
-					if (filter_group) filter_group.clear_filters();
-					me.saved_filters = [];
-					me.clearBasicFilterUI();
+			// --- Popover: Clear button (explicitly reset UI + state + URL + fetch + close popover)
+			footer.find('.clear-filters').off("click").on("click", () => {
+				if (filter_group) filter_group.clear_filters();
+				me.saved_filters = [];
+				updateUrlWithFilters([]);
+				update_filter_button_count($btn, 0);
+				me._fetch_in_progress = false;
+				me.fetch_list_data({ reset: true, saved_filters: [] });
+				closePopover($btn, "clear-filters");
+			});
+
+			footer.find('.apply-filters').off("click").on("click", () => {
+				if (filter_group) {
+					me.saved_filters = filter_group.get_filters();
+					updateUrlWithFilters(me.saved_filters);
+					update_filter_button_count($btn, me.saved_filters.length);
 					me._fetch_in_progress = false;
-					me.active_filters = {
-						status: "",
-						contact_person: "",
-						email_id: "",
-						customer_name: "",
-						search: ""
-					};
-					me.loadcontact({ reset: true, saved_filters: [] });
-					update_filter_button_count($btn, 0);
-					updateUrlWithFilters([]);
-					closePopover($btn, "clear-filters");
-				});
+					me.fetch_list_data({ reset: true, saved_filters: me.saved_filters });
+				}
+				closePopover($btn, "apply-filters");
+			});
 
-				footer.find('.apply-filters').on("click", () => {
-					if (filter_group) {
-						me.saved_filters = filter_group.get_filters();
-						me.loadcontact({ reset: true, saved_filters: me.saved_filters });
-						update_filter_button_count($btn, me.saved_filters.length);
-						updateUrlWithFilters(me.saved_filters);
-					}
-					closePopover($btn, "apply-filters");
-				});
-
-				$btn.popover({
-					html: true,
-					placement: "bottom",
-					content: popover_content,
-					trigger: "manual",
-					container: "body",
-					template: `
+			$btn.popover({
+				html: true,
+				placement: "bottom",
+				content: popover_content,
+				trigger: "manual",
+				//container: "body",
+				container: document.body,
+				template: `
 						<div class="popover filter-popover fade bs-popover-bottom" role="tooltip">
 							<div class="arrow"></div>
 							<div class="popover-body popover-content"></div>
 						</div>
 					`,
-					popperConfig: {
-						modifiers: [
-							{ name: 'offset', options: { offset: [0, 4] } },
-							{ name: 'arrow', options: { element: '.arrow', padding: 6 } },
-							{ name: 'preventOverflow', options: { padding: 10, altBoundary: true, tether: false } }
-						]
+				popperConfig: {
+					modifiers: [
+						{ name: 'offset', options: { offset: [0, 4] } },
+						{ name: 'arrow', options: { element: '.arrow', padding: 6 } },
+						{ name: 'preventOverflow', options: { padding: 10, altBoundary: true, tether: false } }
+					]
+				}
+			}).popover("show");
+
+			setTimeout(() => {
+				const calendars = document.querySelectorAll(".filter-popover .flatpickr-input");
+				calendars.forEach(input => {
+					if (input._flatpickr) input._flatpickr.destroy();
+					flatpickr(input, { appendTo: document.body });
+				});
+			}, 300);
+
+			function isInsidePopoverOrBtn(event) {
+				if ($(event.target).closest(".filter-popover, .filter-button").length) return true;
+
+				const oe = event.originalEvent || event;
+				if (oe && typeof oe.composedPath === "function") {
+					const path = oe.composedPath();
+					if (path.some(node => node && node.classList && (
+						node.classList.contains('filter-popover') ||
+						node.classList.contains('filter-button') ||
+						node.classList.contains('flatpickr-calendar') ||
+						node.classList.contains('ui-datepicker') ||
+						node.classList.contains('datepicker') ||
+						node.classList.contains('bootstrap-datetimepicker-widget') ||
+						node.classList.contains('pika-single') ||
+						node.classList.contains('daterangepicker')
+					))) {
+						return true;
 					}
-				}).popover("show");
+				}
+				if (isDatepickerNode(event.target)) return true;
+				return false;
+			}
+
+			const onDocClick = function (event) {
+				const pathInside = isInsidePopoverOrBtn(event);
+				if (lastDownOnRemove || lastDownInsidePopover || pathInside) {
+					lastDownOnRemove = false;
+					return;
+				}
+				closePopover($btn, "outside-click");
+			};
+
+			$(document).on("click.filterPopover", onDocClick);
+			$btn.data("guardHandlers", { onDocClick, onDocMouseDownCapture, onDatepickerPointerDown });
+
+			function closePopover($btn, reason) {
+				teardownGuards($btn);
+				$btn.popover("dispose");
+			}
+
+			function teardownGuards($btn) {
+				const guards = $btn.data("guardHandlers");
+				if (guards) {
+					$(document).off("click.filterPopover", guards.onDocClick);
+					document.removeEventListener("mousedown", guards.onDocMouseDownCapture, true);
+					document.removeEventListener("pointerdown", guards.onDatepickerPointerDown, true);
+					$btn.removeData("guardHandlers");
+				}
+			}
+		});
+
+		const clearFilterButton = document.querySelector('.filter-x-button');
+
+		if (clearFilterButton) {
+			clearFilterButton.addEventListener("click", (e) => {
+				me.saved_filters = [];
+				me.clearBasicFilterUI();
+				me.fetch_list_data({ reset: true, saved_filters: [] });
+				update_filter_button_count($(advancedFilterForm).find('.filter-button'), 0);
+				localStorage.removeItem('contacts_list_url_filters');
+				updateUrlWithFilters([]);
+			});
+		}
+		function update_filter_button_count($btn, count) {
+			let $label = $btn.find(".button-label");
+			$label.text(count > 0 ? `Filter (${count})` : "Filter");
+		}
+
+		function updateUrlWithFilters(filters) {
+			try {
+				const newUrl = new URL(window.location.href);
+
+				const statusFilter = document.querySelector('[data-table-filter="status"]')?.value || "";
+				const nameFilter = document.querySelector('[data-table-filter="name"]')?.value?.trim() || "";
+				const fullNameFilter = document.querySelector('[data-table-filter="fullname"]')?.value?.trim() || "";
+				const companyNameFilter = document.querySelector('[data-table-filter="customer_name"]')?.value?.trim() || "";
+				statusFilter ? newUrl.searchParams.set("status", statusFilter) : newUrl.searchParams.delete("status");
+				nameFilter ? newUrl.searchParams.set("name", nameFilter) : newUrl.searchParams.delete("name");
+				fullNameFilter ? newUrl.searchParams.set("fullname", fullNameFilter) : newUrl.searchParams.delete("fullname");
+				companyNameFilter ? newUrl.searchParams.set("company_name", companyNameFilter) : newUrl.searchParams.delete("company_name");
+				// Advanced filters (JSON-encoded)
+				if (filters && filters.length) {
+					newUrl.searchParams.set("filters", encodeURIComponent(JSON.stringify(filters)));
+				} else {
+					newUrl.searchParams.delete("filters");
+				}
+				window.history.replaceState({}, "", newUrl.toString());
+			} catch (error) {
+				console.error("Failed to update URL with filters:", error);
+			}
+		}
+
+		setTimeout(() => {
+			const filterBtn = $(wrapper).find(".filter-button");
+			if (filterBtn.length && me.saved_filters && me.saved_filters.length > 0) {
+				update_filter_button_count(filterBtn, me.saved_filters.length);
+			}
+		}, 50);
+	}
+
+	bindPaginationEvents() {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		let pageButtons = wrapper.querySelectorAll(".btn-paging");
+
+		// Remove duplicate listeners
+		pageButtons.forEach(btn => btn.replaceWith(btn.cloneNode(true)));
+		pageButtons = wrapper.querySelectorAll(".btn-paging");
+
+		pageButtons.forEach(btn => {
+			btn.addEventListener("click", async () => {
+				// Clear old active state
+				pageButtons.forEach(b => {
+					b.classList.remove("btn-info", "active-pagination");
+					b.style.backgroundColor = "";
+					b.style.color = "";
+				});
+
+				// Set new active button
+				btn.classList.add("btn-info", "active-pagination");
+				btn.style.backgroundColor = "#6C5CE7";
+				btn.style.color = "white";
+
+				this.page_length = parseInt(btn.dataset.value, 10);
+				await this.fetch_list_data({ reset: true });
+			});
+		});
+
+		// Restore page_length from localStorage or default to 20
+		const savedPageLength = localStorage.getItem('contacts_page_length');
+		this.page_length = savedPageLength ? parseInt(savedPageLength, 10) : 20;
+
+		// Highlight the correct button based on saved/default page length
+		const activeBtn = wrapper.querySelector(`.btn-paging[data-value="${this.page_length}"]`);
+		if (activeBtn) {
+			activeBtn.classList.add("btn-info", "active-pagination");
+			activeBtn.style.backgroundColor = "#6C5CE7";
+			activeBtn.style.color = "white";
+		}
+
+
+		// Load More button
+		const loadMoreBtn = wrapper.querySelector(".btn-more");
+		if (loadMoreBtn) {
+			loadMoreBtn.addEventListener("click", async () => {
+				loadMoreBtn.classList.add("active-pagination");
+				loadMoreBtn.style.backgroundColor = "#E7E5F9";
+				loadMoreBtn.style.color = "black";
+
+				await this.fetch_list_data({ reset: false });
 
 				setTimeout(() => {
-					const calendars = document.querySelectorAll(".filter-popover .flatpickr-input");
-					calendars.forEach(input => {
-						if (input._flatpickr) input._flatpickr.destroy();
-						flatpickr(input, { appendTo: document.body });
-					});
-				}, 300);
+					loadMoreBtn.classList.remove("active-pagination");
+					loadMoreBtn.style.backgroundColor = "";
+					loadMoreBtn.style.color = "";
+				}, 500);
+			});
+		}
+	}
 
-				function isInsidePopoverOrBtn(event) {
-					if ($(event.target).closest(".filter-popover, .filter-button").length) return true;
+	bindRowSelectionHandler() {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const table = wrapper.querySelector(".contacts-table");
+		const newContactBtn = wrapper.querySelector("#new-contacts-btn");
+		const actionsDropdown = wrapper.querySelector("#actions-dropdown");
+		if (!table || !newContactBtn || !actionsDropdown) return;
 
-					const oe = event.originalEvent || event;
-					if (oe && typeof oe.composedPath === "function") {
-						const path = oe.composedPath();
-						if (path.some(node => node && node.classList && (
-							node.classList.contains('filter-popover') ||
-							node.classList.contains('filter-button') ||
-							node.classList.contains('flatpickr-calendar') ||
-							node.classList.contains('ui-datepicker') ||
-							node.classList.contains('datepicker') ||
-							node.classList.contains('bootstrap-datetimepicker-widget') ||
-							node.classList.contains('pika-single') ||
-							node.classList.contains('daterangepicker')
-						))) {
-							return true;
-						}
+		const selectAll = table.querySelector('#contactscheckAll');
+		if (selectAll) {
+			selectAll.onchange = (e) => {
+				const rows = table.querySelectorAll('tbody input[type="checkbox"]');
+				rows.forEach((cb) => {
+					cb.checked = e.target.checked;
+					const id = cb.dataset.contact;
+					if (!id) return;
+
+					if (e.target.checked) {
+						this.selected_contacts.add(id);
+					} else {
+						this.selected_contacts.delete(id);
 					}
-					if (isDatepickerNode(event.target)) return true;
-					return false;
-				}
+				});
+				this.updateActionBarState(table, newContactBtn, actionsDropdown);
+			};
+		}
 
-				const onDocClick = function (event) {
-					const pathInside = isInsidePopoverOrBtn(event);
-					if (lastDownOnRemove || lastDownInsidePopover || pathInside) {
-						lastDownOnRemove = false;
-						return;
-					}
-					closePopover($btn, "outside-click");
-				};
+		table.addEventListener('change', (e) => {
+			if (!e.target.matches('tbody input[type="checkbox"]')) return;
+			const id = e.target.dataset.contact;
+			if (!id) return;
 
-				$(document).on("click.filterPopover", onDocClick);
-				$btn.data("guardHandlers", { onDocClick, onDocMouseDownCapture, onDatepickerPointerDown });
+			if (e.target.checked) {
+				this.selected_contacts.add(id);
+			} else {
+				this.selected_contacts.delete(id);
+			}
 
-				function closePopover($btn, reason) {
-					teardownGuards($btn);
-					$btn.popover("dispose");
-				}
+			if (selectAll) {
+				const total = table.querySelectorAll('tbody input[type="checkbox"]').length;
+				const checked = table.querySelectorAll('tbody input[type="checkbox"]:checked').length;
+				selectAll.checked = total > 0 && total === checked;
+			}
 
-				function teardownGuards($btn) {
-					const guards = $btn.data("guardHandlers");
-					if (guards) {
-						$(document).off("click.filterPopover", guards.onDocClick);
-						document.removeEventListener("mousedown", guards.onDocMouseDownCapture, true);
-						document.removeEventListener("pointerdown", guards.onDatepickerPointerDown, true);
-						$btn.removeData("guardHandlers");
+			this.updateActionBarState(table, newContactBtn, actionsDropdown);
+		});
+	}
+
+	updateActionBarState(table, newContactBtn, actionsDropdown) {
+		if (!table || !newContactBtn || !actionsDropdown) return;
+		const selectedCount = table.querySelectorAll('tbody input[type="checkbox"]:checked').length;
+		console.log("Selected count:", selectedCount);
+		if (selectedCount > 0) {
+			newContactBtn.classList.add("d-none");
+			actionsDropdown.classList.remove("d-none");
+		} else {
+			newContactBtn.classList.remove("d-none");
+			actionsDropdown.classList.add("d-none");
+		}
+	}
+
+	updateCounts(visible, total, wrapper) {
+		const visibleEl = wrapper.querySelector("#visible-count");
+		const totalEl = wrapper.querySelector("#total-count");
+		const countHeader = wrapper.querySelector("#count-header");
+		if (visibleEl) visibleEl.textContent = (visible || 0).toLocaleString();
+		if (totalEl) totalEl.textContent = (total || 0).toLocaleString();
+		if (countHeader) countHeader.setAttribute("title", `${(visible || 0).toLocaleString()} of ${(total || 0).toLocaleString()}`);
+	}
+
+	applyUrlFilters() {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		let qs = localStorage.getItem('contacts_list_url_filters') || '';
+		if (!window.location.search && qs) {
+			console.log('Applying saved URL filters to acontacts bar:', qs);
+			window.history.replaceState({}, "", window.location.pathname + qs);
+		}
+		const params = new URLSearchParams(window.location.search);
+		const nameVal = params.get("name") || "";
+		const fullNameVal = params.get("fullname") || "";
+		const statusVal = params.get("status") || "";
+		const companyNameVal = params.get("company_name") || "";
+		const filters_encoded = params.get("filters") || "";
+
+		const statusSel = wrapper.querySelector('[data-table-filter="status"]');
+		const nameSel = wrapper.querySelector('[data-table-filter="name"]');
+		const fullNameSel = wrapper.querySelector('[data-table-filter="fullname"]');
+		const companyNameSel = wrapper.querySelector('[data-table-filter="customer_name"]');
+
+		if (statusSel) {
+			statusSel.value = statusVal;
+			this.syncPlaceholder(statusSel);
+		}
+		if (nameSel) nameSel.value = nameVal;
+		if (fullNameSel) fullNameSel.value = fullNameVal;
+		if (companyNameSel) companyNameSel.value = companyNameVal;
+
+		if (!this.saved_filters) {
+			this.saved_filters = [];
+		}
+		this.active_filters.status = statusVal;
+		this.active_filters.name = nameVal;
+		this.active_filters.fullname = fullNameVal;
+		this.active_filters.company_name = companyNameVal;
+		let restored_saved_filters = [];
+		if (filters_encoded) {
+			try {
+				let decoded = decodeURIComponent(filters_encoded);
+				let parsed = JSON.parse(decoded);
+
+				restored_saved_filters = parsed.map(f => {
+					if (f[2] === "Equals") f[2] = "=";
+					if (f[2] === "Not Equal") f[2] = "!=";
+					return [f[0], f[1], f[2], f[3], f[4] ?? false];
+				});
+			} catch (e) {
+				console.error("Failed to decode advanced filters:", e);
+			}
+		}
+		this.saved_filters = restored_saved_filters;
+		this.fetch_list_data({ reset: true, saved_filters: restored_saved_filters });
+	}
+
+	updateUrlWithFilters() {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		try {
+			const newUrl = new URL(window.location.href);
+			const nameVal = wrapper.querySelector('#filtername')?.value?.trim() || "";
+			const fullNameVal = wrapper.querySelector('#filterfullname')?.value?.trim() || "";
+			const statusVal = wrapper.querySelector('#filterStatus')?.value || "";
+			const companyNameVal = wrapper.querySelector('[data-table-filter="customer_name"]')?.value?.trim() || "";
+
+			if (nameVal) newUrl.searchParams.set("name", nameVal);
+			else newUrl.searchParams.delete("name");
+
+			if (fullNameVal) newUrl.searchParams.set("fullname", fullNameVal);
+			else newUrl.searchParams.delete("fullname");
+
+			if (statusVal) newUrl.searchParams.set("status", statusVal);
+			else newUrl.searchParams.delete("status");
+
+			if (companyNameVal) newUrl.searchParams.set("company_name", companyNameVal);
+			else newUrl.searchParams.delete("company_name");
+
+			window.history.replaceState({}, "", newUrl.toString());
+		} catch (err) {
+			console.error("Failed to update URL:", err);
+		}
+	}
+
+	clearUrlFilters() {
+		try {
+			const newUrl = new URL(window.location.href);
+			newUrl.searchParams.delete("name");
+			newUrl.searchParams.delete("fullname");
+			newUrl.searchParams.delete("status");
+			newUrl.searchParams.delete("company_name");
+			window.history.replaceState({}, "", newUrl.toString());
+		} catch (err) {
+			console.error("Failed to clear URL:", err);
+		}
+	}
+
+	bindActionDropdown() {
+		$(document).off("click.msgclose");
+		$(document).on("click.msgclose", ".btn-modal-close", function (e) {
+			e.preventDefault();
+			e.stopPropagation();
+			if (frappe.msg_dialog && frappe.msg_dialog.hide) {
+				frappe.msg_dialog.hide();
+			}
+		});
+	}
+
+	syncPlaceholder(select) {
+		if (!select) return;
+		if (!select.value) select.classList.add("placeholder");
+		else select.classList.remove("placeholder");
+	}
+
+	escapeHtml(value) {
+		if (value == null) return "";
+		return String(value)
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;")
+			.replace(/"/g, "&quot;")
+			.replace(/'/g, "&#039;");
+	}
+
+	debounce(fn, wait = 200) {
+		let t;
+		return (...args) => {
+			clearTimeout(t);
+			t = setTimeout(() => fn.apply(this, args), wait);
+		};
+	}
+
+	applyActionPermissions(retries = 6, interval = 100) {
+		const wrapper = this.page?.wrapper?.[0] || this.page?.wrapper;
+		const actionsDropdown = wrapper?.querySelector("#actions-dropdown");
+		if (!actionsDropdown) return;
+
+		// Helper to compute effective perms from perm array
+		const computePerms = (permArr) => {
+			const effective = {
+				read: false,
+				write: false,
+				create: false,
+				delete: false,
+				export: false,
+				print: false
+			};
+			if (!Array.isArray(permArr)) return effective;
+			permArr.forEach(p => {
+				// p keys may be 1/0 or true/false; normalize with Boolean()
+				for (const key of Object.keys(effective)) {
+					if (p.hasOwnProperty(key) && Boolean(p[key])) {
+						effective[key] = true;
 					}
 				}
 			});
+			return effective;
+		};
 
-			// --- External Clear (top X) Button ---
-			const clearFilterButton = document.querySelector('.filter-x-button');
-			if (clearFilterButton) {
-				clearFilterButton.removeEventListener("click", this._clearFilterListener);
-				clearFilterButton.addEventListener("click", () => {
-					this.saved_filters = [];
-					this.clearBasicFilterUI();
-					this._fetch_in_progress = false;
-					this.loadcontact({ reset: true, saved_filters: [] });
-					update_filter_button_count($(advancedFilterForm).find('.filter-button'), 0);
-					this.updateUrlWithFilters([]);
+		const apply = (permArr) => {
+			const perm = computePerms(permArr);
+			console.debug("applyActionPermissions - Issue perms:", permArr, "=> effective:", perm);
+
+			// If user is Administrator always show (optional)
+			if ((frappe?.user_roles || []).includes("Administrator")) {
+				$(actionsDropdown).show();
+			}
+
+			// If user cannot read at all, hide dropdown completely
+			if (!perm.read) {
+				$(actionsDropdown).hide();
+				return;
+			} else {
+				$(actionsDropdown).show();
+			}
+
+			// Write Permission → Assign + Apply Rule
+			$(actionsDropdown).find('[data-action="assign_to"]').toggle(!!perm.write);
+			$(actionsDropdown).find('[data-action="apply_rule"]').toggle(!!perm.write);
+
+			// Create Permission → Edit & Add Tags
+			$(actionsDropdown).find('[data-action="edit"]').toggle(!!perm.create);
+			$(actionsDropdown).find('[data-action="add_tags"]').toggle(!!perm.create);
+
+			// Delete Permission
+			$(actionsDropdown).find('[data-action="delete"]').toggle(!!perm.delete);
+
+			// Export Permission
+			$(actionsDropdown).find('[data-action="export"]').toggle(!!perm.export);
+
+			// Print Permission
+			$(actionsDropdown).find('[data-action="print"]').toggle(!!perm.print);
+
+			// If nothing visible, show tooltip or small info
+			const visibleCount = $(actionsDropdown).find('.dropdown-item:visible').length;
+			if (!visibleCount) {
+				// you can hide entire dropdown or show a disabled message
+				// here we keep dropdown visible but disable button
+				$(actionsDropdown).find('.dropdown-toggle').prop('disabled', true);
+				$(actionsDropdown).attr('title', 'No actions available for your permissions');
+			} else {
+				$(actionsDropdown).find('.dropdown-toggle').prop('disabled', false);
+				$(actionsDropdown).removeAttr('title');
+			}
+		};
+
+		// Try to get perms; if empty, retry a few times (permissions may load later)
+		const permArr = frappe.perm.get_perm?.("Issue") || [];
+		if (permArr && permArr.length) {
+			apply(permArr);
+		} else if (retries > 0) {
+			// small retry loop
+			setTimeout(() => this.applyActionPermissions(retries - 1, interval), interval);
+		} else {
+			// final fallback: try to use frappe.boot.perm (if available) or show nothing
+			const bootPerm = (frappe.boot && frappe.boot.user && frappe.boot.user.can_read) ? frappe.boot.user : null;
+			console.warn("applyActionPermissions: no perm rows returned for Issue after retries. fallback:", bootPerm);
+			// safest fallback: hide restricted actions and show basic ones (read)
+			apply(permArr);
+		}
+	}
+
+	applyRoleBasedActionVisibility() {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		// Fetch current logged-in user's roles
+		const roles = frappe.user_roles || [];
+		// Mapping: action → roles allowed
+		const roleBasedRules = {
+			"delete": ["Administrator", "System Manager"],
+			"edit": ["Administrator", "Support Manager", "System Manager", "L1 - Tech Support", "Tech Support", "L2 - Tech Support", "L3 - Tech Support"],
+			"assign_to": ["Administrator", "Support Manager", "System Manager", "L1 - Tech Support", "Tech Support", "L2 - Tech Support", "L3 - Tech Support"],
+			"apply_rule": ["Administrator", "System Manager"],
+			"add_tags": ["Administrator", "Support Manager", "System Manager", "L1 - Tech Support", "Tech Support", "L2 - Tech Support", "L3 - Tech Support"],
+			"print": ["Administrator", "Support Manager", "System Manager", "L1 - Tech Support", "Tech Support", "L2 - Tech Support", "L3 - Tech Support"],
+			"export": ["Administrator", "System Manager"]
+		};
+
+		// Loop & hide disallowed action items
+		Object.keys(roleBasedRules).forEach(action => {
+			const allowedRoles = roleBasedRules[action];
+			const item = wrapper.querySelector(`.dropdown-item[data-action="${action}"]`);
+			if (!item) return;
+			// Check whether user has ANY allowed role
+			const allowed = roles.some(r => allowedRoles.includes(r));
+			if (!allowed) {
+				item.style.display = "none";   // hide
+			} else {
+				item.style.display = "";       // show
+			}
+		});
+	}
+
+	// ---- action dropdown handler ----
+	bindActionDropdownHandler() {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const actionsDropdown = wrapper.querySelector("#actions-dropdown");
+
+		if (!actionsDropdown) return;
+
+		actionsDropdown.addEventListener("click", async (e) => {
+
+			const item = e.target.closest(".dropdown-item");
+			if (!item) return;
+			e.preventDefault();
+			const action = item.dataset.action;
+			const checkedBoxes = document.querySelectorAll('.contacts-table tbody .row-check:checked');
+			if (!checkedBoxes.length) {
+				frappe.msgprint(__("Please select at least one Contact"));
+				return;
+			}
+			// ✔ Extract contact IDs from selected checkboxes
+			const contacts = Array.from(checkedBoxes)
+				.map(cb => cb.dataset.contact)
+				.filter(Boolean);
+
+			if (!contacts.length) {
+				frappe.msgprint(__("No valid Contact IDs found."));
+				return;
+			}
+
+			const doctype = "Contact";
+			const me = this;
+			function waitForConfirmModal(callback) {
+				let tries = 0;
+				const maxTries = 20;
+
+				const check = () => {
+					const $modal = $(".modal:visible");
+					if ($modal.length) {
+						callback($modal);
+					} else if (tries < maxTries) {
+						tries++;
+						setTimeout(check, 20);
+					}
+				};
+
+				check();
+			}
+
+			// ---------------------- ACTIONS ----------------------
+
+			// ✅ Bulk Edit
+			if (action === "edit") {
+				frappe.model.with_doctype(doctype, () => {
+					const fields = frappe.meta.get_docfields(doctype)
+						.filter(df =>
+							df.fieldname &&
+							df.label &&
+							!df.hidden &&
+							!df.read_only &&
+							df.fieldtype !== "Table"
+						);
+
+					const d = new frappe.ui.Dialog({
+						title: __("Bulk Edit Customers"),
+						fields: [
+							{
+								label: __("Field"),
+								fieldname: "fieldname",
+								fieldtype: "Select",
+								options: fields.map(df => ({
+									label: df.label,
+									value: df.fieldname
+								})),
+								reqd: 1,
+								onchange() {
+									const fieldname = d.get_value("fieldname");
+									if (!fieldname) return;
+									const df = frappe.meta.get_docfield(doctype, fieldname);
+									const wrapper = d.get_field("value_wrapper").$wrapper;
+									wrapper.empty();
+
+									d.__value_control = frappe.ui.form.make_control({
+										df: {
+											label: __("Value"),
+											fieldname: "value",
+											fieldtype: df.fieldtype,
+											options: df.options || "",
+											reqd: 1
+										},
+										parent: wrapper,
+										render_input: true
+									});
+									d.__value_control.refresh();
+								}
+							},
+							{ fieldtype: "HTML", fieldname: "value_wrapper" }
+						],
+						primary_action_label: __("Update {0} Contacts", [contacts.length]),
+						primary_action() {
+							const fieldname = d.get_value("fieldname");
+							if (!d.__value_control) {
+								frappe.msgprint(__("Please enter a value"));
+								return;
+							}
+
+							const value = d.__value_control.get_value();
+							d.hide();
+
+							me.bulkUpdate(contacts, { fieldname, value });
+						}
+					});
+
+					d.show();
+					setTimeout(() => {
+						const closeBtn = d.get_close_btn();
+						if (!closeBtn || !closeBtn.length) {
+							return;
+						}
+						closeBtn.off("click.dialog").on("click.dialog", function () {
+							d.hide();
+						});
+					}, 50);
 				});
 			}
 
-			// --- Helper ---
-			function update_filter_button_count($btn, count) {
-				let $label = $btn.find(".button-label");
-				$label.text(count > 0 ? `Filter (${count})` : "Filter");
+
+			// -----------------------------------
+			// DELETE CUSTOMERS
+			// -----------------------------------
+			else if (action === "delete") {
+				frappe.confirm(
+					__("Delete {0} selected Contacts?", [contacts.length]),
+					() => {
+						Promise.all(
+							contacts.map(name =>
+								frappe.call({
+									method: "frappe.client.delete",
+									args: { doctype, name }
+								})
+							)
+						).then(() => {
+							frappe.show_alert({ message: __("Contacts deleted"), indicator: "red" });
+							me.resetActionBar();
+							me.refreshAllData();
+						});
+					}
+				);
+				waitForConfirmModal(($modal) => {
+					const $close = $modal.find(".btn-modal-close");
+					$close.off("click.note-confirm").on("click.note-confirm", function (ev) {
+						ev.preventDefault();
+						ev.stopPropagation();
+						try {
+							$modal.modal("hide");
+						} catch (err) {
+							$modal.removeClass("show in").hide();
+						}
+						$(".modal-backdrop").remove();
+					});
+				});
 			}
 
-			function updateUrlWithFilters(filters) {
-				// re-use instance method for consistent behavior
-				me.updateUrlWithFilters(filters || []);
+			else if (action === "assign_to") {
+				let d = new frappe.ui.form.AssignToDialog({ doctype, docname: contacts[0] });
+
+				d.dialog.set_primary_action(__("Assign"), () => {
+					const values = d.dialog.get_values();
+					if (!values) return;
+					d.dialog.hide();
+
+					const calls = contacts.map(name =>
+						frappe.call({
+							method: "frappe.desk.form.assign_to.add",
+							args: {
+								doctype,
+								name,
+								assign_to: values.assign_to,
+								assign_to_me: values.assign_to_me,
+								assign_to_user_group: values.assign_to_user_group,
+								description: values.description,
+								due_date: values.due_date,
+								priority: values.priority,
+								notify: values.notify || 0
+							}
+						})
+					);
+
+					Promise.allSettled(calls).then(() => {
+						frappe.show_alert({ message: __("Assigned successfully"), indicator: "green" });
+						me.resetActionBar();
+						me.refreshAllData();
+					});
+				});
+
+				d.dialog.show();
+				setTimeout(() => {
+					const closeBtn = d.dialog.get_close_btn();
+					if (!closeBtn || !closeBtn.length) {
+						return;
+					}
+					closeBtn.off("click.dialog").on("click.dialog", function () {
+						d.dialog.hide();
+					});
+				}, 50);
 			}
-			// --- FIX: Update filter button count on page load ---
+			else if (action === "add_tags") {
+				const dialog = new frappe.ui.Dialog({
+					title: __("Add Tags"),
+					fields: [
+						{
+							fieldtype: "Link",
+							fieldname: "tag",
+							label: __("Tag"),
+							options: "Tag",
+							reqd: 1
+						}
+					],
+					primary_action_label: __("Add"),
+					primary_action(values) {
+						dialog.hide();
+						let promises = contacts.map(name =>
+							frappe.call({
+								method: "frappe.desk.doctype.tag.tag.add_tag",
+								args: { tag: values.tag, dt: doctype, dn: name }
+							})
+						);
+
+						Promise.all(promises).then(() => {
+							frappe.show_alert({ message: __("Tag added"), indicator: "green" });
+							me.resetActionBar(); // 🔹 Fixed `this` reference
+							me.refreshAllData();
+
+						});
+					}
+				});
+
+				dialog.show();
+				setTimeout(() => {
+					const closeBtn = dialog.get_close_btn();
+					if (!closeBtn || !closeBtn.length) {
+						return;
+					}
+					closeBtn.off("click.dialog").on("click.dialog", function () {
+						dialog.hide();
+					});
+				}, 50);
+			}
+			else if (action === "apply_rule") {
+				frappe.dom.freeze(__("Applying assignment rule..."));
+
+				const calls = contacts.map(name =>
+					frappe.call({
+						method: "renewal_module.custom_module.page.contacts.contacts.apply_assignment_rule",
+						args: { doctype, name }
+					})
+				);
+
+				Promise.allSettled(calls).then((res) => {
+					frappe.dom.unfreeze();
+					const failed = res.filter(r => r.status === "rejected" || r.value?.exc).length;
+					if (failed) {
+						frappe.msgprint(__("{0} records failed to apply assignment rule.", [failed]));
+					} else {
+						frappe.show_alert({ message: __("Assignment Rule applied"), indicator: "green" });
+					}
+					me.resetActionBar();
+					me.refreshAllData();
+
+
+
+				});
+			}
+			else if (action === "print") {
+				frappe.model.with_doctype(doctype, () => {
+					const print_formats = frappe.meta.get_print_formats
+						? frappe.meta.get_print_formats(doctype)
+						: ["Standard"];
+
+					const d = new frappe.ui.Dialog({
+						title: __("Bulk Print"),
+						fields: [
+							{
+								label: __("Print Format"),
+								fieldname: "print_format",
+								fieldtype: "Select",
+								options: print_formats.join("\n"),
+								default: print_formats[0]
+							},
+							{
+								label: __("With Letterhead"),
+								fieldname: "with_letterhead",
+								fieldtype: "Check",
+								default: 1
+							},
+							{
+								label: __("Letterhead (optional)"),
+								fieldname: "letterhead",
+								fieldtype: "Link",
+								options: "Letter Head"
+							}
+						],
+						primary_action_label: __("Open {0} Print Views", [customers.length]),
+						primary_action(values) {
+							d.hide();
+							customers.forEach(name => {
+								const params = new URLSearchParams({
+									doctype,
+									name,
+									format: values.print_format || "Standard",
+									no_letterhead: values.with_letterhead ? "0" : "1"
+								});
+								if (values.letterhead) params.set("letterhead", values.letterhead);
+								window.open(`/printview?${params.toString()}`, "_blank");
+							});
+						}
+					});
+
+					d.show();
+					setTimeout(() => {
+						const closeBtn = d.get_close_btn();
+						if (!closeBtn || !closeBtn.length) {
+							return;
+						}
+						closeBtn.off("click.dialog").on("click.dialog", function () {
+							d.hide();
+						});
+					}, 50);
+				});
+			}
+
+
+			// Unknown action
+			else {
+				frappe.msgprint(__("Action '{0}' not implemented for Customer", [action]));
+			}
+		});
+	}
+
+
+
+	resetActionBar() {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const newBtn = wrapper.querySelector("#new-contacts-btn");
+		const actionsDropdown = wrapper.querySelector("#actions-dropdown");
+
+		if (newBtn && actionsDropdown) {
+			newBtn.classList.remove("d-none");
+			actionsDropdown.classList.add("d-none");
+		}
+
+		// Clear contact selections
+		this.selected_contacts.clear();
+
+		// Uncheck everything in DOM
+		const checkboxes = document.querySelectorAll('.contacts-table tbody .row-check');
+		checkboxes.forEach(cb => (cb.checked = false));
+
+		const selectAllCheckbox = document.querySelector("#contactscheckAll");
+		if (selectAllCheckbox) selectAllCheckbox.checked = false;
+	}
+
+
+	bulkUpdate(contacts, updates) {
+		return new Promise((resolve, reject) => {
+			if (!contacts.length) return resolve();
+
+			frappe.dom.freeze(__("Updating Contacts..."));
+
+			const promises = contacts.map(name =>
+				frappe.call({
+					method: "frappe.client.set_value",
+					args: {
+						doctype: "Contact",
+						name,
+						fieldname: updates.fieldname,
+						value: updates.value
+					}
+				})
+			);
+
+			Promise.allSettled(promises)
+				.then(async () => {
+					frappe.dom.unfreeze();
+					frappe.show_alert({ message: __("Contacts updated successfully"), indicator: "green" });
+
+					this.resetActionBar();
+
+					// 👇 Refresh list once instead of twice
+					await this.refreshAllData();
+
+					resolve();
+				})
+				.catch((err) => {
+					frappe.dom.unfreeze();
+					console.error("Contact Bulk update failed:", err);
+					reject(err);
+				});
+		});
+	}
+
+	async refreshAllData() {
+		try {
+			// Reset pagination + reload the list
+			await this.fetch_list_data({
+				reset: true,
+				saved_filters: this.saved_filters || []
+			});
 			setTimeout(() => {
-				const filterBtn = $(wrapper).find(".filter-button");
-				if (filterBtn.length && me.saved_filters && me.saved_filters.length > 0) {
-					update_filter_button_count(filterBtn, me.saved_filters.length);
-				}
-			}, 50);
+				this.applyRoleBasedActionVisibility();
+			}, 100);
+
+		} catch (err) {
+			console.error("[refreshAllData] Failed to refresh:", err);
 		}
+	}
 
-		attachClearFilterButton() {
-			const me = this;
-			const btn = document.querySelector(".filter-x-button");
-			if (!btn) return;
+	bindContactRenameButton(contact_id) {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const nameText = wrapper?.querySelector("#contact-name-text");
+		if (!nameText) return;
 
-			btn.addEventListener("click", function () {
-				const email_idSel = document.querySelector('[data-table-filter="email_id"]');
-				const accountSel = document.querySelector('[data-table-filter="status"]');
-				const groupSel = document.querySelector('[data-table-filter="customer_name"]');
-				const contactNameInput = document.querySelector('input[data-table-filter="contact_person"]');
-				const searchInput = document.querySelector('[data-table-search]');
+		const meta = frappe.get_meta("Contact") || {};
+		const allowRename = Object.prototype.hasOwnProperty.call(meta, "allow_rename")
+			? !!meta.allow_rename
+			: true;
+		const hasWrite = frappe.model?.can_write
+			? frappe.model.can_write("Contact")
+			: frappe.perm.has_perm("Contact", 0, "write");
+		const canRename = allowRename && hasWrite;
 
-				if (email_idSel) email_idSel.value = "";
-				if (accountSel) accountSel.value = "";
-				if (groupSel) groupSel.value = "";
-				if (contactNameInput) contactNameInput.value = "";
-				if (searchInput) searchInput.value = "";
+		nameText.dataset.contactId = String(contact_id || this.current_contact_id || "").trim();
+		nameText.style.cursor = canRename ? "pointer" : "default";
+		nameText.title = canRename
+			? __("Click to rename contact")
+			: __("You do not have permission to rename this contact");
 
-				me.saved_filters = [];
-				me.active_filters = {
-					email_id: "",
-					status: "",
-					contact_person: "",
-					customer_name: "",
-					search: ""
-				};
+		nameText.onclick = (e) => {
+			e.preventDefault();
+			e.stopPropagation();
 
-				me.updateUrlWithFilters([]);
-				// reload safely (listeners may trigger if initialized)
-				if (me._filtersInitialized) me.reloadList();
-				else me.loadcontact({ reset: true });
-
-				const filterBtnLabel = document.querySelector(".filter-button .button-label");
-				if (filterBtnLabel) filterBtnLabel.textContent = "Filters";
-			});
-		}
-
-		// Convenience: clear basic UI and internal state
-		clearBasicFilterUI() {
-			const statusFilter = document.querySelector('[data-table-filter="status"]');
-			const emailidFilter = document.querySelector('[data-table-filter="email_id"]');
-			const customernameFilter = document.querySelector('[data-table-filter="customer_name"]');
-			const contactNameFilter = document.querySelector('input[data-table-filter="contact_person"]');
-			const searchInput = document.querySelector('[data-table-search]');
-
-			if (statusFilter) statusFilter.value = "";
-			if (emailidFilter) emailidFilter.value = "";
-			if (customernameFilter) customernameFilter.value = "";
-			if (contactNameFilter) contactNameFilter.value = "";
-			if (searchInput) searchInput.value = "";
-
-			this.active_filters = {
-				status: "",
-				email_id: "",
-				customer_name: "",
-				contact_person: "",
-				search: ""
-			};
-		}
-
-		// ---- apply filters (programmatic) ----
-		async applyFilters() {
-			this.start = 0;
-			this.active_filters = {
-				status: document.querySelector('select[data-table-filter="status"]')?.value || "",
-				email_id: document.querySelector('select[data-table-filter="email_id"]')?.value || "",
-				customer_name: document.querySelector('select[data-table-filter="customer_name"]')?.value || "",
-				contact_person: document.querySelector('input[data-table-filter="contact_person"]')?.value?.trim() || "",
-				search: document.querySelector('[data-table-search]')?.value?.trim() || ""
-			};
-
-			const tbody = document.querySelector("#contact-table-body");
-			if (tbody) tbody.innerHTML = "";
-			await this.loadcontact({ reset: true });
-		}
-
-		// ---- bind basic events (no initial reload here) ----
-		bindCustomerNameFilter() {
-			const me = this;
-			const input = document.querySelector('input[data-table-filter="contact_name"]');
-
-			if (!input) return;
-
-			// Debounce – prevents too many backend calls while typing
-			let timer = null;
-
-			input.addEventListener("input", () => {
-				clearTimeout(timer);
-				timer = setTimeout(() => {
-					me.applyFilters();   // 🔥 Trigger backend refresh
-				}, 350);
-			});
-
-			// Also trigger on Enter key
-			input.addEventListener("keydown", (e) => {
-				if (e.key === "Enter") {
-					e.preventDefault();
-					me.applyFilters();
-				}
-			});
-		}
-
-
-		// ---- bind basic events (no initial reload here) ----
-		bindevents() {
-			const me = this;
-			// PAGE SIZE SWITCH
-			document.querySelectorAll(".btn-paging").forEach(btn => {
-				btn.removeEventListener("click", btn._pagingHandler);
-				const handler = () => {
-					// 1. Update page size
-					me.page_length = parseInt(btn.dataset.value, 10) || 20;
-					// 2. Highlight clicked button
-					document.querySelectorAll(".btn-paging").forEach(b => b.classList.remove("active"));
-					btn.classList.add("active");
-					// 3. Load data
-					if (me._filtersInitialized) me.reloadList();
-					else me.loadcontact({ reset: true });
-				};
-				btn._pagingHandler = handler;
-				btn.addEventListener("click", handler);
-			});
-
-			// LOAD MORE
-			const moreBtn = document.querySelector(".btn-more");
-			if (moreBtn) {
-				moreBtn.removeEventListener("click", moreBtn._moreHandler);
-				const moreHandler = () => {
-					// load next page without interfering with initialization state
-					me.loadcontact(false);
-				};
-				moreBtn._moreHandler = moreHandler;
-				moreBtn.addEventListener("click", moreHandler);
+			if (!canRename) {
+				frappe.msgprint(__("You do not have permission to rename this Contact."));
+				return;
 			}
 
-			// Set default highlight for 20 rows on first load
-			const defaultBtn = document.querySelector('.btn-paging[data-value="20"]');
-			if (defaultBtn) {
-				document.querySelectorAll(".btn-paging").forEach(b => b.classList.remove("active"));
-				defaultBtn.classList.add("active");
-			}
+			const targetContact = nameText.dataset.contactId || contact_id || this.current_contact_id;
+			this.openContactRenamePopup(targetContact);
+		};
+	}
 
+	handleContactRenameResult(oldName, newName, isMerge = false) {
+		const updatedName = String(newName || oldName || "").trim();
+		if (!updatedName) return;
 
-			// BASIC FILTER DROPDOWNS - change triggers new fetch (only if initialized)
-			document.querySelectorAll("select[data-table-filter]").forEach(sel => {
-				sel.removeEventListener("change", sel._selHandler);
-				const selHandler = () => {
-					me.updateActiveFilters();
-					if (me._filtersInitialized) me.reloadList();
-				};
-				sel._selHandler = selHandler;
-				sel.addEventListener("change", selHandler);
-			});
-
-			// SEARCH typing debounce
-			const searchInput = document.querySelector("[data-table-search]");
-			if (searchInput) {
-				if (searchInput._inputHandler) {
-					searchInput.removeEventListener("input", searchInput._inputHandler);
-				}
-				let typingTimer = null;
-				const inputHandler = () => {
-					clearTimeout(typingTimer);
-					typingTimer = setTimeout(() => {
-						me.updateActiveFilters();
-						if (me._filtersInitialized) me.reloadList();
-					}, 250);
-				};
-				searchInput._inputHandler = inputHandler;
-				searchInput.addEventListener("input", inputHandler);
-			}
+		if (locals.Contact && oldName && oldName !== updatedName && locals.Contact[oldName]) {
+			delete locals.Contact[oldName];
 		}
 
-		// ---- update active_filters object from UI and update URL
-		updateActiveFilters() {
-			this.active_filters = {
-				status: document.querySelector('select[data-table-filter="status"]')?.value || "",
-				email_id: document.querySelector('select[data-table-filter="email_id"]')?.value || "",
-				customer_name: document.querySelector('select[data-table-filter="customer_name"]')?.value || "",
-				contact_person: document.querySelector('input[data-table-filter="contact_person"]')?.value?.trim() || "",
-				search: document.querySelector("[data-table-search]")?.value?.trim() || ""
-			};
+		this.current_contact_id = updatedName;
+		this.setPageTitle(`Contacts/${updatedName}`);
+		frappe.show_alert({
+			message: isMerge
+				? __("Contact merged into {0}", [updatedName])
+				: __("Contact renamed to {0}", [updatedName]),
+			indicator: "green",
+		});
 
-			// persist to URL using unified method
-			this.updateUrlWithFilters(this.saved_filters || []);
+		if (frappe.get_route()[0] === "contacts" && frappe.get_route()[1] === updatedName) {
+			this.bindContactRenameButton(updatedName);
+			this.load_contact_details(updatedName);
+		} else {
+			frappe.set_route("contacts", updatedName);
+		}
+	}
+
+	openContactRenamePopup(contact_id) {
+		const currentName = String(contact_id || this.current_contact_id || "").trim();
+		if (!currentName) {
+			frappe.msgprint(__("Contact name is missing."));
+			return;
 		}
 
-		// ---- update URL with current basic + advanced filters
-		updateUrlWithFilters(filters = []) {
+		const canMerge = frappe.model?.can_write
+			? frappe.model.can_write("Contact")
+			: frappe.perm.has_perm("Contact", 0, "write");
+		const mergeWarning = __("This cannot be undone");
+
+		const dialog = new frappe.ui.Dialog({
+			title: __("Rename {0}", [currentName]),
+			fields: [
+				{
+					label: __("Current Name"),
+					fieldname: "old_name_display",
+					fieldtype: "Data",
+					default: currentName,
+					read_only: 1,
+				},
+				{
+					label: __("New Name"),
+					fieldname: "new_name",
+					fieldtype: "Data",
+					reqd: 1,
+					default: currentName,
+				},
+				{
+					label: __("Merge with existing") + " <b>(" + mergeWarning + ")</b>",
+					fieldname: "merge",
+					fieldtype: "Check",
+					default: 0,
+					read_only: canMerge ? 0 : 1,
+					description: canMerge
+						? __("Choose this only when merging into an existing Contact.")
+						: __("You need Contact write access to use merge."),
+				},
+			],
+		});
+
+		const forceHideDialog = () => {
 			try {
-				const url = new URL(window.location.href);
-
-				const email_id = document.querySelector('[data-table-filter="email_id"]')?.value || "";
-				const status = document.querySelector('[data-table-filter="status"]')?.value || "";
-				const customer = document.querySelector('[data-table-filter="customer_name"]')?.value || "";
-				const contact_person = document.querySelector('[data-table-filter="contact_person"]')?.value?.trim() || "";
-				const search = document.querySelector('[data-table-search]')?.value.trim() || "";
-
-				// Basic filters
-				email_id ? url.searchParams.set("email_id", email_id) : url.searchParams.delete("email_id");
-				status ? url.searchParams.set("status", status) : url.searchParams.delete("status");
-				customer ? url.searchParams.set("customer_name", customer) : url.searchParams.delete("customer_name");
-				contact_person ? url.searchParams.set("contact_person", contact_person) : url.searchParams.delete("contact_person");
-				search ? url.searchParams.set("search", search) : url.searchParams.delete("search");
-
-				// Advanced filters (JSON-encoded)
-				if (filters && filters.length) {
-					url.searchParams.set("filters", encodeURIComponent(JSON.stringify(filters)));
-				} else {
-					url.searchParams.delete("filters");
-				}
-
-				window.history.replaceState({}, "", url.toString());
-			} catch (err) {
-				console.error("updateUrlWithFilters error:", err);
+				dialog.hide();
+			} catch (e) {
+				console.warn("Unable to hide rename dialog via dialog.hide()", e);
 			}
+
+			const $wrapper = dialog.$wrapper || $(dialog.wrapper);
+			if ($wrapper && $wrapper.length) {
+				if (typeof $wrapper.modal === "function") {
+					$wrapper.modal("hide");
+				}
+				$wrapper.removeClass("show").hide();
+			}
+
+			$(".modal-backdrop").remove();
+			$("body").removeClass("modal-open");
+		};
+
+		const showRenameError = (error, attemptedMerge = false) => {
+			let serverMessage = "";
+			const rawMessages = error?._server_messages;
+
+			if (rawMessages) {
+				try {
+					const parsedMessages = JSON.parse(rawMessages);
+					serverMessage = (parsedMessages || [])
+						.map((msg) => {
+							try {
+								const parsed = JSON.parse(msg);
+								return parsed.message || parsed;
+							} catch (e) {
+								return msg;
+							}
+						})
+						.filter(Boolean)
+						.join("<br>");
+				} catch (e) {
+					serverMessage = "";
+				}
+			}
+
+			const fallbackMessage = attemptedMerge
+				? __("You do not have permission to merge these contact records.")
+				: error?.message || __("Unable to rename contact.");
+
+			frappe.msgprint({
+				title: attemptedMerge ? __("Merge not allowed") : __("Rename failed"),
+				indicator: "red",
+				message: serverMessage || fallbackMessage,
+			});
+		};
+
+		const executeRename = (newName, merge = false) => {
+			dialog.disable_primary_action();
+
+			return frappe.call({
+				method: "renewal_module.custom_module.page.contacts.contacts.rename_or_merge_contact",
+				freeze: true,
+				freeze_message: merge ? __("Merging contact...") : __("Updating related fields..."),
+				args: {
+					old_name: currentName,
+					new_name: newName,
+					merge: merge ? 1 : 0,
+				},
+			})
+				.then((r) => {
+					if (r.exc) return;
+					forceHideDialog();
+					this.handleContactRenameResult(currentName, r.message || newName, merge);
+				})
+				.catch((error) => {
+					dialog.enable_primary_action();
+					showRenameError(error, merge);
+				});
+		};
+
+		dialog.set_primary_action(__("Rename"), () => {
+			const values = dialog.get_values();
+			const newName = String(values?.new_name || "").trim();
+			const shouldMerge = !!values?.merge;
+
+			if (!newName) return;
+
+			if (!shouldMerge && newName === currentName) {
+				frappe.show_alert({
+					indicator: "info",
+					message: __("Unchanged"),
+				});
+				return;
+			}
+
+			if (shouldMerge && newName === currentName) {
+				frappe.msgprint(__("Please select another existing Contact to merge into."));
+				return;
+			}
+
+			if (shouldMerge && !canMerge) {
+				showRenameError(null, true);
+				return;
+			}
+
+			if (shouldMerge) {
+				const confirmMessage = `${__("Are you sure you want to merge {0} with {1}?", [
+					currentName.bold(),
+					newName.bold(),
+				])}<br><b>${mergeWarning}</b>`;
+
+				frappe.confirm(confirmMessage, () => executeRename(newName, true));
+				return;
+			}
+
+			executeRename(newName, false);
+		});
+
+		dialog.show();
+		setTimeout(() => {
+			const $wrapper = dialog.$wrapper || $(dialog.wrapper);
+			const closeBtn = dialog.get_close_btn();
+			if (closeBtn && closeBtn.length) {
+				closeBtn.off("click.contactRenameDialog").on("click.contactRenameDialog", function (e) {
+					e.preventDefault();
+					e.stopImmediatePropagation();
+					forceHideDialog();
+				});
+			}
+
+			if ($wrapper && $wrapper.length) {
+				$wrapper
+					.off("click.contactRenameDialogDismiss", ".btn-modal-close, .modal-header .close")
+					.on("click.contactRenameDialogDismiss", ".btn-modal-close, .modal-header .close", function (e) {
+						e.preventDefault();
+						e.stopImmediatePropagation();
+						forceHideDialog();
+					});
+			}
+		}, 50);
+	}
+
+	openContactEditDialog({
+		contactId,
+		title = __("Edit Contact"),
+		onAfterSave = null
+	} = {}) {
+		if (!contactId) {
+			frappe.msgprint(__("Contact not found"));
+			return;
 		}
 
-		// ---- reloadList: reset and load (one-time) ----
-		reloadList() {
-			this.start = 0;
-			const tbody = document.querySelector("#contact-table-body");
-			if (tbody) tbody.innerHTML = "";
-			// loadcontact will update active_filters from UI and call backend
-			this.loadcontact(true);
+		const doctype = "Contact";
+		frappe.model.with_doctype(doctype, () => {
+			const fields = frappe.meta.get_docfields(doctype)
+				.filter(df =>
+					df.fieldname &&
+					df.label &&
+					!df.hidden &&
+					!df.read_only &&
+					df.fieldtype !== "Table"
+				);
+
+			const d = new frappe.ui.Dialog({
+				title,
+				fields: [
+					{
+						label: __("Field"),
+						fieldname: "fieldname",
+						fieldtype: "Select",
+						options: fields.map(df => ({
+							label: df.label,
+							value: df.fieldname
+						})),
+						reqd: 1,
+						onchange() {
+							const fieldname = d.get_value("fieldname");
+							if (!fieldname) return;
+							const df = frappe.meta.get_docfield(doctype, fieldname);
+							const wrapper = d.get_field("value_wrapper").$wrapper;
+							wrapper.empty();
+
+							d.__value_control = frappe.ui.form.make_control({
+								df: {
+									label: __("Value"),
+									fieldname: "value",
+									fieldtype: df.fieldtype,
+									options: df.options || "",
+									reqd: 1
+								},
+								parent: wrapper,
+								render_input: true
+							});
+							d.__value_control.refresh();
+						}
+					},
+					{ fieldtype: "HTML", fieldname: "value_wrapper" }
+				],
+				primary_action_label: __("Update Contact"),
+				primary_action: () => {
+					const fieldname = d.get_value("fieldname");
+					if (!fieldname || !d.__value_control) {
+						frappe.msgprint(__("Please select a field and enter a value"));
+						return;
+					}
+
+					const value = d.__value_control.get_value();
+					d.hide();
+
+					frappe.call({
+						method: "frappe.client.set_value",
+						args: {
+							doctype,
+							name: contactId,
+							fieldname,
+							value
+						},
+						callback: () => {
+							frappe.show_alert({ message: __("Contact updated successfully"), indicator: "green" });
+							if (typeof onAfterSave === "function") {
+								onAfterSave();
+							}
+						}
+					});
+				}
+			});
+
+			d.show();
+			setTimeout(() => {
+				const closeBtn = d.get_close_btn();
+				if (!closeBtn || !closeBtn.length) {
+					return;
+				}
+				closeBtn.off("click.dialog").on("click.dialog", function () {
+					d.hide();
+				});
+			}, 50);
+		});
+	}
+
+	getContactStatusBadgeClass(status) {
+		const normalizedStatus = String(status || "").trim().toLowerCase();
+		if (normalizedStatus === "open") return "bg-success";
+		if (normalizedStatus === "replied") return "bg-info";
+		return "bg-secondary";
+	}
+
+	updateContactStatusBadge(status) {
+		const badge = this.page?.wrapper?.[0]?.querySelector("#contact-status-badge")
+			|| this.page?.wrapper?.querySelector?.("#contact-status-badge")
+			|| document.querySelector("#contact-status-badge");
+		if (!badge) return;
+
+		const resolvedStatus = String(status || "Passive").trim() || "Passive";
+		badge.textContent = resolvedStatus;
+		badge.title = __("Click to change status");
+		badge.className = `badge ${this.getContactStatusBadgeClass(resolvedStatus)} rounded-pill px-3 py-1 fw-medium shadow-sm contact-status-badge`;
+		badge.style.cursor = "pointer";
+	}
+
+	bindContactStatusBadge(contactId, currentStatus = "Passive") {
+		const canWrite = frappe.model?.can_write
+			? frappe.model.can_write("Contact")
+			: frappe.perm.has_perm("Contact", 0, "write");
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const badge = wrapper?.querySelector("#contact-status-badge");
+		if (!badge) return;
+
+		this.updateContactStatusBadge(currentStatus);
+		if (!canWrite) {
+			badge.style.cursor = "default";
+			badge.title = __("You do not have permission to change this contact status");
 		}
 
-		// ---- small utility: escape HTML for safety ----
-		escapeHtml(str) {
-			if (!str && str !== 0) return "";
-			return String(str)
-				.replace(/&/g, "&amp;")
-				.replace(/</g, "&lt;")
-				.replace(/>/g, "&gt;")
-				.replace(/"/g, "&quot;")
-				.replace(/'/g, "&#039;");
-		}
-
-		bindActionDropdownHandler() {
-			const wrapper = this.page.wrapper[0] || this.page.wrapper;
-			const actionsDropdown = wrapper.querySelector("#actions-dropdown");
-
-			if (!actionsDropdown) return;
-
-			actionsDropdown.addEventListener("click", async (e) => {
-
-				const item = e.target.closest(".dropdown-item");
-				if (!item) return;
-				e.preventDefault();
-				const action = item.dataset.action;
-
-				// ✔ Find selected row checkboxes (your table already uses row-check)
-				const checkedBoxes = document.querySelectorAll('#contact-table-body .row-check:checked');
-
-				if (!checkedBoxes.length) {
-					frappe.msgprint(__("Please select at least one Customer"));
+		$(wrapper)
+			.off("click.contactStatus", "#contact-status-badge")
+			.on("click.contactStatus", "#contact-status-badge", () => {
+				if (!canWrite) {
+					frappe.msgprint(__("You do not have permission to change this Contact status."));
 					return;
 				}
 
-				// ✔ Extract contact IDs from selected checkboxes
-				const contacts = Array.from(checkedBoxes)
-					.map(cb => cb.dataset.id)
-					.filter(Boolean);
+				frappe.model.with_doctype("Contact", () => {
+					const statusField = frappe.meta.get_docfield("Contact", "status");
+					const statusOptions = String(statusField?.options || "Passive\nOpen\nReplied")
+						.split("\n")
+						.map(value => String(value || "").trim())
+						.filter(Boolean);
 
-				if (!contacts.length) {
-					frappe.msgprint(__("No valid Customer IDs found."));
+					const dialog = new frappe.ui.Dialog({
+						title: __("Change Contact Status"),
+						fields: [
+							{
+								fieldtype: "Select",
+								fieldname: "status",
+								label: __("Status"),
+								options: statusOptions.join("\n"),
+								default: currentStatus || statusOptions[0] || "Passive",
+								reqd: 1,
+							}
+						],
+						primary_action_label: __("Change Status"),
+						primary_action: (values) => {
+							const nextStatus = String(values?.status || "").trim();
+							if (!nextStatus) return;
+
+							dialog.hide();
+							frappe.call({
+								method: "frappe.client.set_value",
+								args: {
+									doctype: "Contact",
+									name: contactId,
+									fieldname: "status",
+									value: nextStatus,
+								},
+								callback: (r) => {
+									if (r.exc) return;
+									this.updateContactStatusBadge(nextStatus);
+									frappe.show_alert({
+										message: __("Contact status updated to {0}", [nextStatus]),
+										indicator: "green"
+									});
+								},
+							});
+						}
+					});
+					dialog.show();
+					setTimeout(() => {
+						const closeBtn = dialog.get_close_btn();
+						if (!closeBtn || !closeBtn.length) return;
+						closeBtn.off("click.dialog").on("click.dialog", function () {
+							dialog.hide();
+						});
+					}, 50);
+				});
+			});
+	}
+
+	/***details view */
+
+	load_contact_details(contact_name) {
+		const me = this;
+		frappe.call({
+			method: "frappe.client.get",
+			args: {
+				doctype: "Contact",
+				name: contact_name
+			},
+			error: function () {
+				// frappe.call already shows the backend permission error
+				// redirect back to list view
+				frappe.set_route("contacts");
+				if (me.show_list) me.show_list();
+			},
+			callback: function (r) {
+				if (!r.message) {
+					console.warn("Contact details not found for:", contact_name);
+					frappe.set_route("contacts");
+					if (me.show_list) me.show_list();
 					return;
 				}
 
-				const doctype = "Customer";
-				const me = this;
+				const profileSummaryWrapper = me.page.wrapper[0].querySelector('#contact-profile-summary');
+				const contactdetailswrapper = me.page.wrapper[0].querySelector('#contact-details-contact-table');
+				const contactemaildetailswrapper = me.page.wrapper[0].querySelector('#contact-email-details-table');
+				const contactlinksdetailswrapper = me.page.wrapper[0].querySelector('#contact-links-details-table');
 
-				function waitForConfirmModal(callback) {
+				if (!profileSummaryWrapper) {
+					console.warn("Contact profile summary wrapper not found in DOM.");
+					return;
+				}
+
+				const contact = r.message;
+				const resolvedContactStatus = String(contact.status || "Passive").trim() || "Passive";
+				console.log("Loaded contact details:", contact);
+				$(me.page.wrapper)
+					.off("click.contact-main-edit")
+					.on("click.contact-main-edit", "#edit-contact-details-btn", function (e) {
+						e.preventDefault();
+						e.stopPropagation();
+						me.openContactEditDialog({
+							contactId: contact.name || contact_name,
+							title: __("Edit Contact Details"),
+							onAfterSave: () => me.load_contact_details(contact.name || contact_name)
+						});
+					});
+
+				const ensureProtocol = (url) => {
+					if (!url) return '';
+					url = url.trim();
+					if (!/^https?:\/\//i.test(url)) {
+						return 'https://' + url;
+					}
+					return url;
+				};
+
+				if (profileSummaryWrapper) {
+					profileSummaryWrapper.innerHTML = `
+					<div class="corporate-card p-4 mb-2 h-100">
+						<div class="text-center mb-2 pb-2">
+							<div class="profile-avatar mb-3 mx-auto d-flex align-items-center justify-content-center bg-dark text-white rounded-circle fs-3 fw-bold shadow-sm" style="width: 72px; height: 72px;">
+								${contact.first_name ? contact.first_name.charAt(0).toUpperCase() : (contact.name ? contact.name.charAt(0).toUpperCase() : 'C')}
+							</div>
+							<h5 id="contact-name-text" class="fw-semibold mb-1 text-dark fs-5" style="cursor: default;">${frappe.utils.escape_html(contact.full_name || contact.name)}</h5>
+							${contact.company_name ? `<p class="text-primary fw-medium mb-2"><i class="fa fa-building-o mr-1"></i>${frappe.utils.escape_html(contact.company_name)}</p>` : ''}
+							<div class="mt-2">
+								<span id="contact-status-badge" class="badge ${me.getContactStatusBadgeClass(resolvedContactStatus)} rounded-pill px-3 py-1 fw-medium shadow-sm contact-status-badge" title="${frappe.utils.escape_html(__("Click to change status"))}" style="cursor:pointer;">${frappe.utils.escape_html(resolvedContactStatus)}</span>
+							</div>
+						</div>
+						<div class="d-flex flex-column gap-1">
+							${contact.email_id ? `
+								<div class="d-flex align-items-center gap-1">
+									<div class="contact-info-icon contact-info-icon--email flex-shrink-0">
+										<i class="fa fa-envelope-o"></i>
+									</div>
+									<span class="text-dark fw-medium text-truncate fs-sm" title="${frappe.utils.escape_html(contact.email_id)}">${frappe.utils.escape_html(contact.email_id)}</span>
+								</div>` : ''}
+							${contact.phone ? `
+								<div class="d-flex align-items-center gap-1">
+									<div class="contact-info-icon contact-info-icon--phone flex-shrink-0">
+										<i class="fa fa-phone"></i>
+									</div>
+									<span class="text-dark fw-medium text-truncate fs-sm" title="${frappe.utils.escape_html(contact.phone)}">${frappe.utils.escape_html(contact.phone)}</span>
+								</div>` : ''}
+							${contact.mobile_no && contact.mobile_no !== contact.phone ? `
+								<div class="d-flex align-items-center gap-1">
+									<div class="contact-info-icon contact-info-icon--phone flex-shrink-0">
+										<i class="fa fa-mobile fs-4"></i>
+									</div>
+									<span class="text-dark fw-medium text-truncate fs-sm" title="${frappe.utils.escape_html(contact.mobile_no)}">${frappe.utils.escape_html(contact.mobile_no)}</span>
+								</div>` : ''}
+							${contact.user ? `
+								<div class="d-flex align-items-center gap-1">
+									<div class="contact-info-icon bg-light text-secondary flex-shrink-0" style="border-radius: 8px; width: 28px; height: 28px;">
+										<i class="fa fa-user-o"></i>
+									</div>
+									<span class="text-dark fw-medium text-truncate fs-sm" title="${frappe.utils.escape_html(contact.user)}">${frappe.utils.escape_html(contact.user)}</span>
+								</div>` : ''}
+							${contact.salutation ? `
+								<div class="d-flex align-items-center gap-1">
+									<div class="contact-info-icon bg-light text-secondary flex-shrink-0" style="border-radius: 8px; width: 28px; height: 28px;">
+										<i class="fa fa-id-badge"></i>
+									</div>
+									<span class="text-dark fw-medium text-truncate fs-sm" title="${frappe.utils.escape_html(contact.salutation)}">${frappe.utils.escape_html(contact.salutation)}</span>
+								</div>` : ''}
+							${contact.gender ? `
+								<div class="d-flex align-items-center gap-1">
+									<div class="contact-info-icon bg-light text-secondary flex-shrink-0" style="border-radius: 8px; width: 28px; height: 28px;">
+										<i class="fa fa-venus-mars"></i>
+									</div>
+									<span class="text-dark fw-medium text-truncate fs-sm" title="${frappe.utils.escape_html(contact.gender)}">${frappe.utils.escape_html(contact.gender)}</span>
+								</div>` : ''}
+							${contact.address ? `
+								<div class="d-flex align-items-center gap-1">
+									<div class="contact-info-icon bg-light text-danger flex-shrink-0" style="border-radius: 8px; width: 28px; height: 28px;">
+										<i class="fa fa-map-marker"></i>
+									</div>
+									<span class="text-dark fw-medium fs-sm" title="${frappe.utils.escape_html(contact.address)}">${frappe.utils.escape_html(contact.address).replace(/\n/g, '<br>')}</span>
+								</div>` : ''}
+							${contact.custom_linked_in ? `
+								<div class="d-flex align-items-center gap-1">
+									<div class="contact-info-icon contact-info-icon--link flex-shrink-0">
+										<i class="fa fa-linkedin-square"></i>
+									</div>
+									<span class="text-dark fw-medium text-truncate fs-sm" title="${frappe.utils.escape_html(contact.custom_linked_in)}">
+										<a href="${ensureProtocol((contact.custom_linked_in))}" class="text-decoration-none text-primary fw-semibold" target="_blank" rel="noopener noreferrer">View Profile</a>
+									</span>
+								</div>` : ''}
+							${contact.is_primary_contact ? `
+								<div class="d-flex align-items-center gap-1">
+									<div class="contact-info-icon bg-success-subtle text-success flex-shrink-0">
+										<i class="fa fa-check-circle"></i>
+									</div>
+									<span class="text-dark fw-medium text-truncate fs-sm">Primary Contact</span>
+								</div>
+								` : ''}
+							${contact.is_billing_contact ? `
+								<div class="d-flex align-items-center gap-1">
+									<div class="contact-info-icon bg-info-subtle text-info flex-shrink-0">
+										<i class="fa fa-file-text-o"></i>
+									</div>
+									<span class="text-dark fw-medium text-truncate fs-sm">Billing Contact</span>
+								</div>
+							`: ""}	
+								
+						</div>
+					</div>
+					`;
+					me.bindContactRenameButton(contact.name || contact_name);
+				}
+
+				// detailsWrapper removed from template - no longer needed
+
+
+				me.bindContactStatusBadge(contact.name || contact_name, resolvedContactStatus);
+
+				const phones = Array.isArray(contact.phone_nos) ? contact.phone_nos : [];
+
+				contactdetailswrapper.innerHTML = `
+					<div class="corporate-card p-4 h-100 w-100">
+						<div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+							<h6 class="mb-0 text-uppercase fw-bold text-muted fs-xs d-flex align-items-center"><i class="fa fa-phone mr-2"></i>Contact Numbers</h6>
+							<button type="button" class="btn btn-xs btn-light text-primary contact-info-action-btn contact-phone-add shadow-sm rounded-pill px-3 d-flex align-items-center">
+								<i class="fa fa-plus me-1"></i> Add
+							</button>
+						</div>
+
+						${phones.length ? `
+							<div class="d-flex flex-column gap-2 contact-info-list" style="max-height: 250px; overflow-y: auto;">
+								${phones.map((p, index) => `
+									<div class="contact-number-card p-2 rounded d-flex align-items-center justify-content-between transition-all border border-light bg-light hover-shadow-sm mb-1">
+										<div class="d-flex flex-column gap-1">
+											<div class="fw-semibold text-dark d-flex align-items-center gap-2" style="font-size: 13px;">
+												${frappe.utils.escape_html(p.phone || "-")}
+											</div>
+											<div class="d-flex align-items-center gap-1">
+												${p.is_primary_phone ? `<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill" style="font-size: 10px;">Primary Phone</span>` : ``}
+												${p.is_primary_mobile_no ? `<span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill" style="font-size: 10px;">Primary Mobile</span>` : ``}
+											</div>
+										</div>
+										<div class="contact-info-actions transition-all">
+											<button type="button" class="btn btn-xs btn-icon btn-white rounded-circle contact-info-action-btn contact-phone-edit text-muted me-1 shadow-sm" data-index="${index}" title="Edit"><i class="fa fa-pencil"></i></button>
+											<button type="button" class="btn btn-xs btn-icon btn-white rounded-circle contact-info-action-btn contact-phone-delete text-danger shadow-sm" data-index="${index}" title="Delete">
+												<i class="fa fa-trash-o"></i>
+											</button>
+										</div>
+									</div>
+								`).join("")}
+							</div>
+						` : `
+							<div class="text-center py-4 bg-light rounded-3 border border-dashed border-secondary-subtle">
+								<p class="text-muted fs-sm mb-0">No phone numbers available.</p>
+							</div>
+						`}
+					</div>
+				`;
+
+				const emails = Array.isArray(contact.email_ids) ? contact.email_ids : [];
+
+				contactemaildetailswrapper.innerHTML = `
+					<div class="corporate-card p-4 h-100 w-100">
+						<div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+							<h6 class="mb-0 text-uppercase fw-bold text-muted fs-xs d-flex align-items-center"><i class="fa fa-envelope mr-2"></i>Email Addresses</h6>
+							<button type="button" class="btn btn-xs btn-light text-primary contact-info-action-btn contact-email-add shadow-sm rounded-pill px-3 d-flex align-items-center">
+								<i class="fa fa-plus me-1"></i> Add
+							</button>
+						</div>
+
+						${emails.length ? `
+							<div class="d-flex flex-column gap-2 contact-info-list" style="max-height: 250px; overflow-y: auto;">
+								${emails.map((e, index) => `
+									<div class="contact-email-card p-2 rounded d-flex align-items-center justify-content-between transition-all border border-light bg-light hover-shadow-sm mb-1">
+										<div class="d-flex flex-column gap-1">
+											<div class="fw-semibold text-dark d-flex align-items-center gap-2" style="font-size: 13px;">
+												${frappe.utils.escape_html(e.email_id || "-")}
+											</div>
+											<div class="d-flex align-items-center gap-1">
+												${e.is_primary ? `<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill" style="font-size: 10px;">Primary Email</span>` : ``}
+											</div>
+										</div>
+										<div class="contact-info-actions transition-all">
+											<button type="button" class="btn btn-xs btn-icon btn-white rounded-circle contact-info-action-btn contact-email-edit text-muted me-1 shadow-sm" data-index="${index}" title="Edit"><i class="fa fa-pencil"></i></button>
+											<button type="button" class="btn btn-xs btn-icon btn-white rounded-circle contact-info-action-btn contact-email-delete text-danger shadow-sm" data-index="${index}" title="Delete">
+												<i class="fa fa-trash-o"></i>
+											</button>
+										</div>
+									</div>
+								`).join("")}
+							</div>
+						` : `
+							<div class="text-center py-4 bg-light rounded-3 border border-dashed border-secondary-subtle">
+								<p class="text-muted fs-sm mb-0">No email addresses available.</p>
+							</div>
+						`}
+					</div>
+				`;
+
+				const detailsRoot = me.page.wrapper[0] || me.page.wrapper;
+				const saveContactDoc = (doc, successMessage) => {
+					frappe.call({
+						method: "frappe.client.save",
+						args: { doc },
+						callback: () => {
+							if (successMessage) {
+								frappe.show_alert({ message: successMessage, indicator: "green" });
+							}
+							me.load_contact_details(contact.name);
+						},
+						error: (err) => {
+							frappe.msgprint({
+								title: __("Error"),
+								message: __(err?.message || err || "Failed to update contact."),
+								indicator: "red"
+							});
+						}
+					});
+				};
+				const waitForConfirmModal = (callback) => {
 					let tries = 0;
 					const maxTries = 20;
 
@@ -1221,116 +2296,126 @@ if (!window.MycontactsPageDefined) {
 						if ($modal.length) {
 							callback($modal);
 						} else if (tries < maxTries) {
-							tries++;
+							tries += 1;
 							setTimeout(check, 20);
 						}
 					};
 
 					check();
-				}
+				};
 
-				// ---------------------- ACTIONS ----------------------
-
-				// ✅ Bulk Edit
-				if (action === "edit") {
-					frappe.model.with_doctype(doctype, () => {
-						const fields = frappe.meta.get_docfields(doctype)
-							.filter(df =>
-								df.fieldname &&
-								df.label &&
-								!df.hidden &&
-								!df.read_only &&
-								df.fieldtype !== "Table"
-							);
-
-						const d = new frappe.ui.Dialog({
-							title: __("Bulk Edit Contacts"),
-							fields: [
-								{
-									label: __("Field"),
-									fieldname: "fieldname",
-									fieldtype: "Select",
-									options: fields.map(df => ({
-										label: df.label,
-										value: df.fieldname
-									})),
-									reqd: 1,
-									onchange() {
-										const fieldname = d.get_value("fieldname");
-										if (!fieldname) return;
-										const df = frappe.meta.get_docfield(doctype, fieldname);
-										const wrapper = d.get_field("value_wrapper").$wrapper;
-										wrapper.empty();
-
-										d.__value_control = frappe.ui.form.make_control({
-											df: {
-												label: __("Value"),
-												fieldname: "value",
-												fieldtype: df.fieldtype,
-												options: df.options || "",
-												reqd: 1
-											},
-											parent: wrapper,
-											render_input: true
-										});
-										d.__value_control.refresh();
-									}
-								},
-								{ fieldtype: "HTML", fieldname: "value_wrapper" }
-							],
-							primary_action_label: __("Update {0} Contacts", [contacts.length]),
-							primary_action() {
-								const fieldname = d.get_value("fieldname");
-								if (!d.__value_control) {
-									frappe.msgprint(__("Please enter a value"));
-									return;
-								}
-
-								const value = d.__value_control.get_value();
-								d.hide();
-
-								me.bulkUpdate(contacts, { fieldname, value });
-							}
-						});
-
-						d.show();
-						setTimeout(() => {
-							const closeBtn = d.get_close_btn();
-							if (!closeBtn || !closeBtn.length) {
+				$(detailsRoot).off("click.contact-detail-actions").on("click.contact-detail-actions", ".contact-phone-add", () => {
+					const d = new frappe.ui.Dialog({
+						title: "Add Phone",
+						fields: [
+							{ fieldtype: "Data", label: "Phone Number", fieldname: "phone", reqd: 1 },
+							{ fieldtype: "Check", label: "Is Primary Phone", fieldname: "is_primary_phone", default: 0 },
+							{ fieldtype: "Check", label: "Is Primary Mobile", fieldname: "is_primary_mobile_no", default: 0 }
+						],
+						primary_action_label: "Add",
+						primary_action(values) {
+							const number = (values.phone || "").trim();
+							if (!number) {
+								frappe.msgprint("Please enter a phone number.");
 								return;
 							}
-							closeBtn.off("click.dialog").on("click.dialog", function () {
-								d.hide();
+							const updatedDoc = { ...contact };
+							updatedDoc.phone_nos = Array.isArray(updatedDoc.phone_nos) ? updatedDoc.phone_nos.slice() : [];
+							if (values.is_primary_phone) {
+								updatedDoc.phone_nos = updatedDoc.phone_nos.map(row => ({
+									...row, is_primary_phone: 0
+								}));
+							}
+							if (values.is_primary_mobile_no) {
+								updatedDoc.phone_nos = updatedDoc.phone_nos.map(row => ({
+									...row, is_primary_mobile_no: 0
+								}));
+							}
+							updatedDoc.phone_nos.push({
+								phone: number,
+								is_primary_phone: values.is_primary_phone ? 1 : 0,
+								is_primary_mobile_no: values.is_primary_mobile_no ? 1 : 0
 							});
-						}, 50);
-					});
-				}
-
-
-				// -----------------------------------
-				// DELETE Contacts
-				// -----------------------------------
-				else if (action === "delete") {
-					frappe.confirm(
-						__("Delete {0} selected Contacts?", [contacts.length]),
-						() => {
-							Promise.all(
-								contacts.map(name =>
-									frappe.call({
-										method: "frappe.client.delete",
-										args: { doctype, name }
-									})
-								)
-							).then(() => {
-								frappe.show_alert({ message: __("Contacts deleted"), indicator: "red" });
-								me.resetActionBar();
-								me.refreshAllData();
-							});
+							d.hide();
+							saveContactDoc(updatedDoc, "Phone number added.");
 						}
-					);
+					});
+					d.show();
+					setTimeout(() => {
+						const closeBtn = d.get_close_btn();
+						if (!closeBtn || !closeBtn.length) {
+							return;
+						}
+						closeBtn.off("click.dialog").on("click.dialog", function () {
+							d.hide();
+						});
+					}, 50);
+				})
+				$(detailsRoot).off("click.contact-detail-actions", ".contact-phone-edit").on("click.contact-detail-actions", ".contact-phone-edit", (e) => {
+					const index = Number(e.currentTarget.dataset.index);
+					const rows = Array.isArray(contact.phone_nos) ? contact.phone_nos : [];
+					const row = rows[index];
+					if (!row) return;
+					const d = new frappe.ui.Dialog({
+						title: "Edit Phone",
+						fields: [
+							{ fieldtype: "Data", label: "Phone Number", fieldname: "phone", reqd: 1, default: row.phone },
+							{ fieldtype: "Check", label: "Is Primary Phone", fieldname: "is_primary_phone", default: row.is_primary_phone ? 1 : 0 },
+							{ fieldtype: "Check", label: "Is Primary Mobile", fieldname: "is_primary_mobile_no", default: row.is_primary_mobile_no ? 1 : 0 }
+						],
+						primary_action_label: "Save",
+						primary_action(values) {
+							const number = (values.phone || "").trim();
+							if (!number) {
+								frappe.msgprint("Please enter a phone number.");
+								return;
+							}
+							const updatedDoc = { ...contact };
+							updatedDoc.phone_nos = Array.isArray(updatedDoc.phone_nos) ? updatedDoc.phone_nos.slice() : [];
+							if (values.is_primary_phone) {
+								updatedDoc.phone_nos = updatedDoc.phone_nos.map(item => ({
+									...item,
+									is_primary_phone: 0
+								}));
+							}
+							if (values.is_primary_mobile_no) {
+								updatedDoc.phone_nos = updatedDoc.phone_nos.map(item => ({
+									...item,
+									is_primary_mobile_no: 0
+								}));
+							}
+							updatedDoc.phone_nos[index] = {
+								...updatedDoc.phone_nos[index],
+								phone: number,
+								is_primary_phone: values.is_primary_phone ? 1 : 0,
+								is_primary_mobile_no: values.is_primary_mobile_no ? 1 : 0
+							};
+							d.hide();
+							saveContactDoc(updatedDoc, "Phone number updated.");
+						}
+					});
+					d.show();
+					setTimeout(() => {
+						const closeBtn = d.get_close_btn();
+						if (!closeBtn || !closeBtn.length) {
+							return;
+						}
+						closeBtn.off("click.dialog").on("click.dialog", function () {
+							d.hide();
+						});
+					}, 50);
+				})
+				$(detailsRoot).off("click.contact-detail-actions", ".contact-phone-delete").on("click.contact-detail-actions", ".contact-phone-delete", (e) => {
+					const index = Number(e.currentTarget.dataset.index);
+					frappe.confirm("Delete this phone number?", () => {
+						const updatedDoc = { ...contact };
+						updatedDoc.phone_nos = Array.isArray(updatedDoc.phone_nos) ? updatedDoc.phone_nos.slice() : [];
+						updatedDoc.phone_nos.splice(index, 1);
+						saveContactDoc(updatedDoc, "Phone number deleted.");
+					});
 					waitForConfirmModal(($modal) => {
 						const $close = $modal.find(".btn-modal-close");
-						$close.off("click.note-confirm").on("click.note-confirm", function (ev) {
+						$close.off("click.contact-phone-delete").on("click.contact-phone-delete", function (ev) {
 							ev.preventDefault();
 							ev.stopPropagation();
 							try {
@@ -1341,642 +2426,2133 @@ if (!window.MycontactsPageDefined) {
 							$(".modal-backdrop").remove();
 						});
 					});
-				}
-
-				else if (action === "assign_to") {
-					let d = new frappe.ui.form.AssignToDialog({ doctype, docname: contacts[0] });
-
-					d.dialog.set_primary_action(__("Assign"), () => {
-						const values = d.dialog.get_values();
-						if (!values) return;
-						d.dialog.hide();
-
-						const calls = contacts.map(name =>
-							frappe.call({
-								method: "frappe.desk.form.assign_to.add",
-								args: {
-									doctype,
-									name,
-									assign_to: values.assign_to,
-									assign_to_me: values.assign_to_me,
-									assign_to_user_group: values.assign_to_user_group,
-									description: values.description,
-									due_date: values.due_date,
-									priority: values.priority,
-									notify: values.notify || 0
-								}
-							})
-						);
-
-						Promise.allSettled(calls).then(() => {
-							frappe.show_alert({ message: __("Assigned successfully"), indicator: "green" });
-							me.resetActionBar();
-							me.refreshAllData();
-						});
-					});
-
-					d.dialog.show();
-					setTimeout(() => {
-						const closeBtn = d.dialog.get_close_btn();
-						if (!closeBtn || !closeBtn.length) {
-							return;
-						}
-						closeBtn.off("click.dialog").on("click.dialog", function () {
-							d.dialog.hide();
-						});
-					}, 50);
-				}
-				else if (action === "add_tags") {
-					const dialog = new frappe.ui.Dialog({
-						title: __("Add Tags"),
+				})
+				$(detailsRoot).off("click.contact-detail-actions", ".contact-email-add").on("click.contact-detail-actions", ".contact-email-add", () => {
+					const d = new frappe.ui.Dialog({
+						title: "Add Email",
 						fields: [
-							{
-								fieldtype: "Link",
-								fieldname: "tag",
-								label: __("Tag"),
-								options: "Tag",
-								reqd: 1
-							}
+							{ fieldtype: "Data", label: "Email Address", fieldname: "email_id", reqd: 1 },
+							{ fieldtype: "Check", label: "Is Primary", fieldname: "is_primary", default: 0 }
 						],
-						primary_action_label: __("Add"),
+						primary_action_label: "Add",
 						primary_action(values) {
-							dialog.hide();
-							let promises = contacts.map(name =>
-								frappe.call({
-									method: "frappe.desk.doctype.tag.tag.add_tag",
-									args: { tag: values.tag, dt: doctype, dn: name }
-								})
-							);
-
-							Promise.all(promises).then(() => {
-								frappe.show_alert({ message: __("Tag added"), indicator: "green" });
-								me.resetActionBar(); // 🔹 Fixed `this` reference
-								me.refreshAllData();
-
-							});
-						}
-					});
-
-					dialog.show();
-					setTimeout(() => {
-						const closeBtn = dialog.get_close_btn();
-						if (!closeBtn || !closeBtn.length) {
-							return;
-						}
-						closeBtn.off("click.dialog").on("click.dialog", function () {
-							dialog.hide();
-						});
-					}, 50);
-				}
-				else if (action === "apply_rule") {
-					frappe.dom.freeze(__("Applying assignment rule..."));
-
-					const calls = contacts.map(name =>
-						frappe.call({
-							method: "renewal_module.custom_module.page.contacts.contacts.apply_assignment_rule",
-							args: { doctype, name }
-						})
-					);
-
-					Promise.allSettled(calls).then((res) => {
-						frappe.dom.unfreeze();
-						const failed = res.filter(r => r.status === "rejected" || r.value?.exc).length;
-						if (failed) {
-							frappe.msgprint(__("{0} records failed to apply assignment rule.", [failed]));
-						} else {
-							frappe.show_alert({ message: __("Assignment Rule applied"), indicator: "green" });
-						}
-						me.resetActionBar();
-						me.refreshAllData();
-
-
-
-					});
-				}
-				else if (action === "print") {
-					frappe.model.with_doctype(doctype, () => {
-						const print_formats = frappe.meta.get_print_formats
-							? frappe.meta.get_print_formats(doctype)
-							: ["Standard"];
-
-						const d = new frappe.ui.Dialog({
-							title: __("Bulk Print"),
-							fields: [
-								{
-									label: __("Print Format"),
-									fieldname: "print_format",
-									fieldtype: "Select",
-									options: print_formats.join("\n"),
-									default: print_formats[0]
-								},
-								{
-									label: __("With Letterhead"),
-									fieldname: "with_letterhead",
-									fieldtype: "Check",
-									default: 1
-								},
-								{
-									label: __("Letterhead (optional)"),
-									fieldname: "letterhead",
-									fieldtype: "Link",
-									options: "Letter Head"
-								}
-							],
-							primary_action_label: __("Open {0} Print Views", [contacts.length]),
-							primary_action(values) {
-								d.hide();
-								contacts.forEach(name => {
-									const params = new URLSearchParams({
-										doctype,
-										name,
-										format: values.print_format || "Standard",
-										no_letterhead: values.with_letterhead ? "0" : "1"
-									});
-									if (values.letterhead) params.set("letterhead", values.letterhead);
-									window.open(`/printview?${params.toString()}`, "_blank");
-								});
-							}
-						});
-
-						d.show();
-						setTimeout(() => {
-							const closeBtn = d.get_close_btn();
-							if (!closeBtn || !closeBtn.length) {
+							const email = (values.email_id || "").trim();
+							if (!email) {
+								frappe.msgprint("Please enter an email address.");
 								return;
 							}
-							closeBtn.off("click.dialog").on("click.dialog", function () {
-								d.hide();
+							const updatedDoc = { ...contact };
+							updatedDoc.email_ids = Array.isArray(updatedDoc.email_ids) ? updatedDoc.email_ids.slice() : [];
+							if (values.is_primary) {
+								updatedDoc.email_ids = updatedDoc.email_ids.map(row => ({
+									...row,
+									is_primary: 0
+								}));
+							}
+							updatedDoc.email_ids.push({
+								email_id: email,
+								is_primary: values.is_primary ? 1 : 0
 							});
-						}, 50);
-					});
-				}
-
-
-				// Unknown action
-				else {
-					frappe.msgprint(__("Action '{0}' not implemented for Customer", [action]));
-				}
-			});
-		}
-
-
-
-		resetActionBar() {
-			const wrapper = this.page.wrapper[0] || this.page.wrapper;
-			const newBtn = wrapper.querySelector("#new-contact-btn");
-			const actionsDropdown = wrapper.querySelector("#actions-dropdown");
-
-			if (newBtn && actionsDropdown) {
-				newBtn.classList.remove("d-none");
-				actionsDropdown.classList.add("d-none");
-			}
-
-			// Clear contact selections
-			this.selected_contacts.clear();
-
-			// Uncheck everything in DOM
-			const checkboxes = document.querySelectorAll('#contact-table-body .row-check');
-			checkboxes.forEach(cb => (cb.checked = false));
-
-			const selectAllCheckbox = document.querySelector("#checkAll");
-			if (selectAllCheckbox) selectAllCheckbox.checked = false;
-		}
-
-
-		bulkUpdate(contacts, updates) {
-			return new Promise((resolve, reject) => {
-				if (!contacts.length) return resolve();
-
-				frappe.dom.freeze(__("Updating Contacts..."));
-
-				const promises = contacts.map(name =>
-					frappe.call({
-						method: "frappe.client.set_value",
-						args: {
-							doctype: "Customer",
-							name,
-							fieldname: updates.fieldname,
-							value: updates.value
-						}
-					})
-				);
-
-				Promise.allSettled(promises)
-					.then(async () => {
-						frappe.dom.unfreeze();
-						frappe.show_alert({ message: __("Contacts updated successfully"), indicator: "green" });
-
-						this.resetActionBar();
-
-						// 👇 Refresh list once instead of twice
-						await this.refreshAllData();
-
-						resolve();
-					})
-					.catch((err) => {
-						frappe.dom.unfreeze();
-						console.error("Customer Bulk update failed:", err);
-						reject(err);
-					});
-			});
-		}
-
-		async refreshAllData() {
-			try {
-				// Reset pagination + reload the list
-				await this.loadcontact({
-					reset: true
-				});
-
-			} catch (err) {
-				console.error("[refreshAllData] Failed to refresh:", err);
-			}
-		}
-
-
-		createAssetManager(instance) {
-			const pageWrapperSelector = () => {
-				const pageMain = instance.page && instance.page.main ? instance.page.main : document;
-				return $(pageMain).find('.wrapper').get(0);
-			};
-
-			return {
-				cleanup() {
-					console.group("🧹 Cleaning up new-issue assets");
-					let removed_css = 0, removed_js = 0, removed_style = 0;
-
-					if (!frappe.contacts_page) frappe.contacts_page = {};
-					frappe.contacts_page._inline_styles_backup = [];
-
-					const cache = instance._cache || { css: [], js: [] };
-					cache.css.forEach(href => {
-						const el = document.querySelector(`link[href="${href}"][data-contacts="true"]`);
-						if (el) {
-							el.remove();
-							removed_css++;
+							d.hide();
+							saveContactDoc(updatedDoc, "Email added.");
 						}
 					});
-
-					// fallback: if any leftover support_dashboard.css without tag
-					document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
-						const href = link.getAttribute('href') || "";
-						if (href.includes("contacts.css")) {
-							link.remove();
-							removed_css++;
-						}
-					});
-
-					cache.js.forEach(src => {
-						const el = document.querySelector(`script[src="${src}"]`);
-						const lower_src = src.toLowerCase();
-						// Do NOT remove Popper — critical bootstrap dependency
-						if (lower_src.includes("popper")) {
-							console.warn("Skipping Popper REMOVE — global dependency:", src);
+					d.show();
+					setTimeout(() => {
+						const closeBtn = d.get_close_btn();
+						if (!closeBtn || !closeBtn.length) {
 							return;
 						}
-						if (el) {
-							el.remove();
-							removed_js++;
-						}
-					});
-
-					// --- 3. Remove inline <style> tags added dynamically ---
-					document.querySelectorAll('style').forEach(el => {
-						const text = el.textContent.trim();
-						if (text.includes('.contacts') || text.includes('#contacts') || el.dataset.contacts === "true") {
-							try {
-								frappe.contacts_page._inline_styles_backup.push(text);
-							} catch (err) { /* ignore */ }
-							el.remove();
-							removed_style++;
-						}
-					});
-
-					// --- 4. Remove injected HTML inside wrapper except .content-page ---
-					const wrapperEl = pageWrapperSelector();
-					if (wrapperEl) {
-						Array.from(wrapperEl.children).forEach(child => {
-							if (!child.classList.contains('content-page')) child.remove();
+						closeBtn.off("click.dialog").on("click.dialog", function () {
+							d.hide();
 						});
-					}
-
-					console.log(`Cleanup completed — removed ${removed_css} CSS, ${removed_js} JS, ${removed_style} inline styles.`);
-					console.groupEnd();
-				},
-
-				reapply() {
-					console.group("Reapplying new-issue assets");
-					(instance._cache.css || []).forEach(href => {
-						if (!document.querySelector(`link[href="${href}"]`)) {
-							const css = document.createElement('link');
-							css.rel = 'stylesheet';
-							css.href = href;
-							css.dataset.contacts = "true";
-							document.head.appendChild(css);
-						}
-					});
-
-					const jsPromises = (instance._cache.js || []).map(src => {
-						return new Promise((resolve) => {
-							if (document.querySelector(`script[src="${src}"]`)) {
-								return resolve();
+					}, 50);
+				})
+				$(detailsRoot).off("click.contact-detail-actions", ".contact-email-edit").on("click.contact-detail-actions", ".contact-email-edit", (e) => {
+					const index = Number(e.currentTarget.dataset.index);
+					const rows = Array.isArray(contact.email_ids) ? contact.email_ids : [];
+					const row = rows[index];
+					if (!row) return;
+					const d = new frappe.ui.Dialog({
+						title: "Edit Email",
+						fields: [
+							{ fieldtype: "Data", label: "Email Address", fieldname: "email_id", reqd: 1, default: row.email_id },
+							{ fieldtype: "Check", label: "Is Primary", fieldname: "is_primary", default: row.is_primary ? 1 : 0 }
+						],
+						primary_action_label: "Save",
+						primary_action(values) {
+							const email = (values.email_id || "").trim();
+							if (!email) {
+								frappe.msgprint("Please enter an email address.");
+								return;
 							}
-							const s = document.createElement('script');
-							s.src = src;
-							s.defer = true;
-							s.dataset.contactView = "true";
-							s.onload = () => { console.log("Re-loaded JS:", src); resolve(); };
-							s.onerror = () => { console.warn("Failed to reload JS:", src); resolve(); };
-							document.body.appendChild(s);
+							const updatedDoc = { ...contact };
+							updatedDoc.email_ids = Array.isArray(updatedDoc.email_ids) ? updatedDoc.email_ids.slice() : [];
+							if (values.is_primary) {
+								updatedDoc.email_ids = updatedDoc.email_ids.map(item => ({
+									...item,
+									is_primary: 0
+								}));
+							}
+							updatedDoc.email_ids[index] = {
+								...updatedDoc.email_ids[index],
+								email_id: email,
+								is_primary: values.is_primary ? 1 : 0
+							};
+							d.hide();
+							saveContactDoc(updatedDoc, "Email updated.");
+						}
+					});
+					d.show();
+					setTimeout(() => {
+						const closeBtn = d.get_close_btn();
+						if (!closeBtn || !closeBtn.length) {
+							return;
+						}
+						closeBtn.off("click.dialog").on("click.dialog", function () {
+							d.hide();
+						});
+					}, 50);
+				})
+				$(detailsRoot).off("click.contact-detail-actions", ".contact-email-delete").on("click.contact-detail-actions", ".contact-email-delete", (e) => {
+					const index = Number(e.currentTarget.dataset.index);
+					frappe.confirm("Delete this email address?", () => {
+						const updatedDoc = { ...contact };
+						updatedDoc.email_ids = Array.isArray(updatedDoc.email_ids) ? updatedDoc.email_ids.slice() : [];
+						updatedDoc.email_ids.splice(index, 1);
+						saveContactDoc(updatedDoc, "Email deleted.");
+					});
+					waitForConfirmModal(($modal) => {
+						const $close = $modal.find(".btn-modal-close");
+						$close.off("click.contact-email-delete").on("click.contact-email-delete", function (ev) {
+							ev.preventDefault();
+							ev.stopPropagation();
+							try {
+								$modal.modal("hide");
+							} catch (err) {
+								$modal.removeClass("show in").hide();
+							}
+							$(".modal-backdrop").remove();
 						});
 					});
+				})
+				$(detailsRoot).off("click.contact-detail-actions", ".contact-link-add").on("click.contact-detail-actions", ".contact-link-add", () => {
+					const d = new frappe.ui.Dialog({
+						title: "Add Linked Document",
+						fields: [
+							{ fieldtype: "Link", label: "Document Type", fieldname: "link_doctype", options: "DocType", reqd: 1 },
+							{ fieldtype: "Dynamic Link", label: "Document Name", fieldname: "link_name", options: "link_doctype", reqd: 1 }
+						],
+						primary_action_label: "Add",
+						primary_action(values) {
+							if (!values.link_doctype || !values.link_name) {
+								frappe.msgprint("Please select a document type and name.");
+								return;
+							}
+							const updatedDoc = { ...contact };
+							updatedDoc.links = Array.isArray(updatedDoc.links) ? updatedDoc.links.slice() : [];
 
-					Promise.allSettled(jsPromises).then(() => {
-						const wrapperEl = pageWrapperSelector();
-						if (wrapperEl) {
-							Array.from(wrapperEl.children).forEach(child => {
-								if (!child.classList.contains('content-page')) child.remove();
+							// Check if this is the first row being added
+							const isFirstLink = updatedDoc.links.length === 0;
+
+							updatedDoc.links.push({
+								link_doctype: values.link_doctype,
+								link_name: values.link_name,
+								link_title: values.link_name
 							});
 
-							if (instance._cache.rendered_html) {
-								const frag = document.createRange().createContextualFragment(instance._cache.rendered_html);
-								const contentEl = wrapperEl.querySelector('.content-page');
-								if (contentEl) wrapperEl.insertBefore(frag, contentEl);
-								else wrapperEl.prepend(frag);
+							// Auto-populate company_name if first row and link_doctype is Customer
+							if (isFirstLink && values.link_doctype === "Customer" && values.link_name) {
+								console.log('First Customer link added:', values.link_name);
+								if (!updatedDoc.company_name || updatedDoc.company_name.trim() === '') {
+									updatedDoc.company_name = values.link_name;
+									console.log('Company name auto-populated with:', values.link_name);
+								}
 							}
+
+							d.hide();
+							saveContactDoc(updatedDoc, "Linked document added.");
 						}
-
-						(instance._cache.inlineScripts || []).forEach(code => {
-							try {
-								const fn = new Function(code);
-								fn();
-							} catch (err) {
-								console.error("Inline script re-exec error:", err);
-							}
-						});
-
-						try {
-							instance.initialize_theme_scripts();
-						} catch (err) {
-							console.error("Error during re-initialize theme scripts:", err);
-						}
-						setTimeout(() => instance.reinit_bootstrap_ui(), 500);
-
-						console.groupEnd();
 					});
+					d.show();
+					setTimeout(() => {
+						const closeBtn = d.get_close_btn();
+						if (!closeBtn || !closeBtn.length) {
+							return;
+						}
+						closeBtn.off("click.dialog").on("click.dialog", function () {
+							d.hide();
+						});
+					}, 50);
+				})
+				$(detailsRoot).off("click.contact-detail-actions", ".contact-link-edit").on("click.contact-detail-actions", ".contact-link-edit", (e) => {
+					const index = Number(e.currentTarget.dataset.index);
+					const rows = Array.isArray(contact.links) ? contact.links : [];
+					const row = rows[index];
+					if (!row) return;
+					const d = new frappe.ui.Dialog({
+						title: "Edit Linked Document",
+						fields: [
+							{ fieldtype: "Link", label: "Document Type", fieldname: "link_doctype", options: "DocType", reqd: 1, default: row.link_doctype },
+							{ fieldtype: "Dynamic Link", label: "Document Name", fieldname: "link_name", options: "link_doctype", reqd: 1, default: row.link_name }
+						],
+						primary_action_label: "Save",
+						primary_action(values) {
+							if (!values.link_doctype || !values.link_name) {
+								frappe.msgprint("Please select a document type and name.");
+								return;
+							}
+							const updatedDoc = { ...contact };
+							updatedDoc.links = Array.isArray(updatedDoc.links) ? updatedDoc.links.slice() : [];
+							updatedDoc.links[index] = {
+								...updatedDoc.links[index],
+								link_doctype: values.link_doctype,
+								link_name: values.link_name,
+								link_title: values.link_name
+							};
+
+							// Auto-populate company_name if first row and link_doctype is Customer
+							if (index === 0 && values.link_doctype === "Customer" && values.link_name) {
+								updatedDoc.company_name = values.link_name;
+							}
+
+							d.hide();
+							saveContactDoc(updatedDoc, "Linked document updated.");
+						}
+					});
+					d.show();
+					setTimeout(() => {
+						const closeBtn = d.get_close_btn();
+						if (!closeBtn || !closeBtn.length) {
+							return;
+						}
+						closeBtn.off("click.dialog").on("click.dialog", function () {
+							d.hide();
+						});
+					}, 50);
+				})
+				$(detailsRoot).off("click.contact-detail-actions", ".contact-link-delete").on("click.contact-detail-actions", ".contact-link-delete", (e) => {
+					const index = Number(e.currentTarget.dataset.index);
+					frappe.confirm("Delete this linked document?", () => {
+						const updatedDoc = { ...contact };
+						updatedDoc.links = Array.isArray(updatedDoc.links) ? updatedDoc.links.slice() : [];
+						const deletedRow = updatedDoc.links[index];
+
+						// Remove company_name if deleting first row with Customer link
+						if (index === 0 && deletedRow && deletedRow.link_doctype === "Customer") {
+							console.log('Deleting first row Customer link:', deletedRow.link_name);
+							updatedDoc.company_name = '';
+							console.log('Company name cleared');
+						}
+
+						updatedDoc.links.splice(index, 1);
+						saveContactDoc(updatedDoc, "Linked document deleted.");
+					});
+					waitForConfirmModal(($modal) => {
+						const $close = $modal.find(".btn-modal-close");
+						$close.off("click.contact-link-delete").on("click.contact-link-delete", function (ev) {
+							ev.preventDefault();
+							ev.stopPropagation();
+							try {
+								$modal.modal("hide");
+							} catch (err) {
+								$modal.removeClass("show in").hide();
+							}
+							$(".modal-backdrop").remove();
+						});
+					});
+
+				});
+
+				const links = Array.isArray(contact.links) ? contact.links : [];
+				contactlinksdetailswrapper.innerHTML = `
+					<div class="corporate-card p-4 h-100 w-100">
+						<div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+							<h6 class="mb-0 text-uppercase fw-bold text-muted fs-xs d-flex align-items-center"><i class="fa fa-link mr-2"></i>Linked Documents</h6>
+							<button type="button" class="btn btn-xs btn-light text-primary contact-info-action-btn contact-link-add shadow-sm rounded-pill px-3 d-flex align-items-center">
+								<i class="fa fa-plus me-1"></i> Add
+							</button>
+						</div>
+
+						${links.length ? `
+							<div class="d-flex flex-column gap-2 contact-info-list" style="max-height: 250px; overflow-y: auto;">
+								${links.map((link, index) => `
+									<div class="contact-link-card p-2 rounded d-flex align-items-center justify-content-between transition-all border border-light bg-light hover-shadow-sm mb-1">
+										<div class="d-flex flex-column gap-1">
+											<div class="fw-semibold text-dark d-flex align-items-center gap-2" style="font-size: 13px;">
+												${frappe.utils.escape_html(link.link_doctype || "-")}
+											</div>
+											<div class="text-muted small">${frappe.utils.escape_html(link.link_name || "-")}</div>
+										</div>
+										<div class="contact-info-actions transition-all">
+											<button type="button" class="btn btn-xs btn-icon btn-white rounded-circle contact-info-action-btn contact-link-edit text-muted me-1 shadow-sm" data-index="${index}" title="Edit"><i class="fa fa-pencil"></i></button>
+											<button type="button" class="btn btn-xs btn-icon btn-white rounded-circle contact-info-action-btn contact-link-delete text-danger shadow-sm" data-index="${index}" title="Delete">
+												<i class="fa fa-trash-o"></i>
+											</button>
+										</div>
+									</div>
+								`).join("")}
+							</div>
+						` : `
+							<div class="text-center py-4 bg-light rounded-3 border border-dashed border-secondary-subtle">
+								<p class="text-muted fs-sm mb-0">No linked documents available.</p>
+							</div>
+						`}
+					</div>
+				`;
+
+
+
+				// ============================================
+				// ACTIVITY TIMELINE AND COMMENTS HANDLING
+				// ============================================
+				me.loadContactActivityTimeline(contact_name);
+				me.bindContactCommentEvents(contact_name);
+				me.bindContactEmailHandler(contact_name);
+			}
+		});
+	}
+
+	// ============================================
+	// HELPER FUNCTIONS FOR ACTIVITY TIMELINE
+	// ============================================
+
+	linkifyEmails(html, plainText) {
+		// Safely linkify only plain-text email occurrences inside text nodes
+		if (!html) return html;
+		const emailRegex = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+		// Quick reject when plainText has no email
+		if (!emailRegex.test(plainText)) return html;
+		const wrapper = document.createElement('div');
+		wrapper.innerHTML = html;
+		const walker = document.createTreeWalker(wrapper, NodeFilter.SHOW_TEXT, null);
+		const textNodes = [];
+		let node;
+		while ((node = walker.nextNode())) {
+			// skip empty or nodes inside anchors (we don't want to disturb existing links/mentions)
+			if (!node.nodeValue || !node.nodeValue.trim()) continue;
+			if (node.parentNode && node.parentNode.nodeName.toLowerCase() === 'a') continue;
+			textNodes.push(node);
+		}
+
+		textNodes.forEach(tn => {
+			const txt = tn.nodeValue;
+			let lastIndex = 0;
+			const frag = document.createDocumentFragment();
+			txt.replace(emailRegex, (match, offset) => {
+				if (offset > lastIndex) {
+					frag.appendChild(document.createTextNode(txt.slice(lastIndex, offset)));
+				}
+				const a = document.createElement('a');
+				a.href = `mailto:${match}`;
+				a.textContent = match;
+				frag.appendChild(a);
+				lastIndex = offset + match.length;
+				return match;
+			});
+			if (lastIndex < txt.length) frag.appendChild(document.createTextNode(txt.slice(lastIndex)));
+			tn.parentNode.replaceChild(frag, tn);
+		});
+
+		return wrapper.innerHTML;
+	}
+
+	isFullHtml(content) {
+		return /<html|<table|<body|<meta|<style|<head/i.test(content);
+	}
+
+	buildStyledContent(rawHtml) {
+		const injectedCSS = `
+			<style>
+				html, body {
+					font-family: 'intervariable', 'inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+					color: #4c4c5c;
+				}
+				p, b, strong {
+					font-size: 14px;
+					color: #4c4c5c;
+				}
+				b {
+					font-weight: 600;
+				}
+				table { border-collapse: collapse; width: 100%; }
+				td, th { border: 1px solid #e5e7eb; padding: 8px; }
+			</style>
+		`;
+		return injectedCSS + rawHtml;
+	}
+
+	getTimelineIcon(type) {
+		const key = (type || "").toLowerCase();
+		const map = {
+			"comment": "fa-comment-dots",
+			"like": "fa-thumbs-up",
+			"communication": "fa-envelope-open-text",
+			"status change": "fa-arrows-rotate",
+			"created": "fa-star",
+			"assigned": "fa-user-check",
+			"assignment completed": "fa-check-double",
+			"attachment": "fa-paperclip",
+			"attachment removed": "fa-paperclip",
+			"workflow": "fa-diagram-project",
+			"label": "fa-tag",
+			"info": "fa-info-circle",
+			"shared": "fa-share-square",
+			"unshared": "fa-share-square",
+			"bot": "fa-robot",
+			"deleted": "fa-trash-can",
+			"updated": "fa-pen",
+		};
+		return map[key] || "fa-circle";
+	}
+
+	// ============================================
+	// ACTIVITY TIMELINE RENDERING
+	// ============================================
+
+	loadContactActivityTimeline(contact_name) {
+		const me = this;
+		frappe.call({
+			method: "renewal_module.custom_module.page.contacts.contacts.get_contact_activity",
+			args: { contact_name: contact_name },
+			callback: function (res) {
+				const container = $("#activity-timeline");
+				if (!container.length) return;
+
+				const activities = res.message || [];
+				let html = "";
+
+				if (activities.length) {
+					activities.forEach(act => {
+						let descriptionContent = act.is_html
+							? (act.description || "")
+							: frappe.utils.escape_html(act.description || "");
+
+						let descriptionHtml = "";
+
+						if (me.isFullHtml(descriptionContent)) {
+							// full HTML/email — inject a style into the srcdoc so iframe has our CSS
+							const iframeId = "email-frame-" + (Math.random().toString(36).substr(2, 9));
+							const styled = me.buildStyledContent(descriptionContent);
+							// use JSON.stringify here to safely serialize srcdoc content
+							descriptionHtml = `
+							<div class="scrollable-description text-muted iframe-wrapper">
+							<iframe id="${iframeId}" class="email-iframe" sandbox="allow-popups allow-scripts"></iframe>
+							</div>
+							<script>
+							(function(){
+								const ifr = document.getElementById("${iframeId}");
+								if (!ifr) return;
+								// set srcdoc with injected css
+								ifr.srcdoc = ${JSON.stringify(styled)};
+								ifr.onload = function () {
+								try {
+									const doc = ifr.contentDocument || ifr.contentWindow.document;
+									const height = Math.min(doc.body.scrollHeight + 10, 400); // cap height
+									ifr.style.height = height + "px";
+								} catch (e) {
+									// cross-origin or other issues — leave default height
+								}
+								};
+							})();
+							</script>
+						`;
+						} else {
+							// plain/html fragment — inject the same style at the start of the fragment
+							const styledFragment = me.buildStyledContent(descriptionContent);
+							descriptionHtml = `
+							<div class="scrollable-description text-muted">
+							${styledFragment}
+							</div>
+						`;
+						}
+
+						// ensure any plaintext email addresses are converted into links (ticket timeline does this implicitly for comments)
+						try {
+							const plainText = $('<div>').html(descriptionHtml).text();
+							descriptionHtml = me.linkifyEmails(descriptionHtml, plainText);
+						} catch (e) {
+							// ignore if jQuery isn't available or other errors
+						}
+
+						// append the rendered item and close loops (matches ticket page)
+						html += `
+                        <div class="timeline-item d-block d-md-flex align-items-stretch w-100">
+                            <div class="timeline-time pe-3 text-muted mb-1 mb-md-0">${act.timestamp || ""}</div>
+                            <div class="timeline-dot bg-${act.color || "secondary"} mx-md-2 my-1 my-md-0 d-none d-md-flex align-items-center justify-content-center">
+                                <i class="fa ${me.getTimelineIcon(act.type)} text-white"></i>
+                            </div>
+                            <div class="timeline-content frappe-card ps-md-3 pb-4 mb-1 ml-1">
+                                <span class="mb-1 fs-sm text-muted">${act.title || ""}</span>
+                                ${descriptionHtml}
+                                <span class="text-primary fs-sm d-block mt-2">By ${act.by || ""}</span>
+                            </div>
+                        </div>`;
+					});
+				} else {
+					html = `<p class="text-muted text-center">No activity found for this contact.</p>`;
+				}
+
+				container.html(html);
+			}
+		});
+	}
+
+
+
+	bindContactCommentEvents(contact_name) {
+		const me = this;
+		const $commentBtn = $("#add-comment-btn");
+
+		if ($commentBtn.length === 0) return;
+
+		$commentBtn.off("click").on("click", function () {
+			const $editor = $("#new-comment-input");
+			const html = ($editor.html() || "").trim();
+			const plain = $("<div>").html(html).text().trim();
+
+			if (!plain) {
+				frappe.msgprint("Please enter a comment.");
+				return;
+			}
+
+			const finalHtml = me.linkifyEmails(html, plain);
+
+			frappe.call({
+				method: "renewal_module.custom_module.page.contacts.contacts.add_contact_comment",
+				args: {
+					contact_name: contact_name,
+					content: finalHtml
+				},
+				callback: function (r) {
+					if (!r.exc) {
+						frappe.show_alert({ message: "Comment added", indicator: "green" });
+						$("#new-comment-input").html("<p><br></p>");
+						me.loadContactActivityTimeline(contact_name);
+						hideMentionDropdown();
+					}
+				}
+			});
+		});
+
+		// Update avatar for current user
+		(function setCommentAvatar() {
+			const fullName = (frappe.session && (frappe.session.user_fullname || frappe.session.user)) || "User";
+			const initials = fullName.trim().split(/\s+/).map(s => s[0] || "").join("").toUpperCase().slice(0, 2) || "U";
+			const $frame = $(".comment-section .avatar-frame");
+			if ($frame.length) {
+				$frame.attr("title", fullName).text(initials);
+				$frame.closest(".avatar").attr("title", fullName);
+			}
+		})();
+
+		// Placeholder toggle
+		(function bindPlaceholderToggle() {
+			const $editor = $("#new-comment-input");
+			const toggle = () => {
+				const text = ($editor.text() || "").trim();
+				if (text) {
+					$editor.removeClass("ql-blank");
+				} else {
+					$editor.addClass("ql-blank");
 				}
 			};
+			["input", "keyup", "paste", "blur", "change"].forEach(evt => {
+				$editor.off(`${evt}.placeholder`).on(`${evt}.placeholder`, toggle);
+			});
+			toggle();
+		})();
+
+		// ============================================
+		// MENTIONS AUTOCOMPLETE SYSTEM
+		// ============================================
+
+		// Fetch active users once and keep in memory
+		let _mention_users = [];
+		frappe.call({
+			method: "renewal_module.custom_module.page.contacts.contacts.get_enabled_users",
+			callback: (r) => {
+				_mention_users = (r.message || [])
+					.map(u => ({
+						email: u.email || u.name,
+						name: u.full_name || u.name
+					}))
+					.filter(u => !!u.email);
+			}
+		});
+
+		// Create dropdown element
+		const $mentionDropdown = $(
+			'<div id="mention-dropdown" class="mention-dropdown d-none card shadow-sm" style="position:absolute;z-index:10000;min-width:220px;max-height:220px;overflow:auto;padding:4px;"></div>'
+		);
+		$(document.body).append($mentionDropdown);
+
+		// simple active item style
+		$('head').append(`
+			<style>
+				.mention-item.active{background:#f1f3f5;border-radius:4px;}
+				a.mention{background:#eaf4ff;color:#0366d6;padding:2px 6px;border-radius:4px;text-decoration:none;margin-right:2px;}
+				a.mention:hover{background:#d6ecff}
+			</style>
+		`);
+
+		function hideMentionDropdown() {
+			$mentionDropdown.addClass('d-none').empty();
+		}
+
+		function positionDropdown(rect) {
+			if (!rect) return hideMentionDropdown();
+			const scrollTop = $(window).scrollTop() || 0;
+			$mentionDropdown.css({
+				top: (rect.bottom + scrollTop) + 'px',
+				left: rect.left + 'px'
+			}).removeClass('d-none');
+		}
+
+		function getCaretCharacterOffsetWithin(element) {
+			let caretOffset = 0;
+			const sel = window.getSelection();
+			if (sel.rangeCount > 0) {
+				const range = sel.getRangeAt(0);
+				const preRange = range.cloneRange();
+				preRange.selectNodeContents(element);
+				preRange.setEnd(range.endContainer, range.endOffset);
+				caretOffset = preRange.toString().length;
+			}
+			return caretOffset;
+		}
+
+		function createRangeFromCharacterOffsets(root, start, end) {
+			const nodeIterator = document.createNodeIterator(root, NodeFilter.SHOW_TEXT, null);
+			let currentNode, count = 0, range = null;
+			while ((currentNode = nodeIterator.nextNode())) {
+				const nextCount = count + currentNode.textContent.length;
+				if (start >= count && start <= nextCount) {
+					const rangeStart = { node: currentNode, offset: start - count };
+					if (end >= count && end <= nextCount) {
+						const rangeEnd = { node: currentNode, offset: end - count };
+						range = document.createRange();
+						range.setStart(rangeStart.node, rangeStart.offset);
+						range.setEnd(rangeEnd.node, rangeEnd.offset);
+						return range;
+					} else {
+						// end is in a later node
+						const rangeEndNode = (function () {
+							let it2 = document.createNodeIterator(root, NodeFilter.SHOW_TEXT, null);
+							let cur2, c2 = 0;
+							while ((cur2 = it2.nextNode())) {
+								const nc = c2 + cur2.textContent.length;
+								if (end <= nc) return { node: cur2, offset: end - c2 };
+								c2 = nc;
+							}
+							return null;
+						})();
+						if (rangeEndNode) {
+							range = document.createRange();
+							range.setStart(rangeStart.node, rangeStart.offset);
+							range.setEnd(rangeEndNode.node, rangeEndNode.offset);
+							return range;
+						}
+					}
+				}
+				count = nextCount;
+			}
+			return null;
+		}
+
+		function getMentionQuery($editor) {
+			const caret = getCaretCharacterOffsetWithin($editor[0]);
+			const text = $editor.text();
+			const lastAt = text.lastIndexOf('@', caret - 1);
+			if (lastAt === -1) return null;
+			// ensure '@' is not part of an email already (simple heuristic)
+			if (lastAt > 0 && /\S@\S/.test(text.substring(lastAt - 1, lastAt + 2))) return null;
+			const query = text.substring(lastAt + 1, caret);
+			// if whitespace in query it's invalid
+			if (/\s/.test(query)) return null;
+			return { start: lastAt, end: caret, query };
+		}
+
+		let mentionSelectionIndex = -1;
+
+		const $editor = $('#new-comment-input');
+		$editor.on('keyup paste input', function (e) {
+			const mention = getMentionQuery($editor);
+			if (!mention) return hideMentionDropdown();
+			const q = (mention.query || '').toLowerCase();
+			const matches = _mention_users.filter(u => (u.email && u.email.toLowerCase().includes(q)) || (u.name && u.name.toLowerCase().includes(q)));
+			if (!matches.length) return hideMentionDropdown();
+
+			// compute caret rect
+			let rect = null;
+			try {
+				const sel = window.getSelection();
+				if (sel.rangeCount) {
+					const r = sel.getRangeAt(0).cloneRange();
+					r.collapse(false);
+					const clientRects = r.getClientRects();
+					rect = clientRects[clientRects.length - 1] || r.getBoundingClientRect();
+				}
+			} catch (err) {
+				console.warn('mention rect failed', err);
+			}
+			positionDropdown(rect);
+
+			$mentionDropdown.empty();
+			matches.slice(0, 10).forEach((m, idx) => {
+				const $item = $(`<div class="mention-item p-1" data-idx="${idx}" data-email="${frappe.utils.escape_html(m.email)}" style="cursor:pointer;border-radius:4px;padding:6px;font-size:13px;">${frappe.utils.escape_html(m.name)}</div>`);
+				$item.on('mousedown touchstart', function (ev) {
+					ev.preventDefault(); // prevent blur
+					$(this).attr('data-start', mention.start).attr('data-end', mention.end);
+					// also respond to touchstart; keep selection safe
+					const start = parseInt($(this).attr('data-start'), 10);
+					const end = parseInt($(this).attr('data-end'), 10);
+					insertMentionAtRange(start, end, m);
+					hideMentionDropdown();
+				});
+				$mentionDropdown.append($item);
+			});
+			mentionSelectionIndex = -1;
+		});
+
+		$editor.on('keydown', function (e) {
+			if ($mentionDropdown.hasClass('d-none')) return;
+			const items = $mentionDropdown.children();
+			if (!items.length) return;
+			if (e.key === 'ArrowDown') {
+				e.preventDefault();
+				mentionSelectionIndex = Math.min(mentionSelectionIndex + 1, items.length - 1);
+				items.removeClass('active');
+				$(items.get(mentionSelectionIndex)).addClass('active').scrollIntoView?.();
+				return;
+			}
+			if (e.key === 'ArrowUp') {
+				e.preventDefault();
+				mentionSelectionIndex = Math.max(mentionSelectionIndex - 1, 0);
+				items.removeClass('active');
+				$(items.get(mentionSelectionIndex)).addClass('active').scrollIntoView?.();
+				return;
+			}
+			if (e.key === 'Enter') {
+				if (mentionSelectionIndex >= 0 && mentionSelectionIndex < items.length) {
+					e.preventDefault();
+					$(items.get(mentionSelectionIndex)).trigger('mousedown');
+				}
+			}
+			if (e.key === 'Escape') {
+				hideMentionDropdown();
+			}
+		});
+
+		$(document).on('mousedown.mention', function (e) {
+			if (!$(e.target).closest('#mention-dropdown, #new-comment-input').length) hideMentionDropdown();
+		});
+
+		function insertMentionAtRange(start, end, user) {
+			const editor = $editor[0];
+			const range = createRangeFromCharacterOffsets(editor, start, end);
+			if (!range) return;
+			const mentionEmail = user.email || user.name || "";
+			const mentionName = user.name || mentionEmail;
+			const a = document.createElement('a');
+			a.href = mentionEmail ? `mailto:${mentionEmail}` : "#";
+			a.textContent = `@${mentionName}`;
+			a.setAttribute('data-id', mentionEmail);
+			a.setAttribute('class', 'mention');
+			a.setAttribute('data-mention-email', mentionEmail);
+			range.deleteContents();
+			range.insertNode(a);
+			range.setStartAfter(a);
+			range.setEndAfter(a);
+			range.collapse(false);
+
+			try {
+				const sel = window.getSelection();
+				sel.removeAllRanges();
+				sel.addRange(range);
+			} catch (err) {
+				console.warn('mention range select failed', err);
+			}
+
+			// retrigger input to hide dropdown after mention inserted
+			$editor.trigger('input');
 		}
 	}
 
-	window.contactsPage = contactsPage;
+	bindContactEmailHandler(contact_name) {
+		const me = this;
+		const $emailBtn = $("#email-send");
+
+		if ($emailBtn.length === 0) return;
+
+		$emailBtn.off("click").on("click", async function (e) {
+			e.preventDefault();
+
+			// ✅ Helper functions matching ticket.js pattern
+			const normalizeEmails = (items) => {
+				const map = new Map();
+				(items || []).forEach((email) => {
+					if (!email) return;
+					const value = String(email).trim();
+					if (!value) return;
+					const key = value.toLowerCase();
+					if (!map.has(key)) map.set(key, value);
+				});
+				return Array.from(map.values());
+			};
+
+			const getCurrentUserEmailSignature = async () => {
+				try {
+					const response = await frappe.db.get_value("User", frappe.session.user, "email_signature");
+					return String(response?.message?.email_signature || "").trim();
+				} catch (err) {
+					console.warn("Unable to fetch current user email signature", err);
+					return "";
+				}
+			};
+
+			const normalizeOptionValue = (option) => {
+				if (!option) return null;
+				if (typeof option === "string") return option;
+				if (typeof option === "object") {
+					return option.value || option.email || option.name || option.label || null;
+				}
+				return String(option);
+			};
+
+			// Get contact details
+			const contact = await frappe.db.get_doc("Contact", contact_name);
+			let email_options = [];
+
+			try {
+				const res = await frappe.call({
+					method: "renewal_module.custom_module.page.contacts.contacts.get_contact_emails",
+					args: { contact_name: contact_name }
+				});
+				// Convert to email strings (not objects!)
+				email_options = (res.message || []).map(normalizeOptionValue).filter(Boolean);
+			} catch (err) {
+				console.error("Error fetching contact emails:", err);
+			}
+
+			// Collect contact's own emails
+			const contact_emails = normalizeEmails(
+				(contact.contact_emails || []).map(row => row.email_id).concat(contact.email_id || [])
+			);
+
+			// Merge all options and deduplicate
+			email_options = normalizeEmails([...email_options, ...contact_emails]);
+			const userEmailSignature = await getCurrentUserEmailSignature();
+			const defaultMessageContent = userEmailSignature
+				? `${"<p><br></p>".repeat(5)}${userEmailSignature}`
+				: "";
+
+			// Create email dialog with proper formatting
+			const email_dialog = new frappe.ui.Dialog({
+				title: __("Send Email"),
+				fields: [
+					{
+						label: __("TO"),
+						fieldname: "recipients",
+						fieldtype: "MultiSelect",
+						reqd: 1,
+						options: email_options,  // ✅ Array of email strings
+						default: contact_emails,  // ✅ Array (not comma-string)
+						description: __("Select one or more recipients")
+					},
+					{
+						fieldtype: "HTML",
+						fieldname: "cc_bcc_links",
+						options: `
+							<div style="margin-top:-10px; font-size:12px;">
+								<a href="#" class="add-cc">${__("Add CC")}</a> |
+								<a href="#" class="add-bcc">${__("Add BCC")}</a>
+							</div>
+						`
+					},
+					{
+						label: __("CC"),
+						fieldname: "cc",
+						fieldtype: "MultiSelect",
+						options: email_options  // ✅ Array of email strings
+					},
+					{
+						label: __("BCC"),
+						fieldname: "bcc",
+						fieldtype: "MultiSelect",
+						options: email_options,  // ✅ Array of email strings
+						hidden: 1
+					},
+					{
+						label: __("Subject"),
+						fieldname: "subject",
+						fieldtype: "Data",
+						reqd: 1,
+						default: ""
+					},
+					{
+						label: __("Message"),
+						fieldname: "content",
+						fieldtype: "TextEditor",
+						reqd: 1,
+						default: defaultMessageContent
+					},
+					{
+						fieldtype: "Section Break",
+						label: __("Attachments")
+					},
+					{
+						fieldtype: "HTML",
+						fieldname: "attachments_list",
+						options: `<div id="email-attachments-list" class="text-muted small">${__("No attachments")}</div>`
+					},
+					{
+						label: __("Add Attachments"),
+						fieldname: "add_attachments_btn",
+						fieldtype: "Button"
+					},
+					{
+						label: __("Send me a copy"),
+						fieldname: "send_me_a_copy",
+						fieldtype: "Check",
+						default: 1
+					}
+				],
+				primary_action_label: __("Send"),
+				primary_action: function (values) {
+					// ✅ Proper MultiSelect value handling
+					const readMultiSelect = (fieldname) => {
+						const value = email_dialog.get_value(fieldname);
+						if (Array.isArray(value)) {
+							return value
+								.map((item) => (item && typeof item === "object")
+									? (item.value || item.email || item.name || item.label || "")
+									: item
+								)
+								.filter(Boolean);
+						}
+						if (typeof value === "string") {
+							return value.split(",").map((item) => item.trim()).filter(Boolean);
+						}
+						return [];
+					};
+
+					const recipientsList = readMultiSelect("recipients");
+					const ccList = readMultiSelect("cc");
+					const bccList = readMultiSelect("bcc");
+
+					if (!recipientsList.length || !values.subject || !values.content) {
+						frappe.msgprint(__("Please fill in all required fields."));
+						return;
+					}
+
+					// ✅ Get attachments
+					let attachments = Array.isArray(email_dialog.__attachments) ? email_dialog.__attachments : [];
+
+					frappe.call({
+						method: "renewal_module.custom_module.page.contacts.contacts.send_contact_email",
+						args: {
+							contact_name: contact_name,
+							recipients: recipientsList.join(", "),
+							cc: ccList.join(", "),
+							bcc: bccList.join(", "),
+							subject: values.subject,
+							content: values.content,
+							attachments: attachments,  // ✅ Pass attachments
+							send_me_a_copy: values.send_me_a_copy || 0  // ✅ Pass send_me_a_copy
+						},
+						freeze_message: __("Sending email..."),
+						callback: function (r) {
+							if (!r.exc) {
+								frappe.show_alert({ message: __("Email sent successfully"), indicator: "green" });
+								email_dialog.hide();
+								me.loadContactActivityTimeline(contact_name);
+							} else {
+								frappe.msgprint(__("Failed to send email."));
+							}
+						}
+					});
+				}
+			});
+
+			// ✅ Initialize attachments tracking
+			email_dialog.__attachments = [];
+
+			// ✅ Helper functions for attachment management
+			const getAttachmentsList = () => email_dialog.get_field("attachments_list")?.$wrapper.find("#email-attachments-list");
+
+			function renderAttachmentList() {
+				const $list = getAttachmentsList();
+				if (!$list || !$list.length) return;
+				const items = email_dialog.__attachments || [];
+				if (!items.length) {
+					$list.html(__("No attachments"));
+					return;
+				}
+				const html = items.map((att, idx) => {
+					const name = att.file_name || att.file_url || att.name || `File ${idx + 1}`;
+					return `<div class="d-flex align-items-center gap-1 mb-1">
+						<i class="fa fa-paperclip text-muted"></i>
+						<span class="text-truncate" title="${frappe.utils.escape_html(name)}">${frappe.utils.escape_html(name)}</span>
+						<a href="#" data-idx="${idx}" class="text-danger remove-att" title="${__("Remove")}">&times;</a>
+					</div>`;
+				}).join("");
+				$list.html(html);
+			}
+
+			// ✅ Add attachments button handler
+			const addBtn = email_dialog.get_field("add_attachments_btn");
+			if (addBtn) {
+				addBtn.$input.off("click.addatt").on("click.addatt", () => {
+					new frappe.ui.FileUploader({
+						allow_multiple: true,
+						on_success(file) {
+							email_dialog.__attachments.push({
+								file_url: file.file_url,
+								file_name: file.file_name || file.name || null
+							});
+							renderAttachmentList();
+						}
+					});
+				});
+			}
+
+			// ✅ Remove attachment handler
+			email_dialog.get_field("attachments_list").$wrapper.off("click.removeatt").on("click.removeatt", "a.remove-att", function (e) {
+				e.preventDefault();
+				const idx = Number($(this).data("idx"));
+				if (Number.isInteger(idx) && email_dialog.__attachments[idx]) {
+					email_dialog.__attachments.splice(idx, 1);
+					renderAttachmentList();
+				}
+			});
+
+			renderAttachmentList();
+
+			email_dialog.show();
+
+			// ✅ Add CC/BCC link handlers - MUST be after dialog.show() and MUST have e.preventDefault()
+			email_dialog.$wrapper.find(".add-cc").on("click", function (e) {
+				e.preventDefault();
+				const cc_field = email_dialog.get_field("cc");
+				cc_field.df.hidden = 0;  // make visible
+				cc_field.refresh();
+				$(this).hide();
+			});
+
+			email_dialog.$wrapper.find(".add-bcc").on("click", function (e) {
+				e.preventDefault();
+				const bcc_field = email_dialog.get_field("bcc");
+				bcc_field.df.hidden = 0;  // make visible
+				bcc_field.refresh();
+				$(this).hide();
+			});
+
+			setTimeout(() => {
+				const closeBtn = email_dialog.get_close_btn();
+				if (!closeBtn || !closeBtn.length) {
+					return;
+				}
+				closeBtn.off("click.email_dialog").on("click.email_dialog", function () {
+					email_dialog.hide();   // ✅ FIXED
+				});
+			}, 50);
+			// FIX: Make all frappe.msgprint dialogs close correctly
+			$(document).off("click.msgprintclose").on("click.msgprintclose", ".msgprint-dialog .btn-modal-close, .msgprint-dialog .modal-header .close", function (e) {
+				e.preventDefault();
+				e.stopPropagation();
+
+				// Use Frappe’s official msgprint dialog object
+				if (frappe.msg_dialog && frappe.msg_dialog.hide) {
+					frappe.msg_dialog.hide();
+					return;
+				}
+
+				// Fallback if object missing
+				const $dialog = $(this).closest(".msgprint-dialog");
+				$dialog.remove();
+				$(".modal-backdrop").remove();
+			});
+		});
+	}
+
+
+	/**new contact Form */
+	gotoNewContactWizardStep(step) {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const $scope = $(wrapper);
+		const totalSteps = 3;
+		this._newContactCurrentStep = step;
+
+		$scope.find(".new-contact-wizard-step").each(function () {
+			const currentStep = parseInt($(this).data("step"), 10);
+			$(this).removeClass("is-active is-done");
+			if (currentStep < step) $(this).addClass("is-done");
+			else if (currentStep === step) $(this).addClass("is-active");
+		});
+
+		$scope.find(".new-contact-wizard-connector").each(function (idx) {
+			$(this).toggleClass("is-done", idx + 1 < step);
+		});
+
+		$scope.find(".new-contact-wizard-panel").each(function () {
+			const panelStep = parseInt($(this).data("panel"), 10);
+			$(this).toggleClass("d-none", panelStep !== step);
+		});
+
+		$scope.find("#new-contact-back").toggleClass("d-none", step === 1);
+		$scope.find("#new-contact-next").toggleClass("d-none", step === totalSteps);
+		$scope.find("#new-contact-save").toggleClass("d-none", step !== totalSteps);
+	}
+
+	validateNewContactWizardStep(step, ctx = {}) {
+		if (step === 1) {
+			const firstName = String(ctx.firstnameControl?.get_value?.() || "").trim();
+			const lastName = String(ctx.lastnameControl?.get_value?.() || "").trim();
+			if (!firstName || !lastName) {
+				frappe.show_alert({ message: __("Please fill First Name and Last Name before proceeding."), indicator: "red" }, 4);
+				return false;
+			}
+		}
+
+		if (step === 2) {
+			const contactEmails = ctx.me?.getcontactlist ? ctx.me.getcontactlist() : [];
+			const contactPhones = ctx.me?.getphonelist ? ctx.me.getphonelist() : [];
+			if (!contactEmails.length) {
+				frappe.show_alert({ message: __("Please add at least one email address before proceeding."), indicator: "red" }, 4);
+				return false;
+			}
+			if (!contactPhones.length) {
+				frappe.show_alert({ message: __("Please add at least one phone number before proceeding."), indicator: "red" }, 4);
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	bind_contact_form_events() {
+		const me = this;
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const $scope = $(wrapper);
+		const contactForm = wrapper.querySelector('#new-contacts-form');
+		if (!contactForm) return;
+
+		let firstnameControl = frappe.ui.form.make_control({
+			parent: document.getElementById('first-name-field'),
+			df: { fieldtype: 'Data', label: 'First Name', reqd: 1, fieldname: 'first_name' },
+			render_input: true
+		});
+		firstnameControl.refresh();
+
+		let middlenameControl = frappe.ui.form.make_control({
+			parent: document.getElementById('middle-name-field'),
+			df: { fieldtype: 'Data', label: 'Middle Name', fieldname: 'middle_name' },
+			render_input: true
+		});
+		middlenameControl.refresh();
+
+		let lastnameControl = frappe.ui.form.make_control({
+			parent: document.getElementById('last-name-field'),
+			df: { fieldtype: 'Data', label: 'Last Name', reqd: 1, fieldname: 'last_name' },
+			render_input: true
+		});
+		lastnameControl.refresh();
+
+		let designationControl = frappe.ui.form.make_control({
+			parent: document.getElementById('designation-field'),
+			df: { fieldtype: 'Data', label: 'Designation', fieldname: 'designation', reqd: 1 },
+			render_input: true
+		});
+		designationControl.refresh();
+
+		let companyControl = "";
+
+		let salutationControl = frappe.ui.form.make_control({
+			parent: document.getElementById('salutation-field'),
+			df: {
+				fieldtype: 'Link',
+				label: 'Salutation',
+				fieldname: 'salutation',
+				options: 'Salutation'
+			},
+			render_input: true
+		});
+		salutationControl.refresh();
+
+		let genderControl = frappe.ui.form.make_control({
+			parent: document.getElementById('gender-field'),
+			df: {
+				fieldtype: 'Link',
+				label: ' Gender',
+				fieldname: 'gender',
+				options: 'Gender'
+			},
+			render_input: true
+		});
+		genderControl.refresh();
+
+		let departmentControl = frappe.ui.form.make_control({
+			parent: document.getElementById('department-field'),
+			df: { fieldtype: 'Data', label: 'Department', fieldname: 'department' },
+			render_input: true
+		});
+		departmentControl.refresh();
+
+		let linkedInControl = frappe.ui.form.make_control({
+			parent: document.getElementById('linked-in-field'),
+			df: { fieldtype: 'Data', label: 'LinkedIn ID', fieldname: 'custom_linkedin_id' },
+			render_input: true
+		});
+		linkedInControl.refresh();
+
+		let addressControl = frappe.ui.form.make_control({
+			parent: document.getElementById('address-field'),
+			df: { fieldtype: 'Link', label: 'Address', fieldname: 'address', options: 'Address' },
+			render_input: true
+		});
+		addressControl.refresh();
+
+		let isPrimaryControl = frappe.ui.form.make_control({
+			parent: document.getElementById('is-primary-contact-field'),
+			df: { fieldtype: 'Check', label: 'Is Primary Contact', fieldname: 'is_primary_contact' },
+			render_input: true
+		});
+		isPrimaryControl.refresh();
+
+		let isBillingControl = frappe.ui.form.make_control({
+			parent: document.getElementById('is-billing-contact-field'),
+			df: { fieldtype: 'Check', label: 'Is Billing Contact', fieldname: 'is_billing_contact' },
+			render_input: true
+		});
+		isBillingControl.refresh();
+
+		function setupContactPersonSection(me) {
+			const addButton = wrapper.querySelector('#add-contact-person');
+			const contactEmailContainer = wrapper.querySelector('#contact-email-container');
+
+			if (!addButton || !contactEmailContainer) return;
+
+			let contactList = [];
+
+			function renderContactPersons() {
+				if (!contactList.length) {
+					contactEmailContainer.innerHTML = '<p class="text-muted">No emails added.</p>';
+					return;
+				}
+				let html = "";
+				contactList.forEach((row, i) => {
+					const email = (row.user_email || '');
+					const isPrimary = row.is_primary ? 'badge-success' : 'badge-secondary';
+					html += `
+						<div class="contact-person-entry align-items-center mb-2 p-2 border rounded">
+							<strong class="text-truncate">${email}</strong>
+							<span class="badge ${isPrimary}">${row.is_primary ? 'Primary' : ''}</span>
+							<button class="btn btn-sm btn-default2 remove-contact-person-btn" data-index="${i}">
+								<i class="fa fa-trash-can text-danger"></i>
+							</button>
+						</div>
+					`;
+				});
+				contactEmailContainer.innerHTML = html;
+			}
+
+			$(document).off('click.contact-person', '.remove-contact-person-btn');
+			$(document).on('click.contact-person', '.remove-contact-person-btn', function (e) {
+				e.preventDefault();
+				const index = $(this).data('index');
+				if (index >= 0 && index < contactList.length) {
+					contactList.splice(index, 1);
+					renderContactPersons();
+				}
+			});
+
+			me.getcontactlist = () => contactList;
+			me.resetContactList = function () {
+				contactList = [];
+				renderContactPersons();
+			}
+			me.setContactList = function (list) {
+				contactList = list || [];
+				renderContactPersons();
+			}
+
+			$(addButton).off('click.add-contact').on('click.add-contact', function (e) {
+				e.preventDefault();
+				const d = new frappe.ui.Dialog({
+					title: 'Add Email',
+					fields: [
+						{ fieldtype: 'Data', label: 'Email Address', fieldname: 'email_id', reqd: 1 },
+						{ fieldtype: 'Check', label: 'Is Primary', fieldname: 'is_primary', default: 0 }
+					],
+					primary_action_label: 'Add',
+					primary_action(values) {
+						if (!values.email_id) {
+							frappe.msgprint('Please enter an email address.');
+							return;
+						}
+						// Check if email already exists
+						if (contactList.some(c => c.user_email === values.email_id)) {
+							frappe.msgprint('This email already added.');
+							return;
+						}
+						contactList.push({
+							user_email: values.email_id,
+							is_primary: values.is_primary ? 1 : 0
+						});
+						renderContactPersons();
+						d.hide();
+					}
+				});
+				d.show();
+				setTimeout(() => {
+					const closeBtn = d.get_close_btn();
+					if (!closeBtn || !closeBtn.length) {
+						return;
+					}
+					closeBtn.off("click.dialog").on("click.dialog", function () {
+						d.hide();
+					});
+				}, 50);
+			});
+			// Initial render
+			renderContactPersons();
+		}
+
+		// Phone section: add/list phones with type and primary flags
+		function setupContactPhoneSection(me) {
+			const addPhoneBtn = wrapper.querySelector('#add-contact-phone');
+			const phoneContainer = wrapper.querySelector('#contact-phone-container');
+			if (!addPhoneBtn || !phoneContainer) return;
+
+			let phoneList = [];
+
+			function renderPhones() {
+				if (!phoneList.length) {
+					phoneContainer.innerHTML = '<p class="text-muted">No phone numbers added.</p>';
+					return;
+				}
+				let html = '';
+				phoneList.forEach((row, i) => {
+					const number = row.phone || '';
+					const badges = [];
+					if (row.is_primary_phone) badges.push('<span class="badge badge-success text-truncate">Primary Phone</span>');
+					if (row.is_primary_mobile_no) badges.push('<span class="badge badge-success text-truncate">Primary Mobile</span>');
+
+					html += `
+						<div class="contact-phone-entry align-items-center mb-2 p-2 border rounded">
+							<strong>${frappe.utils.escape_html(number)}</strong>
+							${badges.join(' ')}
+							<button class="btn btn-sm btn-default2 remove-contact-phone-btn" data-index="${i}">
+								<i class="fa fa-trash-can text-danger"></i>
+							</button>
+						</div>
+					`;
+				});
+				phoneContainer.innerHTML = html;
+			}
+
+			$(document).off('click.contact-phone', '.remove-contact-phone-btn');
+			$(document).on('click.contact-phone', '.remove-contact-phone-btn', function (e) {
+				e.preventDefault();
+				const index = $(this).data('index');
+				if (index >= 0 && index < phoneList.length) {
+					phoneList.splice(index, 1);
+					renderPhones();
+				}
+			});
+
+			me.getphonelist = () => phoneList;
+			me.resetPhoneList = function () {
+				phoneList = [];
+				renderPhones();
+			}
+			me.setPhoneList = function (list) {
+				phoneList = Array.isArray(list) ? list.slice() : [];
+				renderPhones();
+			}
+
+			$(addPhoneBtn).off('click.add-phone').on('click.add-phone', function (e) {
+				e.preventDefault();
+
+				const dialog = new frappe.ui.Dialog({
+					title: 'Add Phone',
+					fields: [
+						{ fieldtype: 'Data', label: 'Phone Number', fieldname: 'phone', reqd: 1 },
+						{ fieldtype: 'Check', label: 'Is Primary Phone', fieldname: 'is_primary_phone', default: 0 },
+						{ fieldtype: 'Check', label: 'Is Primary Mobile', fieldname: 'is_primary_mobile_no', default: 0 }
+					],
+					primary_action_label: 'Add',
+					primary_action(values) {
+						const number = (values.phone || '').trim();
+						const is_primary_phone = !!values.is_primary_phone ? 1 : 0;
+						const is_primary_mobile_no = !!values.is_primary_mobile_no ? 1 : 0;
+
+						if (!number) {
+							frappe.msgprint('Please enter a phone number.');
+							return;
+						}
+
+						// Basic phone validation: digits, spaces, +, -, (), starting optional +
+						const phoneRegex = /^\+?[0-9\-()\s]{6,}$/;
+						if (!phoneRegex.test(number)) {
+							frappe.msgprint('Please enter a valid phone number.');
+							return;
+						}
+
+						// Enforce single primary per type
+						if (is_primary_phone) {
+							phoneList = phoneList.map(p => ({
+								...p,
+								is_primary_phone: (p.type === 'Phone') ? 0 : p.is_primary_phone
+							}));
+						}
+						if (is_primary_mobile_no) {
+							phoneList = phoneList.map(p => ({
+								...p,
+								is_primary_mobile_no: (p.type === 'Mobile') ? 0 : p.is_primary_mobile_no
+							}));
+						}
+
+						phoneList.push({ phone: number, is_primary_phone, is_primary_mobile_no });
+						renderPhones();
+						dialog.hide();
+					}
+				});
+
+				dialog.show();
+				setTimeout(() => {
+					const closeBtn = dialog.get_close_btn();
+					if (closeBtn && closeBtn.length) {
+						closeBtn.off('click.dialog').on('click.dialog', function () { dialog.hide(); });
+					}
+				}, 50);
+			});
+
+			// Initial render
+			renderPhones();
+		}
+
+		function setuprefrencelink() {
+			const referenceLinkControl = wrapper.querySelector('#add-reference-link');
+			const referenceLinkField = wrapper.querySelector('#reference-link-container');
+
+			if (!referenceLinkControl || !referenceLinkField) return;
+
+			let isLinkSet = [];
+
+			function renderReferenceLink() {
+				if (!isLinkSet.length) {
+					referenceLinkField.innerHTML = '<p class="text-muted">No reference link set.</p>';
+					return;
+				}
+
+				let html = "";
+				isLinkSet.forEach((row, i) => {
+					html += `
+						<div class="reference-link-entry align-items-center mb-2 p-2 border rounded">
+							<strong class="text-truncate">${frappe.utils.escape_html(row.link_doctype || "")}</strong>
+							<small class="text-muted text-truncate">${frappe.utils.escape_html(row.link_name || "")}</small>
+							<button class="btn btn-sm btn-default2 remove-reference-link-btn" data-index="${i}">
+								<i class="fa fa-trash-can text-danger"></i>
+							</button>
+						</div>
+					`;
+				});
+
+				referenceLinkField.innerHTML = html;
+			}
+
+			$(document).off('click.reference-link', '.remove-reference-link-btn');
+			$(document).on('click.reference-link', '.remove-reference-link-btn', function (e) {
+				e.preventDefault();
+				const index = $(this).data('index');
+				if (index >= 0 && index < isLinkSet.length) {
+					isLinkSet.splice(index, 1);
+					renderReferenceLink();
+				}
+			});
+
+			// Public helpers
+			/*referenceLinkControl.getreflinklist = () => isLinkSet;
+			referenceLinkControl.resetreflinklist = () => {
+				isLinkSet = [];
+				renderReferenceLink();
+			};
+			referenceLinkControl.setreflinklist = (list) => {
+				isLinkSet = Array.isArray(list) ? list : [];
+				renderReferenceLink();
+			};*/
+
+			me.getreflinklist = () => isLinkSet;
+			me.resetreflinklist = () => {
+				isLinkSet = [];
+				renderReferenceLink();
+			};
+			me.setreflinklist = (list) => {
+				isLinkSet = Array.isArray(list) ? list : [];
+				renderReferenceLink();
+			};
+
+
+			$(referenceLinkControl)
+				.off('click.add-reference-link')
+				.on('click.add-reference-link', function (e) {
+					e.preventDefault();
+
+					const d = new frappe.ui.Dialog({
+						title: 'Add Reference Link',
+						fields: [
+							{
+								fieldtype: 'Link',
+								label: 'Link Document Type',
+								fieldname: 'link_doctype',
+								options: 'DocType',
+								reqd: 1
+							},
+							{
+								fieldtype: 'Dynamic Link',
+								label: 'Link Name',
+								fieldname: 'link_name',
+								options: 'link_doctype',
+								reqd: 1,
+								onChange: function (field) {
+									const link_name = field.get_value();
+									if (link_name) {
+										// Update read-only field directly by manipulating the DOM
+										const titleField = d.fields_dict.link_title;
+										if (titleField && titleField.$wrapper) {
+											titleField.$wrapper.find('.static-area').text(link_name);
+										}
+									} else {
+										// Clear the read-only field
+										const titleField = d.fields_dict.link_title;
+										if (titleField && titleField.$wrapper) {
+											titleField.$wrapper.find('.static-area').text('');
+										}
+									}
+								}
+							},
+							{
+								fieldtype: 'Read Only',
+								label: 'Link Title',
+								fieldname: 'link_title',
+								hidden: true // Hide this field as it's just for display and not meant to be edited
+							}
+						],
+						primary_action_label: 'Add',
+						primary_action(values) {
+							if (!values.link_doctype || !values.link_name) {
+								frappe.msgprint('Please enter all required fields.');
+								return;
+							}
+
+							// ✅ Prevent duplicate links
+							const exists = isLinkSet.some(
+								r =>
+									r.link_doctype === values.link_doctype &&
+									r.link_name === values.link_name
+							);
+
+							if (exists) {
+								frappe.msgprint('This reference link is already added.');
+								return;
+							}
+
+							isLinkSet.push({
+								link_doctype: values.link_doctype,
+								link_name: values.link_name,
+								link_title: values.link_name
+							});
+
+							renderReferenceLink();
+							d.hide();
+						}
+					});
+
+					d.show();
+					setTimeout(() => {
+						const closeBtn = d.get_close_btn();
+						if (closeBtn && closeBtn.length) {
+							closeBtn.off('click.dialog').on('click.dialog', function () { d.hide(); });
+						}
+					}, 50);
+				});
+
+			renderReferenceLink();
+		}
+
+		const applyLinkedCustomerReference = () => {
+			const params = new URLSearchParams(window.location.search || "");
+			const routeOptions = frappe.get_route_options?.() || frappe.route_options || {};
+			let storedContext = {};
+			try {
+				storedContext = JSON.parse(localStorage.getItem("renewal_module_new_link_context") || "{}");
+			} catch (e) {
+				storedContext = {};
+			}
+
+			const linkDoctype = String(
+				routeOptions.link_doctype ||
+				params.get("link_doctype") ||
+				storedContext.link_doctype ||
+				""
+			).trim();
+			const linkName = String(
+				routeOptions.link_name ||
+				params.get("link_name") ||
+				routeOptions.customer ||
+				params.get("customer") ||
+				params.get("name") ||
+				storedContext.link_name ||
+				storedContext.customer ||
+				""
+			).trim();
+			const linkTitle = String(
+				routeOptions.link_title ||
+				params.get("link_title") ||
+				routeOptions.customer_name ||
+				params.get("customer_name") ||
+				storedContext.link_title ||
+				storedContext.customer_name ||
+				linkName
+			).trim();
+
+			if (linkDoctype === "Customer" && linkName && typeof me.setreflinklist === "function") {
+				me.setreflinklist([
+					{ link_doctype: "Customer", link_name: linkName, link_title: linkTitle || linkName }
+				]);
+				try {
+					localStorage.removeItem("renewal_module_new_link_context");
+				} catch (e) {
+					console.warn("Unable to clear linked customer context", e);
+				}
+			}
+		};
+
+
+
+		frappe.after_ajax(() => {
+			setupContactPersonSection(me);
+			setupContactPhoneSection(me);
+			setuprefrencelink(me);
+			applyLinkedCustomerReference();
+		});
+		setupContactPersonSection(me);
+		setupContactPhoneSection(me);
+		setuprefrencelink(me);
+		applyLinkedCustomerReference();
+
+		$scope
+			.off("click", "#new-contact-cancel")
+			.on("click", "#new-contact-cancel", function (e) {
+				e.preventDefault();
+				frappe.set_route("contacts");
+			});
+
+		$scope
+			.off("click", "#new-contact-back")
+			.on("click", "#new-contact-back", function (e) {
+				e.preventDefault();
+				const current = me._newContactCurrentStep || 1;
+				if (current > 1) me.gotoNewContactWizardStep(current - 1);
+			});
+
+		$scope
+			.off("click", "#new-contact-next")
+			.on("click", "#new-contact-next", function (e) {
+				e.preventDefault();
+				const current = me._newContactCurrentStep || 1;
+				const isValid = me.validateNewContactWizardStep(current, {
+					me,
+					firstnameControl,
+					lastnameControl
+				});
+				if (!isValid) return;
+				me.gotoNewContactWizardStep(current + 1);
+			});
+
+		$scope
+			.off("click", ".new-contact-wizard-step")
+			.on("click", ".new-contact-wizard-step", function (e) {
+				e.preventDefault();
+				const targetStep = parseInt($(this).data("step"), 10);
+				if (!Number.isFinite(targetStep) || targetStep < 1) return;
+
+				const current = me._newContactCurrentStep || 1;
+				if (targetStep > current) {
+					const isValid = me.validateNewContactWizardStep(current, {
+						me,
+						firstnameControl,
+						lastnameControl
+					});
+					if (!isValid) return;
+				}
+
+				me.gotoNewContactWizardStep(Math.min(Math.max(targetStep, 1), 3));
+			});
+
+		$(contactForm).off('submit.newContact').on('submit.newContact', function (e) {
+			e.preventDefault();
+			const first_name = firstnameControl.get_value();
+			const middle_name = middlenameControl.get_value();
+			const last_name = lastnameControl.get_value();
+			const designation = designationControl.get_value();
+			const salutation = salutationControl.get_value();
+			const gender = genderControl.get_value();
+			const department = departmentControl.get_value();
+			const address = addressControl.get_value();
+			const custom_linkedin_id = linkedInControl.get_value();
+			const is_primary_contact = isPrimaryControl.get_value();
+			const is_billing_contact = isBillingControl.get_value();
+			const company_name = companyControl ? companyControl.get_value() : '';
+
+			// Basic validation
+			if (!first_name || !last_name) {
+				frappe.msgprint('Please fill in all required fields.');
+				return;
+			}
+
+			// Get contact emails and phones from the lists
+			const contact_emails = me.getcontactlist ? me.getcontactlist() : [];
+			const contact_phones = me.getphonelist ? me.getphonelist() : [];
+			const link_references = me.getreflinklist ? me.getreflinklist() : [];
+			if (!contact_emails.length) {
+				frappe.msgprint('Please add at least one email address.');
+				return;
+			}
+			if (!contact_phones.length) {
+				frappe.msgprint('Please add at least one phone number.');
+				return;
+			}
+
+			// Auto-populate company_name from first reference link if not already set
+			let final_company_name = company_name;
+			if (link_references.length > 0 && link_references[0].link_name) {
+				if (!final_company_name || final_company_name.trim() === "") {
+					final_company_name = link_references[0].link_name;
+				}
+			}
+
+			const new_contact_doc = {
+				doctype: 'Contact',
+				first_name,
+				middle_name,
+				last_name,
+				email_ids: contact_emails.map(row => ({
+					email_id: row.user_email,
+					is_primary: row.is_primary
+				})),
+				phone_nos: contact_phones.map(row => ({
+					phone: row.phone,
+					is_primary_phone: row.is_primary_phone,
+					is_primary_mobile_no: row.is_primary_mobile_no
+				})),
+				designation,
+				company_name: final_company_name,
+				salutation,
+				gender,
+				department,
+				address,
+				status: 'Open',
+				custom_linkedin_id,
+				is_primary_contact,
+				is_billing_contact,
+				links: link_references.map(row => ({
+					link_doctype: row.link_doctype,
+					link_name: row.link_name,
+					link_title: row.link_name || row.link_title
+				}))
+			};
+
+			console.log('New Contact Data:', new_contact_doc);
+
+			frappe.call({
+				method: "frappe.client.insert",
+				args: {
+					doc: new_contact_doc
+				},
+				callback: function (response) {
+					if (response.message) {
+						const contact_name = response.message.name;
+						console.log('Contact created with name:', contact_name);
+						frappe.show_alert({ message: 'Contact created successfully!', indicator: 'green' }, 5);
+						setTimeout(() => {
+							frappe.set_route('contacts', contact_name);
+						}, 1000);
+						contactForm.reset();
+					} else {
+						frappe.msgprint('Failed to create contact. Please try again.');
+
+					}
+
+				},
+				error: (error) => {
+					frappe.msgprint({
+						title: __("Error"),
+						message: __(error?.message || error || "An unexpected error occurred."),
+						indicator: "red"
+					});
+					console.error('Error creating contact:', error);
+				}
+			})
+
+		})
+
+	}
+
+
 }
-
-
-frappe.contacts_page = {
+frappe.contacts_page_template = {
 	body: `
-        <div class="wrapper contacts-wrapper">
-			<!-- ============================================================== -->
-        	<!-- Start Main Content -->
-        	<!-- ============================================================== -->
-			<div class="content-page">
-				<div class="container-fluid" style="background-color:#F3F4F6;">
-					<div class="page-title-head d-flex align-items-center">
-						<div class="flex-grow-1">
-							<h4 class="fs-xl fw-bold m-0">Contacts</h4>
-						</div>
-
-						<div class="text-end">
-							<ol class="breadcrumb m-0 py-0">
-								<li class="breadcrumb-item"><a href="javascript: void(0);">CRM</a></li>
-								<li class="breadcrumb-item active">Contacts</li>
-							</ol>
-						</div>
-					</div>
-					
-					<div class="row">
-						<div class="col-12">
-							<div class="card">
-								<div class="card-header border-light p-1  filters-wrapper" style="border-bottom:none;">
-									<div class="page-form flex flex-wrap align-items-center gap-3 w-100">
-										<div class="standard-filter-section flex flex-wrap gap-2 align-items-center">
-											<div class="app-search">
-												<input type="text" data-table-filter="contact_name"
-													placeholder="Contact Person"
-													class="form-control" />
-											</div>
-											<div class="app-search">
-												<select data-table-filter="status" class="form-select form-control">
-													<option value="">Status</option>
-												</select>
-											</div>
-											<div class="app-search">
-												<select data-table-filter="email_id" class="form-select form-control">
-													<option value="">Email</option>
-												</select>
-											</div>
-											<div class="app-search">
-												<select data-table-filter="customer_name" class="form-select form-control">
-													<option value="">Customer</option>
-												</select>
-											</div>
-										</div>
-										<div class="action-buttons flex gap-2 flex-wrap ml-auto">
-											
-											<div class="btn-group">
-												<button class="btn btn-default btn-sm filter-button" title="Filters">
-													<span class="filter-icon">
-														<svg class="es-icon es-line icon-sm" aria-hidden="true">
-															<use href="#es-line-filter"></use>
-														</svg>
-													</span>
-													<span class="button-label hidden-xs">Filters</span>
-												</button>
-												<button class="btn btn-default btn-sm filter-x-button" title="Clear Filters">
-													<span class="filter-icon">
-														<svg class="es-icon es-line icon-sm" aria-hidden="true">
-															<use href="#es-small-close"></use>
-														</svg>
-													</span>
-												</button>
-											</div>
-											
-											<button class="btn btn-primary" id="new-contact-btn" data-bs-toggle="modal"
-												data-bs-target="#addCustomerModal">
-												<i class="ti ti-plus me-1"></i> <span class="hidden-xs">New Customer</span>
-											</button>
-											<div class="dropdown d-none" id="actions-dropdown">
-												<button class="btn btn-secondary dropdown-toggle" type="button"
-													data-bs-toggle="dropdown">
-													Actions
-												</button>
-												<ul class="dropdown-menu">
-													<li><a class="dropdown-item" href="#" data-action="edit">Edit</a></li>
-													<li><a class="dropdown-item" href="#" data-action="assign_to">Assign To</a></li>
-													<li><a class="dropdown-item" href="#" data-action="apply_rule">Apply Rule</a></li>
-													<li><a class="dropdown-item" href="#" data-action="add_tags">Add Tags</a></li>
-													<li><a class="dropdown-item" href="#" data-action="print">Print</a></li>
-													<li><a class="dropdown-item" href="#" data-action="delete">Delete</a></li>
-												</ul>
-											</div>
-										</div>
-
-									</div>
-
-								</div>
-								<div class="card-body p-0">
-									<div class="table-responsive" style="min-height:50vh;">
-										<table class="table table-custom table-centered table-select table-hover w-100 mb-0">
-											<thead class="bg-light align-middle bg-opacity-25 thead-sm text-nowrap">
-												<tr class="text-uppercase fs-xxs">
-													<th scope="col" style="width: 1%;">
-														<input data-table-select-all class="form-check-input form-check-input-light fs-14 mt-0" type="checkbox" id="checkAll" value="option">
-													</th>
-													<th data-table-sort="name">Contact Person</th>
-													<th data-table-sort data-column="status">Status</th>
-													<th data-table-sort>Mobile No</th>
-													<th data-table-sort data-column="Email ID">Email ID</th>
-													<th data-table-sort>Employees</th>
-													<th class="text-center" id="count" style="cursor: default;">
-														<span id="visible-count">0</span> of <span id="total-count">0</span>
-													</th>
-
-												</tr>
-											</thead>
-											<tbody class="text-nowrap" id="contact-table-body"></tbody>
-										</table>
-									</div>
-								</div>	
-								<div class="card-footer border-0">
-									<div class="d-flex justify-content-between align-items-center">
-										<div class="list-paging-area d-flex justify-content-between align-items-center w-100">
-											<div class="p-2">
-												<div class="btn-group">
-													<button type="button" class="btn btn-default btn-sm btn-paging" data-value="20">20</button>
-													<button type="button" class="btn btn-default btn-sm btn-paging" data-value="100">100</button>
-													<button type="button" class="btn btn-default btn-sm btn-paging" data-value="500">500</button>
-													<button type="button" class="btn btn-default btn-sm btn-paging" data-value="2500">2500</button>
-												</div>
-											</div>
-											
-											<div class="p-2">
-												<button class="btn btn-default btn-more btn-sm">Load More</button>
-											</div>
-										</div>
-									</div>
-								</div>
-								
-								
+		<div class="wrapper contacts-wrapper">
+			<div class="contacts-list-view d-none">
+				<div class="row">
+					<div class="col-12">
+						<div class="page-title-head d-flex align-items-center">
+							<div class="flex-grow-1">
+								<h3 class="fs-xl fw-bold m-0">Contacts</h3>
 							</div>
-						</div><!-- end col -->
-					</div><!-- end row -->
 
-					<!-- Add Customer Modal -->
-					<div class="modal fade" id="addCustomerModal" tabindex="-1" aria-labelledby="addCustomerModalLabel" aria-hidden="true">
-						<div class="modal-dialog modal-lg">
-							<div class="modal-content">
-
-								<div class="modal-header">
-									<h5 class="modal-title" id="addCustomerModalLabel">Add New Customer</h5>
-									<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-								</div>
-
-								<form id="addCustomerForm">
-									<div class="modal-body">
-										<div class="row g-3">
-
-											<div class="col-md-6">
-												<label for="contactName" class="form-label">Contact Person</label>
-												<input type="text" class="form-control" id="contactName" placeholder="Enter full name" required>
-											</div>
-
-											<div class="col-md-6">
-												<label for="email" class="form-label">Email Address</label>
-												<input type="email" class="form-control" id="email" placeholder="Enter email" required>
-											</div>
-
-											<div class="col-md-6">
-												<label for="phone" class="form-label">Phone Number</label>
-												<input type="text" class="form-control" id="phone" placeholder="e.g. +1 234 567 8900" required>
-											</div>
-
-											<div class="col-md-6">
-												<label for="company" class="form-label">Company</label>
-												<input type="text" class="form-control" id="company" placeholder="Company name">
-											</div>
-
-											<div class="col-md-6">
-												<label for="country" class="form-label">Country</label>
-												<select class="form-select" id="country" required>
-													<option value="">Select country</option>
-													<option value="US">United States</option>
-													<option value="UK">United Kingdom</option>
-													<option value="IN">India</option>
-													<option value="CA">Canada</option>
-													<option value="DE">Germany</option>
-													<option value="FR">France</option>
-													<option value="JP">Japan</option>
-													<option value="BR">Brazil</option>
-													<option value="EG">Egypt</option>
-												</select>
-											</div>
-
-											<div class="col-md-6">
-												<label for="contactType" class="form-label">Customer Type</label>
-												<select class="form-select" id="contactType" required>
-													<option value="">Select type</option>
-													<option value="Lead">Lead</option>
-													<option value="Prospect">Prospect</option>
-													<option value="Client">Client</option>
-												</select>
-											</div>
-
-											<div class="col-md-6">
-												<label for="Accostatus" class="form-label">Account Status</label>
-												<select class="form-select" id="Accostatus" required>
-													<option value="">Select status</option>
-													<option value="Active">Active</option>
-													<option value="Verification Pending">Verification Pending</option>
-													<option value="Inactive">Inactive</option>
-													<option value="Blocked">Blocked</option>
-												</select>
-											</div>
-
-											<div class="col-md-6">
-												<label for="joinedDate" class="form-label">Joined Date</label>
-												<input type="date" class="form-control" data-provider="flatpickr" data-date-format="d M, Y" id="joinedDate" required>
-											</div>
-
-										</div>
-									</div>
-
-									<div class="modal-footer">
-										<button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-										<button type="submit" class="btn btn-primary">Add Customer</button>
-									</div>
-								</form>
-
+							<div class="text-end">
+								<ol class="breadcrumb m-0 py-0" style="background-color: transparent;">
+									<li class="breadcrumb-item"><a href="javascript: void(0);">CRM</a></li>
+									<li class="breadcrumb-item active">Contacts</li>
+								</ol>
 							</div>
 						</div>
 					</div>
-
-
 				</div>
-				<!-- container -->
 
-				<!-- Footer Start -->
-				<footer class="footer">
-					<div class="container-fluid">
-						<div class="row">
-							<div class="col-12 text-center">
-								©<span class="fw-semibold">64 Network Security Pvt Ltd</span> 
+				<div class="row mt-3">
+					<div class="col-12">
+						
+						<div class="controls-wrapper">
+							<div class="controls">
+								<div class="left-controls">
+									<input type="text" class="control-select" id="filtername" data-table-filter="name"
+										placeholder="id"
+										class="form-control" />
+									<input type="text" class="control-select" id="filterfullname" data-table-filter="fullname"
+										placeholder="Full Name"
+										class="form-control" />
+									<input type="text" class="control-select" id="filtercustomername" data-table-filter="customer_name"
+										placeholder="Customer Name"
+										class="form-control" />
+								
+									<select id="filterStatus" class="control-select placeholder" data-table-filter="status" aria-label="Status">
+										<option value="">status</option>
+										<option value="Open">Open</option>
+										<option value="Passive">Passive</option>
+										<option value="Replied">Replied</option>
+									</select>
+								</div>
+								<div class="right-controls">
+									<div class="btn-group filter-actions">
+										<button class="btn btn-default btn-sm filter-button" title="Filters">
+											<span class="filter-icon">
+												<svg class="es-icon es-line icon-sm" aria-hidden="true">
+													<use href="#es-line-filter"></use>
+												</svg>
+											</span>
+											<span class="button-label hidden-xs">Filters</span>
+										</button>
+										<button class="btn btn-default btn-sm filter-x-button" title="Clear Filters">
+											<span class="filter-icon">
+												<svg class="es-icon es-line icon-sm" aria-hidden="true">
+													<use href="#es-small-close"></use>
+												</svg>
+											</span>
+										</button>
+									</div>
+										
+									<a id="new-contacts-btn" href="/app/contacts/new" class="btn btn-sm btn-primary mr-2">
+										<i class="fa fa-plus me-1"></i> New Contacts
+									</a>
+									<div class="dropdown d-none" id="actions-dropdown">
+										<button class="btn btn-secondary dropdown-toggle" type="button"
+											data-bs-toggle="dropdown">
+											Actions
+										</button>
+										<ul class="dropdown-menu">
+											<li><a class="dropdown-item" href="#" data-action="edit">Edit</a></li>
+											<li><a class="dropdown-item" href="#" data-action="assign_to">Assign To</a></li>
+											<li><a class="dropdown-item" href="#" data-action="apply_rule">Apply Rule</a></li>
+											<li><a class="dropdown-item" href="#" data-action="add_tags">Add Tags</a></li>
+											<li><a class="dropdown-item" href="#" data-action="print">Print</a></li>
+											<li><a class="dropdown-item" href="#" data-action="delete">Delete</a></li>
+										</ul>
+									</div>
+								</div>
+
 							</div>
+
+							<div class="table-container mt-2">
+								<table id="contactsTable" class="contacts-table">
+									<thead>
+										<tr>
+											<th>
+												<input type="checkbox" id="contactscheckAll" />
+											</th>
+											<th>Full Name</th>
+											<th>Email</th>
+											<th>Status</th>
+											<th>Phone</th>
+											<th>Customer</th>
+											<th>User Id</th>
+											<th>ID</th>
+											<th class="text-center ellipsis" id="count-header" title="0 of 0" style="cursor: default;">
+												<span id="visible-count">0</span> of <span id="total-count">0</span>
+											</th>
+										</tr>
+									</thead>
+									<tbody>
+									</tbody>
+								</table>
+							</div>
+
+							<div class="d-flex justify-content-between align-items-center">
+								<div class="list-paging-area d-flex justify-content-between align-items-center w-100">
+									<div class="p-2">
+										<div class="btn-group">
+											<button type="button" class="btn btn-default1 btn-sm btn-paging" data-value="20">20</button>
+											<button type="button" class="btn btn-default1 btn-sm btn-paging" data-value="100">100</button>
+											<button type="button" class="btn btn-default1 btn-sm btn-paging" data-value="500">500</button>
+											<button type="button" class="btn btn-default1 btn-sm btn-paging" data-value="2500">2500</button>
+										</div>
+									</div>
+									
+									<div class="p-2">
+										<button class="btn btn-default1 btn-more btn-sm">Load More</button>
+									</div>
+								</div>
+							</div>
+
 						</div>
 					</div>
-				</footer>
-				<!-- end Footer -->
+				</div>
 
 			</div>
+
+
+			<div class="contacts-details-view d-none">
+				<div class="page-title-head d-flex align-items-center">
+					<div class="flex-grow-1">
+						<h4 class="fs-xl fw-bold m-0">Contact</h4>
+					</div>
+
+					<div class="text-end">
+						<ol class="breadcrumb m-0 py-0" style="background-color: transparent;">
+							<li class="breadcrumb-item"><a href="javascript: void(0);">CRM</a></li>
+							<li class="breadcrumb-item"><a href="/app/contacts">Contacts</a></li>
+						</ol>
+					</div>
+				</div>
+				<div class="row mt-3">
+					<div class="card w-100" style="min-height:80vh;background-color:transparent;border:none;">
+						<div class="card-body p-0">
+							<div class="d-flex justify-content-between align-items-center mb-1 pl-2 pr-2">
+								<h4 class="mb-0 fw-bold text-dark">Contact Details</h4>
+								<button type="button" class="btn btn-primary shadow-sm px-3 rounded-pill d-inline-flex align-items-center justify-content-center gap-1" id="edit-contact-details-btn">
+									<i class="fa fa-edit d-inline-flex align-items-center"></i>
+									<span class="d-inline-flex align-items-center">Edit Profile</span>
+								</button>
+							</div>
+
+							<div class="row align-items-stretch">
+								<!-- Sidebar -->
+								<div class="col-12 col-lg-4 col-xl-3 d-flex flex-column pb-4 contact-sidebar">
+									<div class="w-100 h-100" id="contact-profile-summary"></div>
+								</div>
+								
+								<!-- Main Content -->
+								<div class="col-12 col-lg-8 col-xl-9 d-flex flex-column pb-4">
+									<div class="row align-items-stretch mb-2">
+										<div class="col-12 col-lg-6 col-xl-6 d-flex flex-column">
+											<div id="contact-details-contact-table" class="h-100 w-100 d-flex flex-column"></div>
+										</div>
+										<div class="col-12 col-xl-6 col-lg-6 d-flex flex-column">
+											<div id="contact-email-details-table" class="h-100 w-100 d-flex flex-column"></div>
+										</div>
+									</div>
+									<div id="contact-links-details-table"></div>
+									<div id="contact-more-details-container" class="mb-3"></div>
+
+									<!-- Comments Section -->
+									
+									<div class="comment-section mb-3 mt-3">
+										<div class="corporate-card comment-box p-3" style="border: none !important;">
+											<div class="comment-input-wrapper">
+												<div class="comment-input-header mb-3 pb-2 border-bottom">
+													<span class="fw-bold text-dark"><i class="fa fa-comments-o me-2"></i>Comments</span>
+												</div>
+												<div class="comment-input-container w-100">
+													<span class="avatar avatar-medium shadow-sm d-flex align-items-center justify-content-center bg-primary text-white rounded-circle fw-bold" style="width: 40px; height: 40px;" title="">
+														<div class="avatar-frame standard-image" style="background-color: var(--dark-green-avatar-bg); color: var(--dark-green-avatar-color)" title="">
+															
+														</div>
+													</span>
+													<div class="frappe-control col" data-fieldtype="Comment" data-fieldname="comment">
+														<span class="tooltip-content">comment</span>
+														<div class="ql-container ql-bubble rounded-3 border border-light" style="position: relative; background: #fdfdfd;">
+															<div id="new-comment-input" class="ql-editor ql-blank p-3" data-gramm="false" contenteditable="true" data-placeholder="Type a reply / comment..."><p><br></p></div>
+															
+															<div class="ql-mention-list-container shadow-sm rounded-3 border" style="display: none; position: absolute;"><ul class="ql-mention-list m-0 p-0"></ul></div>
+														</div>
+													</div>
+												</div>
+											</div>
+											<div class="comment-actions d-flex justify-content-end mt-3 gap-2">
+												<button id="add-comment-btn" class="btn btn-primary btn-default2 btn-comment btn-xs rounded-pill px-4 shadow-sm"><i class="fa fa-paper-plane me-1"></i> Comment</button>
+												
+												<button class="btn btn-sm btn-outline-primary btn-default2 btn-comment rounded-pill px-4" id="email-send"><i class="fa fa-envelope-o me-1"></i> New Email</button>
+												
+											</div>
+										</div>
+									</div>
+									
+
+									<!-- Activity Section -->
+									<div class="corporate-card p-4">
+										<h6 class="text-uppercase text-muted mb-2 pb-2 border-bottom activity fw-bold"><i class="fa fa-history mr-2"></i>Activity</h6>
+										<div class="timeline" id="activity-timeline">
+											<p class="text-muted text-center py-4 bg-light rounded">Loading activity...</p>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="new-contacts d-none">
+				<div class="row">
+					<div class="col-12">
+						<div class="page-title-head d-flex align-items-center">
+							<div class="flex-grow-1">
+								<h4 class="fs-xl fw-bold m-0">Contacts</h4>
+							</div>
+
+							<div class="text-end">
+								<ol class="breadcrumb m-0 py-0" style="background-color: transparent;">
+									<li class="breadcrumb-item"><a href="javascript: void(0);">CRM</a></li>
+									<li class="breadcrumb-item"><a href="/app/contacts">Contacts</a></li>
+								</ol>
+							</div>
+						</div>
+					</div>
+				</div>
+				
+				<div class="row mt-3">
+					<div class="card w-100" style="background-color:transparent;border:none;">
+						<div class="card-body p-2" style="padding:5px;">
+							<form id="new-contacts-form">
+								<div class="new-contact-wrap">
+									<div class="new-contact-wizard-bar">
+										<button type="button" class="new-contact-wizard-step is-active" data-step="1">
+											<div class="new-contact-wizard-circle">1</div>
+											<div class="new-contact-wizard-label">Basic Info</div>
+										</button>
+										<div class="new-contact-wizard-connector"></div>
+										<button type="button" class="new-contact-wizard-step" data-step="2">
+											<div class="new-contact-wizard-circle">2</div>
+											<div class="new-contact-wizard-label">Email &amp; Phone</div>
+										</button>
+										<div class="new-contact-wizard-connector"></div>
+										<button type="button" class="new-contact-wizard-step" data-step="3">
+											<div class="new-contact-wizard-circle">3</div>
+											<div class="new-contact-wizard-label">Reference</div>
+										</button>
+									</div>
+
+									<div class="new-contact-wizard-panel" data-panel="1">
+										<div class="new-contact-card">
+											<div class="new-contact-card-title">Basic Information</div>
+											<div class="new-contact-form">
+												<div class="new-contact-row one-col">
+													<div class="new-contact-field"><div id="first-name-field"></div></div>
+												</div>
+												<div class="new-contact-row two-col">
+													<div class="new-contact-field"><div id="last-name-field"></div></div>
+													<div class="new-contact-field"><div id="middle-name-field"></div></div>
+												</div>
+												<div class="new-contact-row two-col">
+													<div class="new-contact-field"><div id="gender-field"></div></div>
+													<div class="new-contact-field"><div id="salutation-field"></div></div>
+												</div>
+												<div class="new-contact-row two-col">
+													<div class="new-contact-field"><div id="department-field"></div></div>
+													<div class="new-contact-field"><div id="designation-field"></div></div>
+												</div>
+											</div>
+										</div>
+									</div>
+
+									<div class="new-contact-wizard-panel d-none" data-panel="2">
+										<div class="new-contact-card">
+											<div class="new-contact-card-title">Email &amp; Phone</div>
+											<div class="new-contact-form">
+												<div class="new-contact-row two-col">
+													<div class="new-contact-list-block">
+														<label class="control-label">Email <span style="color:#eb9091">*</span> <i id="add-contact-person" class="fa fa-plus text-primary ml-1" style="cursor:pointer;" title="Add Contact"></i></label>
+														<div id="contact-email-container" class="ps-2"></div>
+													</div>
+													<div class="new-contact-list-block">
+														<label class="control-label">Phone <span style="color:#eb9091">*</span> <i id="add-contact-phone" class="fa fa-plus text-primary ml-1" style="cursor:pointer;" title="Add Phone"></i></label>
+														<div id="contact-phone-container" class="ps-2"></div>
+													</div>
+												</div>
+												<div class="new-contact-row two-col">
+													<div class="new-contact-field"><div id="address-field"></div></div>
+													<div class="new-contact-field"><div id="linked-in-field"></div></div>
+												</div>
+											</div>
+										</div>
+									</div>
+
+									<div class="new-contact-wizard-panel d-none" data-panel="3">
+										<div class="new-contact-card">
+											<div class="new-contact-card-title">Reference &amp; Flags</div>
+											<div class="new-contact-form">
+												<div class="new-contact-row one-col">
+													<div class="new-contact-list-block">
+														<label class="control-label">Links <i id="add-reference-link" class="fa fa-plus text-primary ml-1" style="cursor:pointer;" title="Add Link"></i></label>
+														<div id="reference-link-container" class="ps-2"></div>
+													</div>
+												</div>
+												<div class="new-contact-row two-col">
+													<div class="new-contact-field"><div id="is-primary-contact-field" class="form-check"></div></div>
+													<div class="new-contact-field"><div id="is-billing-contact-field" class="form-check"></div></div>
+												</div>
+											</div>
+										</div>
+									</div>
+
+									<div class="new-contact-wizard-footer">
+										<button class="btn btn-default" id="new-contact-cancel" type="button">Cancel</button>
+										<div class="new-contact-wizard-nav">
+											<button class="btn btn-default d-none" id="new-contact-back" type="button">&#8592; Back</button>
+											<button class="btn btn-primary1" id="new-contact-next" type="button">Next</button>
+											<button type="submit" class="btn btn-primary d-none" id="new-contact-save">Save Contact</button>
+										</div>
+									</div>
+								</div>
+							</form>
+						</div>
+					</div>
+				</div>
+
+			</div>
+
+			<footer class="footer">
+				<div class="container-fluid">
+					<div class="row">
+						<div class="col-12 text-center">
+							©<span class="fw-semibold footer-text">64 Network Security Pvt Ltd</span> 
+						</div>
+					</div>
+				</div>
+			</footer>
 		</div>
 	`
 };

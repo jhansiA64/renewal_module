@@ -266,6 +266,60 @@ def apply_assignment_rule(doctype, name):
 
 
 @frappe.whitelist()
+def rename_or_merge_contact(old_name, new_name, merge=0):
+    old_name = str(old_name or "").strip()
+    new_name = str(new_name or "").strip()
+
+    try:
+        merge = int(merge or 0)
+    except (TypeError, ValueError):
+        merge = 0
+
+    if not old_name:
+        frappe.throw("Contact name is missing")
+
+    if not new_name:
+        frappe.throw("New contact name is required")
+
+    if old_name == new_name and not merge:
+        return old_name
+
+    contact = frappe.get_doc("Contact", old_name)
+    contact.check_permission("write")
+
+    from frappe.model.rename_doc import rename_doc as model_rename_doc
+
+    if merge:
+        if old_name == new_name:
+            frappe.throw(
+                frappe._("Please select another existing Contact to merge into.")
+            )
+
+        if not frappe.db.exists("Contact", new_name):
+            frappe.throw(
+                frappe._("Contact {0} does not exist.").format(frappe.bold(new_name))
+            )
+
+        target_doc = frappe.get_doc("Contact", new_name)
+        if not (target_doc.has_permission("read") or target_doc.has_permission("write")):
+            frappe.throw(
+                frappe._("You do not have permission to merge into Contact {0}.").format(
+                    frappe.bold(new_name)
+                ),
+                frappe.PermissionError,
+            )
+
+    return model_rename_doc(
+        doctype="Contact",
+        old=old_name,
+        new=new_name,
+        merge=merge,
+        ignore_permissions=merge,
+        show_alert=False,
+    )
+
+
+@frappe.whitelist()
 def get_contact_activity(contact_name):
     """Return chronological activity timeline for a contact."""
     if not contact_name:

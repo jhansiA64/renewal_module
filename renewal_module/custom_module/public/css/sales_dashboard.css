@@ -1,0 +1,45 @@
+body[data-route="sales-dashboard"] #sidebar,
+body[data-route="sales-dashboard"] .layout-side-section,
+body[data-route="sales-dashboard"] .standard-sidebar,
+body[data-route="sales-dashboard"] .app-sidebar {
+    display: none !important;
+}
+
+body[data-route="sales-dashboard"] .page-content,
+body[data-route="sales-dashboard"] .layout-main,
+body[data-route="sales-dashboard"] .layout-main-section,
+body[data-route="sales-dashboard"] .page-wrapper {
+    margin-left: 0 !important;
+    width: 100% !important;
+}
+
+.sales-dashboard-wrapper {
+    padding: 24px;
+    max-width: 1360px;
+    margin: 0 auto;
+}
+
+.sales-dashboard-content {
+    display: grid;
+    gap: 20px;
+}
+
+.sales-dashboard-wrapper .support-page-heading {
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.sales-dashboard-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #fff;
+}
+
+.sales-dashboard-card .card-body {
+    padding: 28px;
+}
+
+.sales-dashboard-empty-state {
+    color: #6b7280;
+    font-size: 0.95rem;
+}

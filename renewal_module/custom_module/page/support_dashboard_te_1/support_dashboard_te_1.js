@@ -156,21 +156,19 @@ class SupportDashboard {
 		const wrapper = this.page.wrapper[0] || this.page.wrapper;
 		wrapper.querySelectorAll('.ticket-status-card').forEach(card => {
 			card.addEventListener('click', () => {
-				let status = card.getAttribute('data-status');
+				const status = card.getAttribute('data-status');
+				let url = `/app/ticketss?status=${encodeURIComponent(status)}`;
 
-				// For "Created" status with tech support, add issue owner filter for current user
+				// For "Created" status with tech support, use issue owner filter.
 				if (status === "Created" && this.is_tech_support && this.current_user) {
-					// Build filter for issue owner equal to current user
 					const filters = encodeURIComponent(JSON.stringify([
 						["Issue", "owner", "=", this.current_user]
 					]));
-					let url = `/app/ticketss?status=${encodeURIComponent(status)}&filters=${filters}`;
-					window.location.href = url;
+					url = `/app/ticketss?status=${encodeURIComponent(status)}&filters=${filters}`;
 				}
-				// For other statuses, add working_agent filter for tech support agents
+				// For other statuses, tech support users should see only their assigned tickets.
 				else if (this.is_tech_support && this.current_user) {
-					let url = `/app/ticketss?status=${encodeURIComponent(status)}&working_agent=${encodeURIComponent(this.current_user)}`;
-					window.location.href = url;
+					url = `/app/ticketss?status=${encodeURIComponent(status)}&working_agent=${encodeURIComponent(this.current_user)}`;
 				}
 
 				window.location.href = url;

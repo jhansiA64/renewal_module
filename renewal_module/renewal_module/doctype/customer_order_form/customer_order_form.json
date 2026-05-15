@@ -22,6 +22,8 @@
   "description",
   "items_section",
   "items",
+  "section_break_pyzp",
+  "margin_table",
   "section_break_32",
   "total_quantity",
   "base_total",
@@ -50,7 +52,6 @@
   "contact_details_section",
   "contact_list",
   "sales_team",
-  "sales_team_section",
   "section_break_73",
   "sales_person",
   "column_break_75",
@@ -556,11 +557,6 @@
    "options": "Renewal Contacts"
   },
   {
-   "fieldname": "sales_team_section",
-   "fieldtype": "Section Break",
-   "label": "Sales Team"
-  },
-  {
    "fieldname": "sales_team",
    "fieldtype": "Table",
    "label": "Sales Team",
@@ -678,12 +674,22 @@
    "fieldname": "terms_tab",
    "fieldtype": "Tab Break",
    "label": "Terms"
+  },
+  {
+   "fieldname": "section_break_pyzp",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "margin_table",
+   "fieldtype": "Table",
+   "label": "Margin Table",
+   "options": "Margin Table"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2023-02-20 15:02:12.346720",
+ "modified": "2026-04-23 11:16:09.889428",
  "modified_by": "Administrator",
  "module": "Renewal Module",
  "name": "Customer Order Form",
@@ -703,6 +709,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

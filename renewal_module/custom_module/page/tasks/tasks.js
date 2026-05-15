@@ -68,7 +68,7 @@ class taskspage {
 		if (route.length === 1) {
 			return this.show_list();
 		}
-		if (route.length === 2 && route[1] === "new-tasks") {
+		if (route.length === 2 && route[1] === "new") {
 			return this.show_new();
 		}
 		if (route.length === 2) {
@@ -146,7 +146,7 @@ class taskspage {
 
 		$newTaskBtn.off("click.tasks_new").on("click.tasks_new", (e) => {
 			e.preventDefault();
-			frappe.set_route("tasks", "new-tasks");
+			frappe.set_route("tasks", "new");
 		});
 	}
 
@@ -232,7 +232,7 @@ class taskspage {
 					<input class="form-check-input form-check-input-light fs-14 product-item-check" type="checkbox" data-task-name="${task.name}">
 				</td>
 				<td>
-					<a href="/app/tasks/${task.name}" class="task-id-link link-reset task-link"
+					<a href="/app/tasks/${task.name}" class="task-id-link link-reset task-link text-decoration-none"
 					   data-task-name="${task.name}" title="${task.name}">${task.name}</a>
 				</td>
 				<td class="ellipsis" title="${escapeHtml(task.subject)}">${escapeHtml(task.subject)}</td>
@@ -1389,7 +1389,7 @@ class taskspage {
 				} else {
 					this._task_panel_call_name_control.set_value(this._task_panel_call_selected_customer || defaultCustomer || "");
 				}
-				
+
 			};
 
 			const pad2 = (value) => String(value).padStart(2, "0");
@@ -3518,6 +3518,20 @@ class taskspage {
 			);
 			const recipientOptions = normalizeEmails([...taskEmails, ...systemUserEmails]);
 
+			const getCurrentUserEmailSignature = async () => {
+				try {
+					const response = await frappe.db.get_value("User", frappe.session.user, "email_signature");
+					return String(response?.message?.email_signature || "").trim();
+				} catch (err) {
+					console.warn("Unable to fetch current user email signature", err);
+					return "";
+				}
+			};
+			const userEmailSignature = await getCurrentUserEmailSignature();
+			const defaultMessageContent = userEmailSignature
+				? `${"<p><br></p>".repeat(5)}${userEmailSignature}`
+				: "";
+
 			const emailDialog = new frappe.ui.Dialog({
 				title: __("Send Email"),
 				fields: [
@@ -3564,7 +3578,8 @@ class taskspage {
 						label: __("Message"),
 						fieldname: "content",
 						fieldtype: "TextEditor",
-						reqd: 1
+						reqd: 1,
+						default: defaultMessageContent
 					},
 					{
 						fieldtype: "Section Break",
@@ -3771,7 +3786,9 @@ class taskspage {
 		$(".new-tasks").removeClass("d-none");
 		this.setPageTitle("New Task");
 		this.setActiveSidebar();
+		this._newTaskCurrentStep = 1;
 		this.render_new_task_form();
+		this.gotoNewTaskWizardStep(1);
 		this.bind_new_task_form_events();
 	}
 
@@ -3781,30 +3798,156 @@ class taskspage {
 		if (!formContainer) return;
 
 		formContainer.innerHTML = `
-	< div class="card shadow-sm border-0 rounded-4" >
-		<div class="card-body p-4">
-			<div id="new-task-form-status" class="mb-2"></div>
-			<div class="row g-4">
-				<div class="col-md-12"><div id="task-subject-field"></div></div>
-				<div class="col-md-6"><div id="task-status-field"></div></div>
-				<div class="col-md-6"><div id="task-priority-field"></div></div>
-				<div class="col-md-6"><div id="task-exp-start-field"></div></div>
-				<div class="col-md-6"><div id="task-exp-end-field"></div></div>
-				<div class="col-md-6"><div id="task-assignees-field"></div></div>
-				<div class="col-md-12"><div id="task-description-field"></div></div>
+			<div class="new-task-wrap">
+				<div class="new-task-wizard-bar">
+					<div class="new-task-wizard-step is-active" data-step="1">
+						<div class="new-task-wizard-circle">1</div>
+						<div class="new-task-wizard-label">Task Info</div>
+					</div>
+					<div class="new-task-wizard-connector"></div>
+					<div class="new-task-wizard-step" data-step="2">
+						<div class="new-task-wizard-circle">2</div>
+						<div class="new-task-wizard-label">Schedule</div>
+					</div>
+					<div class="new-task-wizard-connector"></div>
+					<div class="new-task-wizard-step" data-step="3">
+						<div class="new-task-wizard-circle">3</div>
+						<div class="new-task-wizard-label">Assignees &amp; Details</div>
+					</div>
+				</div>
+
+				<div class="new-task-wizard-panel" data-panel="1">
+					<div class="new-task-card">
+						<div class="new-task-row one-col">
+							<div class="new-task-field"><div id="task-subject-field"></div></div>
+						</div>
+						<div class="new-task-row two-col">
+							<div class="new-task-field"><div id="task-status-field"></div></div>
+							<div class="new-task-field"><div id="task-priority-field"></div></div>
+						</div>
+					</div>
+				</div>
+
+				<div class="new-task-wizard-panel d-none" data-panel="2">
+					<div class="new-task-card">
+						<div class="new-task-row two-col">
+							<div class="new-task-field"><div id="task-exp-start-field"></div></div>
+							<div class="new-task-field"><div id="task-exp-end-field"></div></div>
+						</div>
+					</div>
+				</div>
+
+				<div class="new-task-wizard-panel d-none" data-panel="3">
+					<div class="new-task-card">
+						<div class="new-task-row one-col">
+							<div class="new-task-field"><div id="task-assignees-field"></div></div>
+						</div>
+					</div>
+					<div class="new-task-card">
+						<div class="new-task-row one-col">
+							<div class="new-task-field"><div id="task-description-field"></div></div>
+						</div>
+					</div>
+				</div>
+
+				<div class="new-task-wizard-footer">
+					<button type="button" class="btn btn-light new-task-wizard-nav" id="task-cancel-btn">Cancel</button>
+					<div class="d-flex gap-2">
+						<button type="button" class="btn btn-light new-task-wizard-nav d-none" id="task-back-btn">Back</button>
+						<button type="button" class="btn btn-primary1 new-task-wizard-nav" id="task-next-btn">Next</button>
+						<button type="button" class="btn btn-primary1 new-task-wizard-nav d-none" id="task-create-btn">Save Task</button>
+					</div>
+				</div>
 			</div>
-			<div class="text-end mt-4">
-				<button type="button" class="btn btn-primary rounded-pill px-5" id="task-create-btn">save Task</button>
-			</div>
-		</div>
-			</div >
-	`;
+		`;
+	}
+
+	gotoNewTaskWizardStep(step) {
+		this._newTaskCurrentStep = step;
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const formContainer = wrapper.querySelector(".new-tasks-content");
+		if (!formContainer) return;
+
+		formContainer.querySelectorAll(".new-task-wizard-step").forEach(el => {
+			const s = parseInt(el.dataset.step);
+			el.classList.remove("is-active", "is-done");
+			if (s === step) el.classList.add("is-active");
+			else if (s < step) el.classList.add("is-done");
+		});
+
+		formContainer.querySelectorAll(".new-task-wizard-connector").forEach((el, i) => {
+			el.classList.toggle("is-done", i + 1 < step);
+		});
+
+		formContainer.querySelectorAll(".new-task-wizard-panel").forEach(el => {
+			const p = parseInt(el.dataset.panel);
+			el.classList.toggle("d-none", p !== step);
+		});
+
+		const backBtn = formContainer.querySelector("#task-back-btn");
+		const nextBtn = formContainer.querySelector("#task-next-btn");
+		const saveBtn = formContainer.querySelector("#task-create-btn");
+		if (backBtn) backBtn.classList.toggle("d-none", step === 1);
+		if (nextBtn) nextBtn.classList.toggle("d-none", step === 3);
+		if (saveBtn) saveBtn.classList.toggle("d-none", step !== 3);
+	}
+
+	validateNewTaskWizardStep(step, controls) {
+		const { subjectControl, startDateControl, endDateControl, assigneesControl, normalize_assignees } = controls;
+		if (step === 1) {
+			const subject = (subjectControl.get_value() || "").trim();
+			if (!subject) {
+				frappe.msgprint(__("Subject is required."));
+				return false;
+			}
+		}
+		if (step === 2) {
+			const exp_end_date = endDateControl.get_value();
+			const exp_start_date = startDateControl.get_value();
+			if (!exp_end_date) {
+				frappe.msgprint(__("Expected End Date is required."));
+				return false;
+			}
+			if (exp_start_date && exp_end_date < exp_start_date) {
+				frappe.msgprint(__("Expected End Date cannot be before Expected Start Date."));
+				return false;
+			}
+		}
+		if (step === 3) {
+			const raw = assigneesControl.get_value();
+			const users = normalize_assignees(raw);
+			if (!users.length) {
+				frappe.msgprint(__("Assign To is required."));
+				return false;
+			}
+		}
+		return true;
 	}
 
 	async bind_new_task_form_events() {
 		const wrapper = this.page.wrapper[0] || this.page.wrapper;
 		const formContainer = wrapper.querySelector(".new-tasks-content");
 		if (!formContainer) return;
+
+		function normalize_assignees(value) {
+			const result = [];
+			if (Array.isArray(value)) {
+				value.forEach((item) => {
+					if (!item) return;
+					if (typeof item === "string") { result.push(item.trim()); return; }
+					if (typeof item === "object") {
+						const picked = item.user || item.value || item.name || item.email || "";
+						if (picked) result.push(String(picked).trim());
+					}
+				});
+			}
+			if (!Array.isArray(value) && typeof value === "string") {
+				value.split(",").forEach((item) => { const v = item.trim(); if (v) result.push(v); });
+			}
+			const unique = Array.from(new Set(result.filter(Boolean)));
+			if (!unique.length && frappe.session && frappe.session.user) unique.push(frappe.session.user);
+			return unique;
+		}
 
 		const subjectControl = frappe.ui.form.make_control({
 			parent: formContainer.querySelector("#task-subject-field"),
@@ -3840,14 +3983,43 @@ class taskspage {
 
 		const endDateControl = frappe.ui.form.make_control({
 			parent: formContainer.querySelector("#task-exp-end-field"),
-			df: { fieldtype: "Date", label: "Expected End Date", reqd: 1 },
+			df: { fieldtype: "Datetime", label: "Expected End Date", reqd: 1 },
 			render_input: true
 		});
-		await frappe.model.with_doctype("Task Users");
+
+		// await frappe.model.with_doctype("Task Users");
+		// const assigneesControl = frappe.ui.form.make_control({
+		// 	parent: formContainer.querySelector("#task-assignees-field"),
+		// 	df: { fieldtype: "Table MultiSelect", label: "Assign To", name: "custom_users", options: "Task Users" },
+		// 	render_input: true
+		// });
+
+		let userOptions = [];
+		try {
+			const res = await frappe.call({
+				method: "renewal_module.custom_module.page.tasks.tasks.get_enabled_users",
+				silent: true
+			});
+			const users = res?.message || [];
+			userOptions = users.map((u) => ({
+				label: u.full_name || u.name || u.email,
+				value: u.email || u.name,
+				description: u.name || ""
+			}));
+		} catch (err) {
+			console.warn("Failed to load participant options", err);
+		}
+
 		const assigneesControl = frappe.ui.form.make_control({
+			df: {
+				fieldtype: "MultiSelect",
+				label: "Assign To",
+				fieldname: "custom_users",
+				options: userOptions
+			},
 			parent: formContainer.querySelector("#task-assignees-field"),
-			df: { fieldtype: "Table MultiSelect", label: "Assign To", name: "custom_users", options: "Task Users" },
 			render_input: true
+
 		});
 
 		const descriptionControl = frappe.ui.form.make_control({
@@ -3859,113 +4031,97 @@ class taskspage {
 		statusControl.set_value("Open");
 		priorityControl.set_value("Medium");
 		if (frappe.session && frappe.session.user) {
-			try {
-				assigneesControl.set_value([frappe.session.user]);
-			} catch (e) {
-				// Ignore control-level defaulting issues and rely on submit fallback.
-			}
+			try { assigneesControl.set_value([frappe.session.user]); } catch (e) { /* ignore */ }
 		}
 
-		const createBtn = formContainer.querySelector("#task-create-btn");
+		const controls = {
+			subjectControl,
+			statusControl,
+			priorityControl,
+			startDateControl,
+			endDateControl,
+			assigneesControl,
+			descriptionControl,
+			normalize_assignees
+		};
+
 		const cancelBtn = formContainer.querySelector("#task-cancel-btn");
+		const backBtn = formContainer.querySelector("#task-back-btn");
+		const nextBtn = formContainer.querySelector("#task-next-btn");
+		const saveBtn = formContainer.querySelector("#task-create-btn");
 
-		if (cancelBtn) {
-			cancelBtn.addEventListener("click", () => {
-				frappe.set_route("tasks");
-			});
-		}
+		$(cancelBtn).off("click.newTask").on("click.newTask", () => {
+			frappe.set_route("tasks");
+		});
 
-		if (createBtn) {
-			createBtn.addEventListener("click", async () => {
-				const subject = (subjectControl.get_value() || "").trim();
-				const status = statusControl.get_value() || "Open";
-				const priority = priorityControl.get_value() || "Medium";
-				const exp_start_date = startDateControl.get_value() || null;
-				const exp_end_date = endDateControl.get_value() || null;
-				const description = descriptionControl.get_value() || "";
-				const raw_custom_users = assigneesControl.get_value();
-				const custom_users = normalize_assignees(raw_custom_users);
+		$(backBtn).off("click.newTask").on("click.newTask", () => {
+			if (this._newTaskCurrentStep > 1) {
+				this.gotoNewTaskWizardStep(this._newTaskCurrentStep - 1);
+			}
+		});
 
-				if (!subject) {
-					frappe.msgprint(__("Subject is required."));
-					return;
-				}
+		$(nextBtn).off("click.newTask").on("click.newTask", () => {
+			if (!this.validateNewTaskWizardStep(this._newTaskCurrentStep, controls)) return;
+			if (this._newTaskCurrentStep < 3) {
+				this.gotoNewTaskWizardStep(this._newTaskCurrentStep + 1);
+			}
+		});
 
-				if (exp_start_date && exp_end_date && exp_end_date < exp_start_date) {
-					frappe.msgprint(__("Expected End Date cannot be before Expected Start Date."));
-					return;
-				}
-
-				if (!exp_end_date) {
-					frappe.msgprint(__("Expected End Date is required."));
-					return;
-				}
-
-				if (!custom_users.length) {
-					frappe.msgprint(__("Assign To is required."));
-					return;
-				}
-
-				try {
-					const r = await frappe.call({
-						method: "frappe.client.insert",
-						args: {
-							doc: {
-								doctype: "Task",
-								subject,
-								status,
-								priority,
-								exp_start_date,
-								exp_end_date,
-								custom_users: custom_users.map((user) => ({ doctype: "Task Users", user })),
-								description
-							}
-						},
-						freeze: true,
-						freeze_message: __("Creating Task...")
-					});
-
-					if (r && r.message && r.message.name) {
-						frappe.show_alert({ message: __("Task Created"), indicator: "green" });
-						frappe.set_route("tasks", r.message.name);
+		formContainer.querySelectorAll(".new-task-wizard-step").forEach(el => {
+			$(el).off("click.newTask").on("click.newTask", () => {
+				const targetStep = parseInt(el.dataset.step);
+				if (targetStep < this._newTaskCurrentStep) {
+					this.gotoNewTaskWizardStep(targetStep);
+				} else if (targetStep > this._newTaskCurrentStep) {
+					let valid = true;
+					for (let s = this._newTaskCurrentStep; s < targetStep; s++) {
+						if (!this.validateNewTaskWizardStep(s, controls)) { valid = false; break; }
 					}
-				} catch (err) {
-					console.error("New Task creation failed:", err);
-					frappe.msgprint(__("Unable to create task. Please try again."));
+					if (valid) this.gotoNewTaskWizardStep(targetStep);
 				}
 			});
-		}
+		});
 
-		function normalize_assignees(value) {
-			const result = [];
+		$(saveBtn).off("click.newTask").on("click.newTask", async () => {
+			if (!this.validateNewTaskWizardStep(3, controls)) return;
 
-			if (Array.isArray(value)) {
-				value.forEach((item) => {
-					if (!item) return;
-					if (typeof item === "string") {
-						result.push(item.trim());
-						return;
-					}
-					if (typeof item === "object") {
-						const picked = item.user || item.value || item.name || item.email || "";
-						if (picked) result.push(String(picked).trim());
-					}
+			const subject = (subjectControl.get_value() || "").trim();
+			const status = statusControl.get_value() || "Open";
+			const priority = priorityControl.get_value() || "Medium";
+			const exp_start_date = startDateControl.get_value() || null;
+			const exp_end_date = endDateControl.get_value() || null;
+			const description = descriptionControl.get_value() || "";
+			const raw_custom_users = assigneesControl.get_value();
+			const custom_users = normalize_assignees(raw_custom_users);
+
+			try {
+				const r = await frappe.call({
+					method: "frappe.client.insert",
+					args: {
+						doc: {
+							doctype: "Task",
+							subject,
+							status,
+							priority,
+							exp_start_date,
+							exp_end_date,
+							custom_users: custom_users.map((user) => ({ doctype: "Task Users", user })),
+							description
+						}
+					},
+					freeze: true,
+					freeze_message: __("Creating Task...")
 				});
-			}
 
-			if (!Array.isArray(value) && typeof value === "string") {
-				value.split(",").forEach((item) => {
-					const v = item.trim();
-					if (v) result.push(v);
-				});
+				if (r && r.message && r.message.name) {
+					frappe.show_alert({ message: __("Task Created"), indicator: "green" });
+					frappe.set_route("tasks", r.message.name);
+				}
+			} catch (err) {
+				console.error("New Task creation failed:", err);
+				frappe.msgprint(__("Unable to create task. Please try again."));
 			}
-
-			const unique = Array.from(new Set(result.filter(Boolean)));
-			if (!unique.length && frappe.session && frappe.session.user) {
-				unique.push(frappe.session.user);
-			}
-			return unique;
-		}
+		});
 	}
 }
 

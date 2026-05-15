@@ -4,13 +4,29 @@
  "docstatus": 0,
  "doctype": "Page",
  "idx": 0,
- "modified": "2026-03-18 13:48:51.904127",
+ "modified": "2026-04-16 11:41:56.410804",
  "modified_by": "Administrator",
  "module": "Custom Module",
  "name": "candidates",
  "owner": "Administrator",
  "page_name": "candidates",
- "roles": [],
+ "roles": [
+  {
+   "role": "Administrator"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "HR Head"
+  },
+  {
+   "role": "HR Manager"
+  },
+  {
+   "role": "HR Support"
+  }
+ ],
  "script": null,
  "standard": "Yes",
  "style": null,

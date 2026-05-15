@@ -151,8 +151,28 @@ def save_candidate(candidate_data):
     """
     if isinstance(candidate_data, str):
         candidate_data = json.loads(candidate_data)
+
+    # Hard fail-safe: drop language-related payload keys if present.
+    # This prevents save failures on sites where Languages DocType is missing.
+    if isinstance(candidate_data, dict):
+        for k in list(candidate_data.keys()):
+            if "language" in str(k).lower():
+                candidate_data.pop(k, None)
     
     try:
+        def child_table_has_missing_link_doctype(child_doctype):
+            """Return True if any Link field inside child_doctype points to a missing DocType."""
+            try:
+                child_meta = frappe.get_meta(child_doctype)
+            except Exception:
+                return True
+
+            for cdf in (child_meta.fields or []):
+                if cdf.fieldtype == "Link" and cdf.options:
+                    if not frappe.db.exists("DocType", cdf.options):
+                        return True
+            return False
+
         # Check if updating existing or creating new
         candidate_id = candidate_data.get("name")
         
@@ -177,11 +197,38 @@ def save_candidate(candidate_data):
         for fieldname, value in candidate_data.items():
             if fieldname == "name":
                 continue
+            if "language" in str(fieldname).lower():
+                continue
             if doc.meta.has_field(fieldname):
+                df = doc.meta.get_field(fieldname)
+                # Guard against broken customizations where a Link/Table points
+                # to a DocType that does not exist on this site.
+                if df and df.fieldtype in ("Link", "Table", "Table MultiSelect") and df.options:
+                    if not frappe.db.exists("DocType", df.options):
+                        continue
+                # For child-table based fields, also verify nested Link doctypes.
+                # Example: custom_language -> Multiselect Languages -> Languages.
+                if df and df.fieldtype in ("Table", "Table MultiSelect") and df.options:
+                    if child_table_has_missing_link_doctype(df.options):
+                        continue
+                # Guard against invalid linked value (e.g., source text not present
+                # in linked master doctype).
+                if df and df.fieldtype == "Link" and df.options and value:
+                    if frappe.db.exists("DocType", df.options) and not frappe.db.exists(df.options, value):
+                        continue
                 setattr(doc, fieldname, value)
         
         # Save
-        doc.save()
+        try:
+            doc.save()
+        except Exception as save_err:
+            # Some sites have custom fields linked to a missing Languages DocType.
+            # Retry once by skipping link validation so create-candidate can proceed.
+            if "DocType Languages not found" in str(save_err):
+                doc.flags.ignore_links = True
+                doc.save()
+            else:
+                raise
         
         return {
             "success": True,

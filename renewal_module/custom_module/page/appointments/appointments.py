@@ -1,26 +1,153 @@
 import frappe
 import json
 from frappe import _
-from renewal_module.user_permissions import appointment_permission_query
+from renewal_module.renewal_module.report.sales_based_on_timespan.test_timespan import get_timespan_date_range
+from renewal_module.user_permissions1 import appointment_has_permission, appointment_permission_query
 
 
-@frappe.whitelist()
-def get_list_data(start=0, page_length=20, status=None, id=None, filters=None):
-    """
-    Fetch paginated list of Appointment records.
-    Supports:
-      - status: single value or comma-separated list
-      - id: partial match on name (LIKE)
-      - filters: JSON array of [doctype, field, operator, value] from FilterGroup
-    Returns: { data: [...], total: int }
-    """
-    start = int(start or 0)
-    page_length = int(page_length or 20)
+def _get_appointment_doc(appointment_name: str, ptype: str = "read"):
+    """Load an appointment and enforce document-level permission."""
+    if not appointment_name:
+        frappe.throw(_("Appointment not specified."))
 
-    conditions = ["1=1"]
-    values = {}
+    doc = frappe.get_doc("Appointment", appointment_name)
+    if not appointment_has_permission(doc, ptype, frappe.session.user):
+        frappe.throw(_("Not permitted"), frappe.PermissionError)
+    return doc
 
-    # ---- Status filter ----
+
+def _build_sql_condition(column, operator, field_value, values, param_counter):
+    """Build a SQL fragment and parameter map entry for a single filter."""
+    operator = (operator or "=").lower().strip()
+
+    def next_key():
+        nonlocal param_counter
+        key = f"param_{param_counter}"
+        param_counter += 1
+        return key
+
+    if operator in ("=", "=="):
+        key = next_key()
+        values[key] = field_value
+        return f"{column} = %({key})s", param_counter
+
+    if operator in ("!=", "<>", "not equals"):
+        key = next_key()
+        values[key] = field_value
+        return f"{column} != %({key})s", param_counter
+
+    if operator in ("like", "contains"):
+        if field_value in (None, ""):
+            return None, param_counter
+        key = next_key()
+        values[key] = f"%{field_value}%"
+        return f"{column} LIKE %({key})s", param_counter
+
+    if operator in ("not like", "does not contain"):
+        if field_value in (None, ""):
+            return None, param_counter
+        key = next_key()
+        values[key] = f"%{field_value}%"
+        return f"{column} NOT LIKE %({key})s", param_counter
+
+    if operator in (">", "<", ">=", "<=", "after", "before", "on or after", "on or before"):
+        sql_op = {
+            ">": ">",
+            "<": "<",
+            ">=": ">=",
+            "<=": "<=",
+            "after": ">",
+            "before": "<",
+            "on or after": ">=",
+            "on or before": "<=",
+        }.get(operator, "=")
+        key = next_key()
+        values[key] = field_value
+        return f"{column} {sql_op} %({key})s", param_counter
+
+    if operator in ("in", "not in", "nin"):
+        if isinstance(field_value, str):
+            field_value = [v.strip() for v in field_value.split(",") if v.strip()]
+        if not isinstance(field_value, (list, tuple)):
+            field_value = [field_value]
+        if not field_value:
+            return None, param_counter
+
+        placeholders = []
+        for value in field_value:
+            key = next_key()
+            placeholders.append(f"%({key})s")
+            values[key] = value
+
+        sql_operator = "NOT IN" if operator in ("not in", "nin") else "IN"
+        return f"{column} {sql_operator} ({', '.join(placeholders)})", param_counter
+
+    if operator == "between":
+        if isinstance(field_value, str):
+            field_value = [v.strip() for v in field_value.split(",", 1)]
+        if isinstance(field_value, (list, tuple)) and len(field_value) == 2:
+            start_key = next_key()
+            end_key = next_key()
+            values[start_key] = field_value[0]
+            values[end_key] = field_value[1]
+            return f"{column} BETWEEN %({start_key})s AND %({end_key})s", param_counter
+        return None, param_counter
+
+    if operator == "is":
+        value_text = str(field_value).lower().strip()
+        if value_text in ("set", "not null"):
+            return f"{column} IS NOT NULL", param_counter
+        if value_text in ("not set", "null"):
+            return f"{column} IS NULL", param_counter
+
+    return None, param_counter
+
+
+def _resolve_appointment_filter_target(doctype, field_name, appointment_meta):
+    """Resolve a filter to either the Appointment table or a child table."""
+    if not field_name:
+        return None
+
+    field_name = str(field_name).strip()
+    if not field_name:
+        return None
+
+    if "." in field_name:
+        prefix, remainder = field_name.split(".", 1)
+        prefix = (prefix or "").strip()
+        remainder = (remainder or "").strip()
+
+        if prefix == "Appointment":
+            return {"kind": "parent", "field": remainder}
+
+        table_field = appointment_meta.get_field(prefix) if appointment_meta else None
+        if table_field and table_field.fieldtype == "Table" and table_field.options:
+            return {
+                "kind": "child",
+                "parentfield": table_field.fieldname,
+                "child_doctype": table_field.options,
+                "field": remainder,
+            }
+
+        return {"kind": "parent", "field": remainder}
+
+    if doctype and doctype != "Appointment" and appointment_meta:
+        for table_field in appointment_meta.fields:
+            if table_field.fieldtype == "Table" and table_field.options == doctype:
+                return {
+                    "kind": "child",
+                    "parentfield": table_field.fieldname,
+                    "child_doctype": doctype,
+                    "field": field_name,
+                }
+
+    return {"kind": "parent", "field": field_name}
+
+
+def _build_appointment_filters(status=None, id=None, filters=None):
+    """Build Frappe list filters so the custom page matches standard list permissions."""
+    frappe_filters = []
+
     if status:
         status_list = status
         if isinstance(status_list, str):
@@ -37,25 +164,15 @@ def get_list_data(start=0, page_length=20, status=None, id=None, filters=None):
             status_list = [s for s in status_list if s]
 
         if isinstance(status_list, (list, tuple)) and len(status_list) > 1:
-            placeholders = []
-            for idx, st in enumerate(status_list):
-                key = f"status_{idx}"
-                placeholders.append(f"%({key})s")
-                values[key] = st
-            conditions.append(f"`status` IN ({', '.join(placeholders)})")
+            frappe_filters.append(["Appointment", "status", "in", list(status_list)])
         elif isinstance(status_list, (list, tuple)) and len(status_list) == 1:
-            conditions.append("`status` = %(status_val)s")
-            values["status_val"] = status_list[0]
+            frappe_filters.append(["Appointment", "status", "=", status_list[0]])
         elif isinstance(status_list, str) and status_list:
-            conditions.append("`status` = %(status_val)s")
-            values["status_val"] = status_list
+            frappe_filters.append(["Appointment", "status", "=", status_list])
 
-    # ---- ID (name) LIKE filter ----
     if id:
-        conditions.append("`name` LIKE %(id_val)s")
-        values["id_val"] = f"%{id}%"
+        frappe_filters.append(["Appointment", "name", "like", f"%{id}%"])
 
-    # ---- Advanced FilterGroup filters ----
     if filters:
         try:
             filters_obj = json.loads(filters) if isinstance(filters, str) else filters
@@ -64,18 +181,21 @@ def get_list_data(start=0, page_length=20, status=None, id=None, filters=None):
 
         for f in (filters_obj or []):
             try:
+                doctype = "Appointment"
                 if isinstance(f, dict):
+                    doctype = f.get("doctype") or "Appointment"
                     field = f.get("fieldname") or f.get("field") or ""
-                    operator = (f.get("operator") or "=").lower()
+                    operator = (f.get("operator") or "=").lower().strip()
                     val = f.get("value")
                 elif isinstance(f, (list, tuple)):
-                    # Frappe FilterGroup sends [doctype, field, operator, value, default]
                     if len(f) >= 4:
-                        _, field, operator, val = f[0], f[1], f[2], f[3]
+                        doctype, field, operator, val = f[0], f[1], f[2], f[3]
                     elif len(f) == 3:
                         field, operator, val = f[0], f[1], f[2]
                     else:
                         continue
+                    doctype = doctype or "Appointment"
+                    operator = (operator or "=").lower().strip()
                 else:
                     continue
             except Exception:
@@ -84,132 +204,194 @@ def get_list_data(start=0, page_length=20, status=None, id=None, filters=None):
             if not field:
                 continue
 
-            # Strip table prefix (e.g. "Appointment.name" → "name")
-            if "." in field:
-                field = field.split(".")[-1]
-
-            key = f"f_{field}_{len(values)}"
-            operator = (operator or "=").lower().strip()
-
             if operator in ("=", "=="):
-                conditions.append(f"`{field}` = %({key})s")
-                values[key] = val
+                operator = "="
             elif operator in ("!=", "<>", "not equals"):
-                conditions.append(f"`{field}` != %({key})s")
-                values[key] = val
+                operator = "!="
             elif operator in ("like", "contains"):
-                conditions.append(f"`{field}` LIKE %({key})s")
-                values[key] = f"%{val}%"
+                operator = "like"
+                val = f"%{val}%"
             elif operator in ("not like", "does not contain"):
-                conditions.append(f"`{field}` NOT LIKE %({key})s")
-                values[key] = f"%{val}%"
-            elif operator in (">", "<", ">=", "<=", "after", "before", "on or after", "on or before"):
-                sql_op = {
-                    ">": ">", "<": "<", ">=": ">=", "<=": "<=",
-                    "after": ">", "before": "<", "on or after": ">=", "on or before": "<="
-                }.get(operator, "=")
-                conditions.append(f"`{field}` {sql_op} %({key})s")
-                values[key] = val
-            elif operator == "in":
-                if isinstance(val, str):
-                    val = [v.strip() for v in val.split(",") if v.strip()]
-                if isinstance(val, (list, tuple)) and val:
-                    placeholders = []
-                    for i, v in enumerate(val):
-                        kk = f"{key}_{i}"
-                        placeholders.append(f"%({kk})s")
-                        values[kk] = v
-                    conditions.append(f"`{field}` IN ({', '.join(placeholders)})")
-            elif operator in ("not in", "nin"):
-                if isinstance(val, str):
-                    val = [v.strip() for v in val.split(",") if v.strip()]
-                if isinstance(val, (list, tuple)) and val:
-                    placeholders = []
-                    for i, v in enumerate(val):
-                        kk = f"{key}_{i}"
-                        placeholders.append(f"%({kk})s")
-                        values[kk] = v
-                    conditions.append(f"`{field}` NOT IN ({', '.join(placeholders)})")
-            elif operator == "between":
-                if isinstance(val, str) and "," in val:
-                    val = [v.strip() for v in val.split(",")]
-                if isinstance(val, (list, tuple)) and len(val) == 2:
-                    sk, ek = f"{key}_start", f"{key}_end"
-                    conditions.append(f"`{field}` BETWEEN %({sk})s AND %({ek})s")
-                    values[sk] = val[0]
-                    values[ek] = val[1]
+                operator = "not like"
+                val = f"%{val}%"
+            elif operator == "after":
+                operator = ">"
+            elif operator == "before":
+                operator = "<"
+            elif operator == "on or after":
+                operator = ">="
+            elif operator == "on or before":
+                operator = "<="
+            elif operator in ("in", "not in", "nin") and isinstance(val, str):
+                val = [v.strip() for v in val.split(",") if v.strip()]
+                operator = "not in" if operator in ("not in", "nin") else "in"
+            elif operator == "between" and isinstance(val, str) and "," in val:
+                val = [v.strip() for v in val.split(",", 1)]
             elif operator == "is":
-                val_lower = str(val).lower()
+                val_lower = str(val).lower().strip()
                 if val_lower in ("set", "not null"):
-                    conditions.append(f"(`{field}` IS NOT NULL AND `{field}` != '')")
+                    val = "set"
                 elif val_lower in ("not set", "null"):
-                    conditions.append(f"(`{field}` IS NULL OR `{field}` = '')")
+                    val = "not set"
+            elif operator == "timespan":
+                start_date, end_date = get_timespan_date_range(val) or (None, None)
+                if start_date and end_date:
+                    operator = "between"
+                    val = [
+                        frappe.utils.get_datetime(f"{start_date} 00:00:00"),
+                        frappe.utils.get_datetime(f"{end_date} 23:59:59"),
+                    ]
+            elif operator in ("fiscal year", "fiscal_year"):
+                fy_name = val
+                if isinstance(val, dict):
+                    fy_name = val.get("name") or val.get("value") or val.get("fiscal_year")
+                if fy_name:
+                    fy = frappe.db.get_value(
+                        "Fiscal Year", fy_name,
+                        ["year_start_date", "year_end_date"],
+                        as_dict=True
+                    )
+                    if fy:
+                        operator = "between"
+                        val = [fy.year_start_date, fy.year_end_date]
 
-    # ---- Permission constraint ----
-    # permission_clause = appointment_permission_query(frappe.session.user)
-    # if permission_clause:
-    #     conditions.append(f"({permission_clause})")
+            frappe_filters.append([doctype or "Appointment", field, operator, val])
 
-    # ---- Build final query ----
-    where_clause = " AND ".join(conditions)
+    return frappe_filters
+
+
+@frappe.whitelist()
+def get_list_data(start=0, page_length=20, status=None, id=None, filters=None):
+    """
+    Fetch paginated list of Appointment records.
+    Uses Frappe's standard `get_list` so permissions match the normal Appointment list view.
+    """
+    start = int(start or 0)
+    page_length = int(page_length or 20)
+    frappe_filters = _build_appointment_filters(status=status, id=id, filters=filters)
+
+    current_user = frappe.session.user
+    try:
+        permission_filter = appointment_permission_query(current_user) or ""
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "appointments.get_list_data permission query error")
+        return {"data": [], "total": 0}
+
+    appointment_meta = frappe.get_meta("Appointment")
+    conditions = ["`tabAppointment`.`docstatus` != 2"]
+    values = {}
+    param_counter = 0
+
+    if permission_filter == "1=0":
+        return {"data": [], "total": 0}
+    if permission_filter and permission_filter not in ("1=1", ""):
+        conditions.append(f"({permission_filter.replace('%', '%%')})")
+
+    for f in frappe_filters:
+        if not isinstance(f, (list, tuple)) or len(f) < 4:
+            continue
+
+        doctype = f[0] or "Appointment"
+        field_name = f[1]
+        operator = str(f[2]).lower().strip()
+        field_value = f[3]
+
+        target = _resolve_appointment_filter_target(doctype, field_name, appointment_meta)
+        if not target:
+            continue
+
+        if target["kind"] == "parent":
+            parent_field = target["field"]
+            if not parent_field or not parent_field.replace("_", "").isalnum():
+                continue
+
+            condition, param_counter = _build_sql_condition(
+                f"`tabAppointment`.`{parent_field}`",
+                operator,
+                field_value,
+                values,
+                param_counter,
+            )
+            if condition:
+                conditions.append(condition)
+            continue
+
+        child_field = target["field"]
+        if not child_field or not child_field.replace("_", "").isalnum():
+            continue
+
+        child_condition, param_counter = _build_sql_condition(
+            f"child.`{child_field}`",
+            operator,
+            field_value,
+            values,
+            param_counter,
+        )
+        if not child_condition:
+            continue
+
+        parentfield_key = f"param_{param_counter}"
+        param_counter += 1
+        values[parentfield_key] = target["parentfield"]
+
+        child_table = f"`tab{target['child_doctype']}`"
+        conditions.append(
+            f"EXISTS (SELECT 1 FROM {child_table} child "
+            f"WHERE child.parent = `tabAppointment`.`name` "
+            f"AND child.parenttype = 'Appointment' "
+            f"AND child.parentfield = %({parentfield_key})s "
+            f"AND {child_condition})"
+        )
 
     try:
-        total = frappe.db.sql(
-            f"SELECT COUNT(*) FROM `tabAppointment` WHERE {where_clause}",
-            values
-        )[0][0]
-    except Exception as e:
+        where_clause = " AND ".join(conditions) if conditions else "1=1"
+        total_sql = f"SELECT COUNT(*) AS total FROM `tabAppointment` WHERE {where_clause}"
+        total_result = frappe.db.sql(total_sql, values, as_dict=True)
+        total = int((total_result[0] or {}).get("total", 0)) if total_result else 0
+    except Exception:
         frappe.log_error(frappe.get_traceback(), "appointments.get_list_data COUNT error")
         return {"data": [], "total": 0}
 
     try:
-        data = frappe.db.sql(
-            f"""
+        values["limit_start"] = start
+        values["page_length"] = page_length
+        data_sql = f"""
             SELECT
-                `name`,
-                `customer_name`,
-                `scheduled_time`,
-                `status`,
-                `custom_start_date`,
-                `custom_start_time`,
-                `custom_end_date`,
-                `custom_end_time`,
-                `customer_email`,
-                `customer_phone_number`,
-                `modified`,
-                `creation`,
-                `modified_by`,
-                `_comments`
+                name,
+                customer_name,
+                scheduled_time,
+                status,
+                custom_start_date,
+                custom_start_time,
+                custom_end_date,
+                custom_end_time,
+                customer_email,
+                customer_phone_number,
+                modified,
+                creation,
+                modified_by,
+                _comments
             FROM `tabAppointment`
             WHERE {where_clause}
-            ORDER BY `scheduled_time` DESC
-            LIMIT {start}, {page_length}
-            """,
-            values,
-            as_dict=True
-        )
-        for r in data:
-            raw = r.get("_comments") or "[]"
+            ORDER BY scheduled_time DESC
+            LIMIT %(limit_start)s, %(page_length)s
+        """
+        data = frappe.db.sql(data_sql, values, as_dict=True)
 
+        for row in data:
+            raw = row.get("_comments") or "[]"
             try:
-                # _comments is stored as JSON string list like: [{"comment": "...", ...}]
                 parsed = json.loads(raw)
-
-                if isinstance(parsed, list):
-                    r["comment_count"] = len(parsed)
-                else:
-                    r["comment_count"] = 0
-
+                row["comment_count"] = len(parsed) if isinstance(parsed, list) else 0
             except Exception:
-                # if invalid JSON
-                r["comment_count"] = 0
-    except Exception as e:
+                row["comment_count"] = 0
+    except Exception:
         frappe.log_error(frappe.get_traceback(), "appointments.get_list_data SELECT error")
         return {"data": [], "total": 0}
 
     return {
         "data": data,
-        "total": total
+        "total": total,
     }
 
 @frappe.whitelist()
@@ -231,7 +413,8 @@ def get_appointment_activity(appointment_name):
     """Return chronological activity timeline for an appointment."""
     if not appointment_name:
         return []
-    
+
+    _get_appointment_doc(appointment_name, "read")
     activity = []
 
     # --- 1. Comments (All Types) ---
@@ -375,7 +558,7 @@ def add_appointment_comment(appointment_name, content):
     # Normalize mention markup so frappe can parse it safely
     content = _normalize_comment_mentions(content)
 
-    doc = frappe.get_doc("Appointment", appointment_name)
+    doc = _get_appointment_doc(appointment_name, "read")
     doc.add_comment("Comment", content)
     frappe.db.commit()
 
@@ -426,7 +609,8 @@ def get_enabled_users():
         "User",
         filters={"enabled": 1},
         fields=["name", "full_name", "email"],
-        order_by="full_name asc"
+        order_by="full_name asc",
+        ignore_permissions=True,
     )
     return users
 
@@ -486,6 +670,7 @@ def send_appointment_email(appointment_name, recipients, subject, content, cc=""
     if not appointment_name or not recipients or not subject or not content:
         frappe.throw("Missing required fields for email")
 
+    _get_appointment_doc(appointment_name, "write")
     user = frappe.session.user
     
     # Optional attachments handling
@@ -539,8 +724,8 @@ def get_appointment_notes(appointment_id):
     Returns a list of note records.
     """
     try:
-        # Get notes from the Appointment's custom_note table field
-        apt_doc = frappe.get_doc("Appointment", appointment_id)
+        # Enforce read permission before loading notes
+        apt_doc = _get_appointment_doc(appointment_id, "read")
         
         notes = []
         
@@ -601,25 +786,27 @@ def get_appointment_calls(appointment_id):
     Returns a list of call records.
     """
     try:
-        calls = frappe.db.sql(
-            """
-            SELECT
-                name,
-                name1,
-                subject,
-                status,
-                owner,
-                start_date,
-                start_timing,
-                end_date,
-                end_timing,
-                description
-            FROM `tabCall List`
-            WHERE reference = 'Appointment' AND reference_to = %(appointment_id)s
-            ORDER BY creation DESC
-            """,
-            {"appointment_id": appointment_id},
-            as_dict=True
+        _get_appointment_doc(appointment_id, "read")
+
+        calls = frappe.get_list(
+            "Call List",
+            filters=[
+                ["Call List", "reference", "=", "Appointment"],
+                ["Call List", "reference_to", "=", appointment_id],
+            ],
+            fields=[
+                "name",
+                "name1",
+                "subject",
+                "status",
+                "owner",
+                "start_date",
+                "start_timing",
+                "end_date",
+                "end_timing",
+                "description",
+            ],
+            order_by="creation desc",
         )
         return calls
     except Exception:
@@ -634,23 +821,25 @@ def get_appointment_tasks(appointment_id):
     Returns a list of task records.
     """
     try:
-        tasks = frappe.db.sql(
-            """
-            SELECT
-                name,
-                subject,
-                status,
-                priority,
-                description,
-                exp_end_date,
-                creation,
-                owner
-            FROM `tabTask`
-            WHERE reference = 'Appointment' AND reference_to = %(appointment_id)s
-            ORDER BY creation DESC
-            """,
-            {"appointment_id": appointment_id},
-            as_dict=True
+        _get_appointment_doc(appointment_id, "read")
+
+        tasks = frappe.get_list(
+            "Task",
+            filters=[
+                ["Task", "reference", "=", "Appointment"],
+                ["Task", "reference_to", "=", appointment_id],
+            ],
+            fields=[
+                "name",
+                "subject",
+                "status",
+                "priority",
+                "description",
+                "exp_end_date",
+                "creation",
+                "owner",
+            ],
+            order_by="creation desc",
         )
 
         # Include assignees from Task Users child table (same pattern as ticketss page).
@@ -693,7 +882,7 @@ def add_appointment_note(appointment_id, note_text):
         if not appointment_id or not note_text:
             frappe.throw("Missing appointment_id or note_text")
         
-        apt = frappe.get_doc("Appointment", appointment_id)
+        apt = _get_appointment_doc(appointment_id, "write")
         user = frappe.session.user
         
         user_doc = frappe.get_doc("User", user)
@@ -731,7 +920,7 @@ def update_appointment_note(appointment_id, note_name, note_text):
         if not appointment_id or not note_name or not note_text:
             frappe.throw("Missing required fields")
 
-        apt = frappe.get_doc("Appointment", appointment_id)
+        apt = _get_appointment_doc(appointment_id, "write")
         current_user = frappe.session.user
 
         updated = False
@@ -767,7 +956,7 @@ def delete_appointment_note(appointment_id, note_name):
         if frappe.session.user != "Administrator":
             frappe.throw("Not authorized to delete notes")
 
-        apt = frappe.get_doc("Appointment", appointment_id)
+        apt = _get_appointment_doc(appointment_id, "write")
         apt.custom_note = [row for row in apt.custom_note if row.name != note_name]
 
         apt.save(ignore_permissions=True)

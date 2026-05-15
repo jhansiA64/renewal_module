@@ -4,13 +4,29 @@
  "docstatus": 0,
  "doctype": "Page",
  "idx": 0,
- "modified": "2026-03-18 13:48:29.768175",
+ "modified": "2026-04-16 11:42:45.326876",
  "modified_by": "Administrator",
  "module": "Custom Module",
  "name": "job-request",
  "owner": "Administrator",
  "page_name": "job-request",
- "roles": [],
+ "roles": [
+  {
+   "role": "Administrator"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "HR User"
+  },
+  {
+   "role": "HR Manager"
+  },
+  {
+   "role": "HR Support"
+  }
+ ],
  "script": null,
  "standard": "Yes",
  "style": null,

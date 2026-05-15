@@ -119,10 +119,10 @@ import frappe
 @frappe.whitelist()
 def update_margin_table(custom_order_form,method=None):
     try:
-        doc=frappe.get_doc("Customer Order Form",customer_order_form)
+        doc = frappe.get_doc("Customer Order Form", custom_order_form)
         frappe.msgprint(f"loaded cof number:{doc.name}")
 
-        margin_updated = Flase
+        margin_updated = False
 
         for item in doc.items:
             actual_item_code = item.actual_item_code
@@ -1375,27 +1375,89 @@ def mark_notification_as_read(notification_name):
 
 ### when the custom page to after login to show ##
 import frappe
+def _get_role_based_home_page_slug(user=None):
+    """Return desk page/workspace route slug for role-based home page.
+    
+    System Manager and Administrator roles are never routed to custom pages.
+    """
+    user = user or frappe.session.user
+    if not user or user == "Guest":
+        return None
+
+    roles = frappe.get_roles(user)
+    
+    # Prioritize: System Manager/Administrator should never get custom routing
+    if "Administrator" in roles or "System Manager" in roles:
+        return None
+
+    tech_support_roles = {
+        "L1 - Tech Support",
+        "Tech Support",
+        "L2 - Tech Support",
+        "L3 - Tech Support",
+    }
+    sales_roles = {"Sales User", "Sales Manager"}
+
+    if any(role in roles for role in tech_support_roles):
+        return "support-dashboard-te-1"
+    if any(role in roles for role in sales_roles):
+        return "home-crm"
+    return None
+
+
+def _get_role_based_home_route(user=None):
+    slug = _get_role_based_home_page_slug(user)
+    if not slug:
+        return None
+    # Frappe v16 desk pages are served under /app/<route>.
+    return "/app/" + slug.strip("/")
+
+
+def apply_role_home_page_in_boot(bootinfo):
+    """Boot hook: set role-specific home page only for targeted roles.
+
+    For all other users, preserve Frappe's native desk home_page behavior.
+    Frappe v16 boot flow still treats "desktop" as the safe fallback token.
+    """
+    user = frappe.session.user
+    roles = frappe.get_roles(user) if user and user != "Guest" else []
+
+    # Keep Admin/System Manager on untouched standard Desk behavior.
+    if user == "Administrator" or "System Manager" in roles:
+        return
+
+    target_slug = _get_role_based_home_page_slug()
+    if target_slug:
+        bootinfo.home_page = target_slug
+    elif bootinfo.get("home_page") == "Workspaces":
+        # Normalize legacy custom value to Frappe-safe default token.
+        bootinfo.home_page = "desktop"
 
 def redirect_after_login():
-    """Redirect after login based on user roles — works reliably on Desk."""
+    """Backward-compatible helper for old hook usage."""
     
     user = frappe.session.user
+    if not user or user == "Guest":
+        return
+
     roles = frappe.get_roles(user)
 
     # Debug Log
     frappe.logger().info(f"[redirect_after_login] user={user} roles={roles}")
 
-    # List of roles allowed to redirect
-    tech_support_roles = [
-        "L1 - Tech Support",
-        "Tech Support",
-        "L2 - Tech Support",
-        "L3 - Tech Support"
+    # Roles/users that should keep default Desk home page
+    skip_redirect_roles = [
+        "System Manager","Administrator"
     ]
 
-    # If user has any of these roles → redirect
-    if any(role in roles for role in tech_support_roles):
-        frappe.local.response["home_page"] = "/app/support-dashboard-te-1"
+    if user == "Administrator" or any(role in roles for role in skip_redirect_roles):
+        return
+
+    target_home = _get_role_based_home_route(user)
+    # Only set home_page for users with a specific role target.
+    # Remaining roles get standard Frappe desk routing — do not touch them.
+    if target_home:
+        frappe.local.response["home_page"] = target_home
 
 
 
@@ -1584,3 +1646,98 @@ def get_tickets(limit_start=0, limit_page_length=50):
     )
     total = frappe.db.count("Issue")  # total tickets for pagination
     return {"tickets": tickets, "total": total}
+
+
+@frappe.whitelist()
+def get_page_permissions():
+    """
+    Fetch page permissions from Page doctype
+    Returns: {page_name: ['role1', 'role2', ...]}
+    
+    Logic:
+    - If page has no roles defined: accessible to all users
+    - If page has roles defined: only accessible to users with those roles
+    - If no roles field exists in Page doc: accessible to all
+    """
+    try:
+        permissions_map = {}
+        
+        # Get all pages from the system
+        pages = frappe.get_all("Page", fields=["name"], limit_page_length=999)
+        
+        for page in pages:
+            page_name = page.get("name")
+            try:
+                # Fetch the page document
+                page_doc = frappe.get_doc("Page", page_name)
+                
+                # Check if page has roles field and it's not empty
+                if hasattr(page_doc, 'roles') and page_doc.roles:
+                    # Extract role names from the roles child table
+                    role_list = [role.role for role in page_doc.roles if role.role]
+                    
+                    if role_list:  # Only add to map if there are roles
+                        permissions_map[page_name] = role_list
+                        frappe.logger().debug(f"Page '{page_name}' roles: {role_list}")
+                # If no roles or empty roles, page is accessible to all (don't add to map)
+                
+            except frappe.PermissionError:
+                # Skip pages user can't read
+                frappe.logger().debug(f"Skipping page '{page_name}' - permission denied")
+            except Exception as e:
+                frappe.logger().warning(f"Error processing page '{page_name}': {str(e)}")
+        
+        frappe.logger().info(f"Page permissions fetched: {list(permissions_map.keys())}")
+        return permissions_map
+        
+    except Exception as e:
+        frappe.logger().error(f"Error fetching page permissions: {str(e)}")
+        return {}
+
+@frappe.whitelist()
+def get_page_and_report_permissions():
+    """
+    Fetch page and report permissions from Page and Report doctypes
+    Returns: {
+        "pages": {page_name: [role1, ...]},
+        "reports": {report_name: [role1, ...]}
+    }
+    """
+    try:
+        permissions_map = {}
+        report_permissions_map = {}
+        # --- Pages ---
+        pages = frappe.get_all("Page", fields=["name"], limit_page_length=999)
+        for page in pages:
+            page_name = page.get("name")
+            try:
+                page_doc = frappe.get_doc("Page", page_name)
+                if hasattr(page_doc, 'roles') and page_doc.roles:
+                    role_list = [role.role for role in page_doc.roles if role.role]
+                    if role_list:
+                        permissions_map[page_name] = role_list
+            except frappe.PermissionError:
+                pass
+            except Exception:
+                pass
+        # --- Reports ---
+        reports = frappe.get_all("Report", fields=["name"], limit_page_length=999)
+        for report in reports:
+            report_name = report.get("name")
+            try:
+                report_doc = frappe.get_doc("Report", report_name)
+                if hasattr(report_doc, 'roles') and report_doc.roles:
+                    role_list = [role.role for role in report_doc.roles if role.role]
+                    if role_list:
+                        report_permissions_map[report_name] = role_list
+            except frappe.PermissionError:
+                pass
+            except Exception:
+                pass
+        return {
+            "pages": permissions_map,
+            "reports": report_permissions_map
+        }
+    except Exception as e:
+        frappe.logger().error(f"Error fetching page/report permissions: {str(e)}")
+        return {"pages": {}, "reports": {}}

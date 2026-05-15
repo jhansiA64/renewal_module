@@ -316,7 +316,7 @@ def _queue_or_send_overtime_email(issue_name, requester_user, work_date, approve
 
     issue_doc = frappe.get_doc("Issue", issue_name)
     requester_doc = frappe.get_doc("User", requester_user)
-    approval_link = frappe.utils.get_url(f"/app/ticket/{issue_name}")
+    approval_link = frappe.utils.get_url(f"/app/ticketss/{issue_name}")
 
     subject = f"Overtime Approval Request - Issue #{issue_name}"
     message = f"""
@@ -1274,7 +1274,7 @@ def send_overtime_approval_email(issue_name, requester_user, work_date, approver
     token = _approval_token(issue_name, requester_user, work_date)
     
     # Create email content
-    approval_link = frappe.utils.get_url(f"/app/ticket/{issue_name}")
+    approval_link = frappe.utils.get_url(f"/app/ticketss/{issue_name}")
     
     subject = _("Overtime Approval Request - Issue #{issue}").format(issue=issue_name)
     

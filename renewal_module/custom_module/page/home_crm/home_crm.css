@@ -1,0 +1,264 @@
+[data-route^="home-crm"] .sticky-top {
+    display: none !important;
+}
+
+[data-route^="home-crm"] .page-head {
+    display: none !important;
+}
+
+body[data-route^="home-crm"] {
+    font-size: 14px !important;
+}
+
+
+[data-route^="home-crm"] .layout-main {
+    padding: 0 !important;
+    background: #F3F4F6;
+    margin: 0px !important;
+    width: 100%;
+}
+
+
+[data-route^="home-crm"] .layout-main-section-wrapper {
+    padding: 0 !important;
+}
+
+[data-route^="home-crm"] .container,
+[data-route^="home-crm"] .container-fluid,
+[data-route^="home-crm"] .container-lg,
+[data-route^="home-crm"] .container-md,
+[data-route^="home-crm"] .container-sm,
+[data-route^="home-crm"] .container-xl,
+[data-route^="home-crm"] .container-xxl {
+    padding: 0px !important;
+    max-width: 100% !important;
+}
+
+[data-route^="home-crm"] .body-sidebar-container {
+    display: none !important;
+    width: 0 !important;
+}
+
+[data-route^="home-crm"] .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+[data-route^="home-crm"] [class^="col"],
+[data-route^="home-crm"] [class*=" col"] {
+    padding: 10px;
+}
+
+[data-route^="home-crm"] .btn-primary1 {
+    background-color: #6C5CE7;
+    color: #fff;
+}
+
+[data-route^="home-crm"] .dropdown-item {
+    font-size: 14px;
+    ;
+}
+
+[data-route^="home-crm"] .btn-navblue {
+    background-color: #27445c;
+    color: #fff;
+}
+
+[data-route^="home-crm"] .fw-semibold {
+    font-weight: 600 !important;
+}
+
+[data-route^="home-crm"] .ps-1 {
+    padding: 1px !important;
+}
+
+[data-route^="home-crm"] .ps-2 {
+    padding: 2px !important;
+}
+
+[data-route^="home-crm"] .fs-10 {
+    font-size: 10px !important;
+}
+
+/*List view css*/
+
+[data-route^="home-crm"] .page-title-head {
+    padding: 4px;
+}
+
+[data-route^="home-crm"] .crm-workspace-container {
+    margin: 0 !important;
+}
+
+[data-route^="home-crm"] .workspace-block {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+[data-route^="home-crm"] .workspace-chart-card {
+    padding: 18px;
+}
+
+[data-route^="home-crm"] .workspace-card-head {
+    margin-bottom: 14px;
+}
+
+[data-route^="home-crm"] .workspace-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+[data-route^="home-crm"] .workspace-subtitle {
+    margin: 2px 0 0;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+[data-route^="home-crm"] .workspace-card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+[data-route^="home-crm"] .workspace-chart-menu {
+    position: absolute;
+    right: 0;
+    top: 38px;
+    min-width: 178px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(16, 24, 40, 0.12);
+    padding: 6px;
+    z-index: 20;
+}
+
+[data-route^="home-crm"] .workspace-chart-menu-item {
+    width: 100%;
+    border: 0;
+    text-align: left;
+    background: transparent;
+    color: #374151;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+}
+
+[data-route^="home-crm"] .workspace-chart-menu-item:hover {
+    background: #f3f4f6;
+}
+
+[data-route^="home-crm"] .workspace-icon-btn {
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 10px;
+    background: #f3f4f6;
+    color: #6b7280;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+[data-route^="home-crm"] .workspace-icon-btn:hover {
+    background: #e5e7eb;
+}
+
+[data-route^="home-crm"] .chart-placeholder-wrap {
+    position: relative;
+    min-height: 265px;
+    border-radius: 12px;
+    background: #fff;
+    padding: 8px;
+    overflow: hidden;
+}
+
+[data-route^="home-crm"] .workspace-chart-host {
+    min-height: 245px;
+}
+
+[data-route^="home-crm"] .workspace-chart-loading,
+[data-route^="home-crm"] .workspace-chart-empty {
+    min-height: 245px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+[data-route^="home-crm"] .workspace-section-title {
+    margin: 6px 0 8px;
+    font-size: 20px;
+    color: #374151;
+    font-weight: 600;
+}
+
+[data-route^="home-crm"] .workspace-shortcut-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    min-height: 48px;
+    padding: 12px 14px;
+    color: #1f2937;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-route^="home-crm"] .workspace-shortcut-card:hover {
+    border-color: #cfd4dc;
+    box-shadow: 0 2px 6px rgba(16, 24, 40, 0.08);
+    color: #111827;
+    text-decoration: none;
+}
+
+[data-route^="home-crm"] .shortcut-title {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+[data-route^="home-crm"] .shortcut-badge {
+    font-size: 12px;
+    line-height: 1;
+    border-radius: 999px;
+    padding: 5px 9px;
+    color: #6b7280;
+    background: #f3f4f6;
+    white-space: nowrap;
+}
+
+[data-route^="home-crm"] .shortcut-badge-blue {
+    color: #0f5eb4;
+    background: #e6f0fd;
+}
+
+[data-route^="home-crm"] .shortcut-badge-green {
+    color: #177245;
+    background: #dff6ea;
+}
+
+@media (max-width: 991px) {
+    [data-route^="home-crm"] .workspace-title {
+        font-size: 18px;
+    }
+
+    [data-route^="home-crm"] .workspace-section-title {
+        font-size: 20px;
+    }
+
+    [data-route^="home-crm"] .shortcut-title {
+        font-size: 16px;
+    }
+}

@@ -37,6 +37,11 @@ body[data-route^="call-lists"] {
     margin-right: 0;
 }
 
+[data-route^="call-lists"] .body-sidebar-container {
+    display: none !important;
+    width: 0 !important;
+}
+
 [data-route^="call-lists"] [class^="col"],
 [data-route^="call-lists"] [class*=" col"] {
     padding: 10px;
@@ -1404,6 +1409,7 @@ body[data-route^="call-lists"] {
 .call_list-details-view .timeline-time {
     width: 120px;
     text-align: right;
+    margin-bottom: 4px;
 }
 
 @media(max-width:428px) {
@@ -1986,6 +1992,7 @@ body[data-route^="call-lists"] {
 }
 
 @media (max-width: 991px) {
+
     [data-route^="call-lists"] .call-list-detail-panel #main-notes-list,
     [data-route^="call-lists"] .call-list-detail-panel #activity-tasks-container,
     [data-route^="call-lists"] .call-list-detail-panel #activity-appointments-container {
@@ -2215,6 +2222,7 @@ body[data-route^="call-lists"] {
 
 /* Firefox scrollbar */
 @-moz-document url-prefix() {
+
     [data-route^="call-lists"] .call-list-detail-panel #main-notes-list,
     [data-route^="call-lists"] .call-list-detail-panel #activity-tasks-container,
     [data-route^="call-lists"] .call-list-detail-panel #activity-appointments-container {
@@ -2222,34 +2230,30 @@ body[data-route^="call-lists"] {
         scrollbar-color: #ccc transparent;
     }
 }
-    [data-route^="call-lists"] .timeline-item {
-        flex-direction: column;
-    }
 
-    [data-route^="call-lists"] .timeline-time {
-        text-align: left;
-        margin-bottom: 4px;
-    }
+/* [data-route^="call-lists"] .timeline-item {
+    flex-direction: column;
+} */
 
-    [data-route^="call-lists"] .timeline-dot {
-        order: 2;
-        margin-top: 4px;
-    }
+[data-route^="call-lists"] .timeline-dot {
+    order: 2;
+    margin-top: 4px;
+}
 
-    [data-route^="call-lists"] .avatar {
-        width: 32px;
-        height: 32px;
-        min-width: 32px;
-        font-size: 12px;
-    }
+[data-route^="call-lists"] .avatar {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    font-size: 12px;
+}
 
-    [data-route^="call-lists"] .comment-box {
-        padding: 12px;
-    }
+[data-route^="call-lists"] .comment-box {
+    padding: 12px;
+}
 
-    [data-route^="call-lists"] .comment-input-header {
-        font-size: 12px;
-    }
+[data-route^="call-lists"] .comment-input-header {
+    font-size: 12px;
+}
 
 
 
@@ -2354,4 +2358,171 @@ body[data-route^="call-lists"] {
 
 [data-route^="call-lists"] .d-flex {
     display: flex !important;
+}
+
+/* Wizard styles for new call list form */
+[data-route^="call-lists"] .new-cl-wrap {
+    margin: 0;
+}
+
+[data-route^="call-lists"] .new-cl-wizard-bar {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+[data-route^="call-lists"] .new-cl-wizard-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    background: transparent;
+    border: 0;
+    padding: 0;
+}
+
+[data-route^="call-lists"] .new-cl-wizard-circle {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    color: #9ca3af;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, color 0.2s;
+}
+
+[data-route^="call-lists"] .new-cl-wizard-step.is-active .new-cl-wizard-circle {
+    background: #2563eb;
+    color: #fff;
+}
+
+[data-route^="call-lists"] .new-cl-wizard-step.is-done .new-cl-wizard-circle {
+    background: #16a34a;
+    color: #fff;
+}
+
+[data-route^="call-lists"] .new-cl-wizard-label {
+    font-size: 12px;
+    color: #9ca3af;
+    font-weight: 500;
+    white-space: nowrap;
+    text-align: center;
+}
+
+[data-route^="call-lists"] .new-cl-wizard-step.is-active .new-cl-wizard-label {
+    color: #2563eb;
+    font-weight: 600;
+}
+
+[data-route^="call-lists"] .new-cl-wizard-step.is-done .new-cl-wizard-label {
+    color: #16a34a;
+}
+
+[data-route^="call-lists"] .new-cl-wizard-connector {
+    flex: 1;
+    height: 2px;
+    background: #e5e7eb;
+    margin: 0 10px;
+    margin-bottom: 20px;
+    transition: background 0.2s;
+}
+
+[data-route^="call-lists"] .new-cl-wizard-connector.is-done {
+    background: #16a34a;
+}
+
+[data-route^="call-lists"] .new-cl-wizard-panel {
+    display: block;
+}
+
+[data-route^="call-lists"] .new-cl-wizard-panel.d-none {
+    display: none !important;
+}
+
+[data-route^="call-lists"] .new-cl-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+[data-route^="call-lists"] .new-cl-row {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+[data-route^="call-lists"] .new-cl-row:last-child {
+    margin-bottom: 0;
+}
+
+[data-route^="call-lists"] .new-cl-row.two-col {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+[data-route^="call-lists"] .new-cl-row.one-col {
+    grid-template-columns: 1fr;
+}
+
+[data-route^="call-lists"] .new-cl-field,
+[data-route^="call-lists"] .new-cl-field .frappe-control,
+[data-route^="call-lists"] .new-cl-field .form-group {
+    min-width: 0;
+}
+
+[data-route^="call-lists"] .new-cl-field .form-group {
+    margin-bottom: 0 !important;
+}
+
+[data-route^="call-lists"] .new-cl-field .control-label {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: 4px;
+}
+
+[data-route^="call-lists"] .new-cl-field .control-input-wrapper,
+[data-route^="call-lists"] .new-cl-field .control-input,
+[data-route^="call-lists"] .new-cl-field .control-value,
+[data-route^="call-lists"] .new-cl-field .awesomplete,
+[data-route^="call-lists"] .new-cl-field .awesomplete input,
+[data-route^="call-lists"] .new-cl-field input.form-control,
+[data-route^="call-lists"] .new-cl-field select.form-control {
+    width: 100%;
+    margin: 0 !important;
+}
+
+[data-route^="call-lists"] .new-cl-wizard-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    padding: 0 2px;
+}
+
+[data-route^="call-lists"] .new-cl-wizard-nav {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    [data-route^="call-lists"] .new-cl-wizard-bar {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    [data-route^="call-lists"] .new-cl-row.two-col {
+        grid-template-columns: 1fr;
+    }
 }

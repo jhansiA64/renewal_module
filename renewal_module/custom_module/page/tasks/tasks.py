@@ -1,20 +1,182 @@
 import frappe
 import json
 from frappe import _
+from renewal_module.renewal_module.report.sales_based_on_timespan.test_timespan import get_timespan_date_range
+from renewal_module.user_permissions1 import task_has_permission, task_permission_query
 
 
-@frappe.whitelist()
-def get_list_data(start=0, page_length=20, status=None, id=None, filters=None):
-    """
-    Fetch paginated list of Task records.
-    """
-    start = int(start or 0)
-    page_length = int(page_length or 20)
+def _get_task_doc(task_name: str, ptype: str = "read"):
+    """Load a Task doc and enforce document-level permission."""
+    if not task_name:
+        frappe.throw(_("Task not specified."))
 
-    conditions = ["1=1"]
-    values = {}
+    doc = frappe.get_doc("Task", task_name)
+    if not task_has_permission(doc, ptype, frappe.session.user):
+        frappe.throw(_("Not permitted"), frappe.PermissionError)
+    return doc
 
-    # ---- Status filter ----
+
+def _build_sql_condition(column, operator, field_value, values, param_counter):
+    """Build a SQL fragment and parameter map entry for a single filter."""
+    operator = (operator or "=").lower().strip()
+
+    def next_key():
+        nonlocal param_counter
+        key = f"param_{param_counter}"
+        param_counter += 1
+        return key
+
+    if operator in ("=", "=="):
+        key = next_key()
+        values[key] = field_value
+        return f"{column} = %({key})s", param_counter
+
+    if operator in ("!=", "<>", "not equals"):
+        key = next_key()
+        values[key] = field_value
+        return f"{column} != %({key})s", param_counter
+
+    if operator in ("like", "contains"):
+        if field_value in (None, ""):
+            return None, param_counter
+        key = next_key()
+        values[key] = f"%{field_value}%"
+        return f"{column} LIKE %({key})s", param_counter
+
+    if operator in ("not like", "does not contain"):
+        if field_value in (None, ""):
+            return None, param_counter
+        key = next_key()
+        values[key] = f"%{field_value}%"
+        return f"{column} NOT LIKE %({key})s", param_counter
+
+    if operator in (">", "<", ">=", "<=", "after", "before", "on or after", "on or before"):
+        sql_op = {
+            ">": ">",
+            "<": "<",
+            ">=": ">=",
+            "<=": "<=",
+            "after": ">",
+            "before": "<",
+            "on or after": ">=",
+            "on or before": "<=",
+        }.get(operator, "=")
+        key = next_key()
+        values[key] = field_value
+        return f"{column} {sql_op} %({key})s", param_counter
+
+    if operator in ("in", "not in", "nin"):
+        if isinstance(field_value, str):
+            field_value = [v.strip() for v in field_value.split(",") if v.strip()]
+        if not isinstance(field_value, (list, tuple)):
+            field_value = [field_value]
+        if not field_value:
+            return None, param_counter
+
+        placeholders = []
+        for value in field_value:
+            key = next_key()
+            placeholders.append(f"%({key})s")
+            values[key] = value
+
+        sql_operator = "NOT IN" if operator in ("not in", "nin") else "IN"
+        return f"{column} {sql_operator} ({', '.join(placeholders)})", param_counter
+
+    if operator == "between":
+        if isinstance(field_value, str):
+            field_value = [v.strip() for v in field_value.split(",", 1)]
+        if isinstance(field_value, (list, tuple)) and len(field_value) == 2:
+            start_key = next_key()
+            end_key = next_key()
+            values[start_key] = field_value[0]
+            values[end_key] = field_value[1]
+            return f"{column} BETWEEN %({start_key})s AND %({end_key})s", param_counter
+        return None, param_counter
+
+    if operator == "timespan":
+        start_date, end_date = get_timespan_date_range(field_value) or (None, None)
+        if start_date and end_date:
+            start_key = next_key()
+            end_key = next_key()
+            values[start_key] = frappe.utils.get_datetime(f"{start_date} 00:00:00")
+            values[end_key] = frappe.utils.get_datetime(f"{end_date} 23:59:59")
+            return f"{column} BETWEEN %({start_key})s AND %({end_key})s", param_counter
+        return None, param_counter
+
+    if operator in ("fiscal year", "fiscal_year"):
+        fy_name = field_value
+        if isinstance(field_value, dict):
+            fy_name = field_value.get("name") or field_value.get("value") or field_value.get("fiscal_year")
+        if fy_name:
+            fy = frappe.db.get_value(
+                "Fiscal Year",
+                fy_name,
+                ["year_start_date", "year_end_date"],
+                as_dict=True,
+            )
+            if fy:
+                start_key = next_key()
+                end_key = next_key()
+                values[start_key] = fy.year_start_date
+                values[end_key] = fy.year_end_date
+                return f"{column} BETWEEN %({start_key})s AND %({end_key})s", param_counter
+        return None, param_counter
+
+    if operator == "is":
+        value_text = str(field_value).lower().strip()
+        if value_text in ("set", "not null"):
+            return f"({column} IS NOT NULL AND {column} != '')", param_counter
+        if value_text in ("not set", "null"):
+            return f"({column} IS NULL OR {column} = '')", param_counter
+
+    return None, param_counter
+
+
+def _resolve_task_filter_target(doctype, field_name, task_meta):
+    """Resolve a filter to either the Task table or a child table."""
+    if not field_name:
+        return None
+
+    field_name = str(field_name).strip()
+    if not field_name:
+        return None
+
+    if "." in field_name:
+        prefix, remainder = field_name.split(".", 1)
+        prefix = (prefix or "").strip()
+        remainder = (remainder or "").strip()
+
+        if prefix == "Task":
+            return {"kind": "parent", "field": remainder}
+
+        table_field = task_meta.get_field(prefix) if task_meta else None
+        if table_field and table_field.fieldtype == "Table" and table_field.options:
+            return {
+                "kind": "child",
+                "parentfield": table_field.fieldname,
+                "child_doctype": table_field.options,
+                "field": remainder,
+            }
+
+        return {"kind": "parent", "field": remainder}
+
+    if doctype and doctype != "Task" and task_meta:
+        for table_field in task_meta.fields:
+            if table_field.fieldtype == "Table" and table_field.options == doctype:
+                return {
+                    "kind": "child",
+                    "parentfield": table_field.fieldname,
+                    "child_doctype": table_field.options,
+                    "field": field_name,
+                }
+
+    return {"kind": "parent", "field": field_name}
+
+
+def _build_task_filters(status=None, id=None, filters=None):
+    """Build Frappe list filters so the custom page matches standard Task permissions."""
+    frappe_filters = []
+
     if status:
         status_list = status
         if isinstance(status_list, str):
@@ -31,25 +193,15 @@ def get_list_data(start=0, page_length=20, status=None, id=None, filters=None):
             status_list = [s for s in status_list if s]
 
         if isinstance(status_list, (list, tuple)) and len(status_list) > 1:
-            placeholders = []
-            for idx, st in enumerate(status_list):
-                key = f"status_{idx}"
-                placeholders.append(f"%({key})s")
-                values[key] = st
-            conditions.append(f"`status` IN ({', '.join(placeholders)})")
+            frappe_filters.append(["Task", "status", "in", list(status_list)])
         elif isinstance(status_list, (list, tuple)) and len(status_list) == 1:
-            conditions.append("`status` = %(status_val)s")
-            values["status_val"] = status_list[0]
+            frappe_filters.append(["Task", "status", "=", status_list[0]])
         elif isinstance(status_list, str) and status_list:
-            conditions.append("`status` = %(status_val)s")
-            values["status_val"] = status_list
+            frappe_filters.append(["Task", "status", "=", status_list])
 
-    # ---- ID (name) LIKE filter ----
     if id:
-        conditions.append("`name` LIKE %(id_val)s")
-        values["id_val"] = f"%{id}%"
+        frappe_filters.append(["Task", "name", "like", f"%{id}%"])
 
-    # ---- Advanced FilterGroup filters ----
     if filters:
         try:
             filters_obj = json.loads(filters) if isinstance(filters, str) else filters
@@ -58,113 +210,208 @@ def get_list_data(start=0, page_length=20, status=None, id=None, filters=None):
 
         for f in (filters_obj or []):
             try:
+                doctype = "Task"
                 if isinstance(f, dict):
+                    doctype = f.get("doctype") or "Task"
                     field = f.get("fieldname") or f.get("field") or ""
-                    operator = (f.get("operator") or "=").lower()
+                    operator = (f.get("operator") or "=").lower().strip()
                     val = f.get("value")
                 elif isinstance(f, (list, tuple)):
                     if len(f) >= 4:
-                        _, field, operator, val = f[0], f[1], f[2], f[3]
+                        doctype, field, operator, val = f[0], f[1], f[2], f[3]
                     elif len(f) == 3:
                         field, operator, val = f[0], f[1], f[2]
                     else:
                         continue
+                    doctype = doctype or "Task"
+                    operator = (operator or "=").lower().strip()
                 else:
                     continue
             except Exception:
                 continue
 
-            if not field: continue
-            if "." in field: field = field.split(".")[-1]
+            if not field:
+                continue
 
-            key = f"f_{field}_{len(values)}"
-            operator = (operator or "=").lower().strip()
+            if "." in field:
+                field = field.split(".", 1)[1]
 
             if operator in ("=", "=="):
-                conditions.append(f"`{field}` = %({key})s")
-                values[key] = val
+                operator = "="
             elif operator in ("!=", "<>", "not equals"):
-                conditions.append(f"`{field}` != %({key})s")
-                values[key] = val
+                operator = "!="
             elif operator in ("like", "contains"):
-                conditions.append(f"`{field}` LIKE %({key})s")
-                values[key] = f"%{val}%"
+                operator = "like"
+                val = f"%{val}%"
             elif operator in ("not like", "does not contain"):
-                conditions.append(f"`{field}` NOT LIKE %({key})s")
-                values[key] = f"%{val}%"
-            elif operator in (">", "<", ">=", "<=", "after", "before", "on or after", "on or before"):
-                sql_op = {
-                    ">": ">", "<": "<", ">=": ">=", "<=": "<=",
-                    "after": ">", "before": "<", "on or after": ">=", "on or before": "<="
-                }.get(operator, "=")
-                conditions.append(f"`{field}` {sql_op} %({key})s")
-                values[key] = val
-            elif operator == "in":
-                if isinstance(val, str): val = [v.strip() for v in val.split(",") if v.strip()]
-                if isinstance(val, (list, tuple)) and val:
-                    placeholders = []
-                    for i, v in enumerate(val):
-                        kk = f"{key}_{i}"
-                        placeholders.append(f"%({kk})s")
-                        values[kk] = v
-                    conditions.append(f"`{field}` IN ({', '.join(placeholders)})")
-            elif operator in ("not in", "nin"):
-                if isinstance(val, str): val = [v.strip() for v in val.split(",") if v.strip()]
-                if isinstance(val, (list, tuple)) and val:
-                    placeholders = []
-                    for i, v in enumerate(val):
-                        kk = f"{key}_{i}"
-                        placeholders.append(f"%({kk})s")
-                        values[kk] = v
-                    conditions.append(f"`{field}` NOT IN ({', '.join(placeholders)})")
-            elif operator == "between":
-                if isinstance(val, str) and "," in val: val = [v.strip() for v in val.split(",")]
-                if isinstance(val, (list, tuple)) and len(val) == 2:
-                    sk, ek = f"{key}_start", f"{key}_end"
-                    conditions.append(f"`{field}` BETWEEN %({sk})s AND %({ek})s")
-                    values[sk] = val[0]
-                    values[ek] = val[1]
+                operator = "not like"
+                val = f"%{val}%"
+            elif operator == "after":
+                operator = ">"
+            elif operator == "before":
+                operator = "<"
+            elif operator == "on or after":
+                operator = ">="
+            elif operator == "on or before":
+                operator = "<="
+            elif operator in ("in", "not in", "nin") and isinstance(val, str):
+                val = [v.strip() for v in val.split(",") if v.strip()]
+                operator = "not in" if operator in ("not in", "nin") else "in"
+            elif operator == "between" and isinstance(val, str) and "," in val:
+                val = [v.strip() for v in val.split(",", 1)]
+            elif operator == "timespan":
+                start_date, end_date = get_timespan_date_range(val) or (None, None)
+                if start_date and end_date:
+                    val = [
+                        frappe.utils.get_datetime(f"{start_date} 00:00:00"),
+                        frappe.utils.get_datetime(f"{end_date} 23:59:59"),
+                    ]
+                    operator = "between"
+                else:
+                    continue
+            elif operator in ("fiscal year", "fiscal_year"):
+                fy_name = val
+                if isinstance(val, dict):
+                    fy_name = val.get("name") or val.get("value") or val.get("fiscal_year")
+                if fy_name:
+                    fy = frappe.db.get_value(
+                        "Fiscal Year",
+                        fy_name,
+                        ["year_start_date", "year_end_date"],
+                        as_dict=True,
+                    )
+                    if fy:
+                        val = [fy.year_start_date, fy.year_end_date]
+                        operator = "between"
+                    else:
+                        continue
             elif operator == "is":
-                val_lower = str(val).lower()
+                val_lower = str(val).lower().strip()
                 if val_lower in ("set", "not null"):
-                    conditions.append(f"(`{field}` IS NOT NULL AND `{field}` != '')")
+                    val = "set"
                 elif val_lower in ("not set", "null"):
-                    conditions.append(f"(`{field}` IS NULL OR `{field}` = '')")
+                    val = "not set"
 
-    where_clause = " AND ".join(conditions)
+            frappe_filters.append([doctype or "Task", field, operator, val])
+
+    return frappe_filters
+
+
+@frappe.whitelist()
+def get_list_data(start=0, page_length=20, status=None, id=None, filters=None):
+    """
+    Fetch paginated list of Task records.
+    Uses Frappe's standard `get_list` so permissions match the normal Task list view.
+    """
+    start = int(start or 0)
+    page_length = int(page_length or 20)
+    frappe_filters = _build_task_filters(status=status, id=id, filters=filters)
+
+    current_user = frappe.session.user
+    try:
+        permission_filter = task_permission_query(current_user) or ""
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "tasks.get_list_data permission query error")
+        return {"data": [], "total": 0}
+
+    conditions = ["`tabTask`.`docstatus` != 2"]
+    values = {}
+    param_counter = 0
+    task_meta = frappe.get_meta("Task")
+
+    if permission_filter == "1=0":
+        return {"data": [], "total": 0}
+    if permission_filter and permission_filter not in ("1=1", ""):
+        conditions.append(f"({permission_filter.replace('%', '%%')})")
+
+    for f in frappe_filters:
+        if not isinstance(f, (list, tuple)) or len(f) < 4:
+            continue
+
+        doctype = f[0] or "Task"
+        field_name = f[1]
+        operator = str(f[2]).lower().strip()
+        field_value = f[3]
+
+        target = _resolve_task_filter_target(doctype, field_name, task_meta)
+        if not target:
+            continue
+
+        if target.get("kind") == "child":
+            child_doctype = target.get("child_doctype")
+            parentfield = target.get("parentfield")
+            child_field = target.get("field")
+
+            if not child_doctype or not parentfield or not child_field:
+                continue
+
+            child_condition, param_counter = _build_sql_condition(
+                f"child.`{child_field}`",
+                operator,
+                field_value,
+                values,
+                param_counter,
+            )
+            if child_condition:
+                parentfield_key = f"param_{param_counter}"
+                param_counter += 1
+                values[parentfield_key] = parentfield
+                conditions.append(
+                    "EXISTS ("
+                    f"SELECT 1 FROM `tab{child_doctype}` child "
+                    "WHERE child.`parent` = `tabTask`.`name` "
+                    "AND child.`parenttype` = 'Task' "
+                    f"AND child.`parentfield` = %({parentfield_key})s "
+                    f"AND {child_condition}"
+                    ")"
+                )
+            continue
+
+        parent_field = target.get("field")
+        if not parent_field:
+            continue
+
+        sql_condition, param_counter = _build_sql_condition(
+            f"`tabTask`.`{parent_field}`",
+            operator,
+            field_value,
+            values,
+            param_counter,
+        )
+        if sql_condition:
+            conditions.append(sql_condition)
 
     try:
-        total = frappe.db.sql(
-            f"SELECT COUNT(*) FROM `tabTask` WHERE {where_clause}",
-            values
-        )[0][0]
-    except Exception as e:
+        where_clause = " AND ".join(conditions) if conditions else "1=1"
+        total_sql = f"SELECT COUNT(*) AS total FROM `tabTask` WHERE {where_clause}"
+        total_result = frappe.db.sql(total_sql, values, as_dict=True)
+        total = int((total_result[0] or {}).get("total", 0)) if total_result else 0
+    except Exception:
         frappe.log_error(frappe.get_traceback(), "tasks.get_list_data COUNT error")
         return {"data": [], "total": 0}
 
     try:
-        data = frappe.db.sql(
-            f"""
+        values["limit_start"] = start
+        values["page_length"] = page_length
+        data_sql = f"""
             SELECT
-                `name`,
-                `subject`,
-                `status`,
-                `priority`,
-                `exp_start_date`,
-                `exp_end_date`,
-                `project`,
-                `modified`,
-                `creation`,
-                `modified_by`,
-                `_comments`
+                name,
+                subject,
+                status,
+                priority,
+                exp_start_date,
+                exp_end_date,
+                project,
+                modified,
+                creation,
+                modified_by,
+                _comments
             FROM `tabTask`
             WHERE {where_clause}
-            ORDER BY `modified` DESC
-            LIMIT {start}, {page_length}
-            """,
-            values,
-            as_dict=True
-        )
+            ORDER BY modified DESC
+            LIMIT %(limit_start)s, %(page_length)s
+        """
+        data = frappe.db.sql(data_sql, values, as_dict=True)
         for r in data:
             raw = r.get("_comments") or "[]"
             try:
@@ -172,13 +419,13 @@ def get_list_data(start=0, page_length=20, status=None, id=None, filters=None):
                 r["comment_count"] = len(parsed) if isinstance(parsed, list) else 0
             except Exception:
                 r["comment_count"] = 0
-    except Exception as e:
+    except Exception:
         frappe.log_error(frappe.get_traceback(), "tasks.get_list_data SELECT error")
         return {"data": [], "total": 0}
 
     return {
         "data": data,
-        "total": total
+        "total": total,
     }
 
 
@@ -212,7 +459,8 @@ def get_task_activity(task_name):
     """Return chronological activity timeline for a task."""
     if not task_name:
         return []
-    
+
+    doc = _get_task_doc(task_name, "read")
     activity = []
 
     # --- 1. Comments ---
@@ -305,19 +553,15 @@ def get_task_activity(task_name):
                     })
 
     # --- 4. Created Event ---
-    task_doc = frappe.db.get_value(
-        "Task", task_name, ["creation", "owner"], as_dict=True
-    )
-    if task_doc:
-        activity.append({
-            "type": "Created",
-            "title": "Task Created",
-            "description": "Task record created.",
-            "timestamp": frappe.utils.format_datetime(task_doc.creation, "medium"),
-            "by": frappe.utils.get_fullname(task_doc.owner) if task_doc.owner else frappe.session.user,
-            "color": "danger",
-            "is_html": False
-        })
+    activity.append({
+        "type": "Created",
+        "title": "Task Created",
+        "description": "Task record created.",
+        "timestamp": frappe.utils.format_datetime(doc.creation, "medium"),
+        "by": frappe.utils.get_fullname(doc.owner) if doc.owner else frappe.session.user,
+        "color": "danger",
+        "is_html": False
+    })
 
     activity.sort(key=lambda x: frappe.utils.get_datetime(x["timestamp"]), reverse=True)
     return activity
@@ -351,7 +595,7 @@ def add_task_comment(task_name, content):
     # Normalize mention markup
     content = _normalize_comment_mentions(content)
 
-    doc = frappe.get_doc("Task", task_name)
+    doc = _get_task_doc(task_name, "read")
     doc.add_comment("Comment", content)
     frappe.db.commit()
 
@@ -401,8 +645,8 @@ def get_task_details(task_name):
     """Fetch task details."""
     if not task_name:
         return {}
-    
-    doc = frappe.get_doc("Task", task_name)
+
+    doc = _get_task_doc(task_name, "read")
     data = doc.as_dict()
 
     # Add readable display fields for detail UI
@@ -439,10 +683,7 @@ def get_task_notes(task_name):
     if not task_name:
         return {"notes": []}
 
-    if not frappe.db.exists("Task", task_name):
-        return {"notes": []}
-
-    doc = frappe.get_doc("Task", task_name)
+    doc = _get_task_doc(task_name, "read")
     notes = []
 
     for row in (doc.custom_note or []):
@@ -472,10 +713,7 @@ def add_task_note(task_name, note_text):
     if not task_name or not note_text:
         frappe.throw("Missing task_name or note_text")
 
-    if not frappe.db.exists("Task", task_name):
-        frappe.throw("Task not found")
-
-    doc = frappe.get_doc("Task", task_name)
+    doc = _get_task_doc(task_name, "write")
     user = frappe.session.user
     user_doc = frappe.get_doc("User", user)
     full_name = user_doc.full_name or user
@@ -501,10 +739,7 @@ def add_task_note(task_name, note_text):
 @frappe.whitelist()
 def update_task_note(task_name, idx, note_text):
     """Edit a task note row by idx."""
-    if not frappe.db.exists("Task", task_name):
-        frappe.throw("Task not found")
-
-    doc = frappe.get_doc("Task", task_name)
+    doc = _get_task_doc(task_name, "write")
     found = False
 
     for row in (doc.custom_note or []):
@@ -525,10 +760,7 @@ def update_task_note(task_name, idx, note_text):
 @frappe.whitelist()
 def delete_task_note(task_name, idx):
     """Delete a task note row by idx."""
-    if not frappe.db.exists("Task", task_name):
-        frappe.throw("Task not found")
-
-    doc = frappe.get_doc("Task", task_name)
+    doc = _get_task_doc(task_name, "write")
     doc.custom_note = [row for row in (doc.custom_note or []) if row.idx != int(idx)]
 
     doc.save(ignore_permissions=True)
@@ -543,27 +775,25 @@ def get_task_calls(task_name):
     if not task_name:
         return []
 
+    _get_task_doc(task_name, "read")
+
     try:
-        return frappe.db.sql(
-            """
-            SELECT
-                `name`,
-                `subject`,
-                `status`,
-                `owner`,
-                `name1`,
-                `start_date`,
-                `start_timing`,
-                `end_date`,
-                `end_timing`,
-                `creation`
-            FROM `tabCall List`
-            WHERE (`reference` = 'Task' AND `reference_to` = %(task_name)s
-            )
-            ORDER BY `creation` DESC
-            """,
-            {"task_name": task_name},
-            as_dict=True,
+        return frappe.get_list(
+            "Call List",
+            filters={"reference": "Task", "reference_to": task_name},
+            fields=[
+                "name",
+                "subject",
+                "status",
+                "owner",
+                "name1",
+                "start_date",
+                "start_timing",
+                "end_date",
+                "end_timing",
+                "creation",
+            ],
+            order_by="creation desc",
         )
     except Exception:
         frappe.log_error(frappe.get_traceback(), "get_task_calls")
@@ -576,30 +806,27 @@ def get_task_appointments(task_name):
     if not task_name:
         return []
 
+    _get_task_doc(task_name, "read")
+
     try:
-        appointments = frappe.db.sql(
-            """
-            SELECT
-                `name`,
-                `customer_name`,
-                `status`,
-                `creation`,
-                `custom_start_date`,
-                `custom_end_date`,
-                `custom_start_time`,
-                `custom_end_time`,
-                `customer_phone_number`,
-                `customer_email`,
-                `custom_subject`,
-                `owner`
-            FROM `tabAppointment`
-            WHERE (
-                (`reference` = 'Task' AND `reference_to` = %(task_name)s)
-            )
-            ORDER BY `creation` DESC
-            """,
-            {"task_name": task_name},
-            as_dict=True,
+        appointments = frappe.get_list(
+            "Appointment",
+            filters={"reference": "Task", "reference_to": task_name},
+            fields=[
+                "name",
+                "customer_name",
+                "status",
+                "creation",
+                "custom_start_date",
+                "custom_end_date",
+                "custom_start_time",
+                "custom_end_time",
+                "customer_phone_number",
+                "customer_email",
+                "custom_subject",
+                "owner",
+            ],
+            order_by="creation desc",
         )
 
         if not appointments:
@@ -642,8 +869,10 @@ def get_related_tasks(task_name):
     if not task_name:
         return []
 
+    _get_task_doc(task_name, "read")
+
     try:
-        tasks = frappe.get_all(
+        tasks = frappe.get_list(
             "Task",
             filters={"parent_task": task_name},
             fields=["name", "subject", "status", "priority", "creation", "exp_end_date", "owner"],
@@ -729,6 +958,7 @@ def send_task_email(task_name, recipients, subject, content, cc="", bcc="", send
     if not task_name or not recipients or not subject or not content:
         frappe.throw("Missing required fields for email")
 
+    _get_task_doc(task_name, "read")
     user = frappe.session.user
     
     # Optional attachments handling

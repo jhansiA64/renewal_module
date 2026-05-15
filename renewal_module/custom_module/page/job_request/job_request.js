@@ -9,10 +9,9 @@ frappe.pages['job-request'].on_page_show = function (wrapper) {
 		frappe.require(["/assets/renewal_module/js/issue_themes/support_layout2.js"], () => {
 			setTimeout(cb, 10);
 		});
-		frappe.require([
-			"/assets/renewal_module/css/issue_themes/support_theme2.css",
-		]);
+		frappe.require(["/assets/renewal_module/css/issue_themes/support_theme2.css"]);
 	};
+
 	ensureSupportLayoutLoaded(() => {
 		loadSupportLayout(pageWrapper, () => {
 			if (!frappe.job_request_page || frappe.job_request_page.wrapper !== pageWrapper) {
@@ -49,6 +48,8 @@ class JobRequestPage {
 			company: null,
 			employee: null,
 		};
+		this.current_form_step = 1;
+		this.total_form_steps = 4;
 	}
 
 	render() {
@@ -205,8 +206,14 @@ class JobRequestPage {
 			this.fillForm(form, editData);
 		}
 
+		const submitLabel = form.querySelector('.btn-wizard-submit-label');
+		if (submitLabel) {
+			submitLabel.textContent = this.editing_requisition ? 'Save Requisition' : 'Create Requisition';
+		}
+
 		this.setupFormAutocomplete(form);
 		this.setupDescriptionEditor(form);
+		this.initializeFormWizard();
 		this.bindFormEvents();
 	}
 
@@ -493,11 +500,117 @@ class JobRequestPage {
 			});
 
 		$(wrapper)
+			.off('click', '#next-job-request-step')
+			.on('click', '#next-job-request-step', (e) => {
+				e.preventDefault();
+				if (this.validateCurrentFormStep() && this.current_form_step < this.total_form_steps) {
+					this.showFormStep(this.current_form_step + 1);
+				}
+			});
+
+		$(wrapper)
+			.off('click', '#prev-job-request-step')
+			.on('click', '#prev-job-request-step', (e) => {
+				e.preventDefault();
+				if (this.current_form_step > 1) {
+					this.showFormStep(this.current_form_step - 1);
+				}
+			});
+
+		$(wrapper)
 			.off('submit', '#job-request-form')
 			.on('submit', '#job-request-form', (e) => {
 				e.preventDefault();
+				if (!this.validateCurrentFormStep()) return;
 				this.submitForm();
 			});
+	}
+
+	initializeFormWizard() {
+		this.current_form_step = 1;
+		this.showFormStep(1);
+	}
+
+	showFormStep(stepNumber) {
+		const form = this.getElement('#job-request-form');
+		if (!form) return;
+		const formView = this.getElement('.job-request-form-view');
+
+		form.querySelectorAll('.wizard-step').forEach((step) => step.classList.add('d-none'));
+		const stepEl = form.querySelector(`#job-request-step-${stepNumber}`);
+		if (stepEl) {
+			stepEl.classList.remove('d-none');
+		}
+
+		(formView || this.wrapper).querySelectorAll('.wizard-step-indicator').forEach((indicator, idx) => {
+			const current = idx + 1;
+			indicator.classList.remove('active', 'completed');
+			if (current < stepNumber) {
+				indicator.classList.add('completed');
+			} else if (current === stepNumber) {
+				indicator.classList.add('active');
+			}
+		});
+
+		this.current_form_step = stepNumber;
+		this.updateFormWizardNavigation();
+	}
+
+	updateFormWizardNavigation() {
+		const form = this.getElement('#job-request-form');
+		if (!form) return;
+
+		const prevBtn = form.querySelector('#prev-job-request-step');
+		const nextBtn = form.querySelector('#next-job-request-step');
+		const submitBtn = form.querySelector('#submit-job-request-step');
+
+		if (prevBtn) {
+			prevBtn.style.display = this.current_form_step === 1 ? 'none' : 'inline-flex';
+		}
+
+		if (nextBtn) {
+			nextBtn.style.display = this.current_form_step === this.total_form_steps ? 'none' : 'inline-flex';
+		}
+
+		if (submitBtn) {
+			submitBtn.style.display = this.current_form_step === this.total_form_steps ? 'inline-flex' : 'none';
+		}
+	}
+
+	validateCurrentFormStep() {
+		const form = this.getElement('#job-request-form');
+		if (!form) return true;
+
+		const stepEl = form.querySelector(`#job-request-step-${this.current_form_step}`);
+		if (!stepEl) return true;
+
+		const requiredFields = stepEl.querySelectorAll('[required]');
+		let firstInvalidField = null;
+		const missingFields = [];
+
+		requiredFields.forEach((field) => {
+			const value = (field.value || '').trim();
+			if (!value) {
+				field.style.borderColor = '#ef4444';
+				if (!firstInvalidField) firstInvalidField = field;
+				const label = field.closest('.jrq-form-group')?.querySelector('label')?.textContent || field.name;
+				missingFields.push(String(label).replace('*', '').trim());
+			} else {
+				field.style.borderColor = '';
+			}
+		});
+
+		if (missingFields.length) {
+			frappe.msgprint({
+				title: __('Validation'),
+				indicator: 'orange',
+				message: __('Please fill the required fields: {0}', [missingFields.join(', ')]),
+			});
+			if (firstInvalidField) firstInvalidField.focus();
+			return false;
+		}
+
+		return true;
 	}
 
 	readFilterValues() {
@@ -621,10 +734,26 @@ class JobRequestPage {
 					<td class="jrq-amount-cell">${this.escapeHtml(String(o.vacancies || 0))}</td>
 				</tr>
 			`).join('')
-			: `<tr><td colspan="5"><div class="jrq-empty-state jrq-empty-sm"><div class="jrq-empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 13.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.5"/><path d="M16 3h5v5"/><line x1="21" y1="3" x2="10" y2="14"/></svg></div><div class="jrq-empty-title">No linked job openings</div></div></td></tr>`;
+			: `<tr><td colspan="5"><div class="jrq-empty-state jrq-empty-sm"><div class="jrq-empty-title">No linked job openings</div></div></td></tr>`;
 
 		target.innerHTML = `
 			<div class="jrq-detail-wrap">
+				<div class="row">
+					<div class="col-12">
+						<div class="page-title-head d-flex align-items-center">
+							<div class="flex-grow-1">
+								<h3 class="fs-xl fw-bold m-0">Job Request</h3>
+							</div>
+							<div class="text-end">
+								<ol class="breadcrumb m-0 py-0" style="background-color: transparent;">
+									<li class="breadcrumb-item"><a href="javascript:void(0)">HR</a></li>
+									<li class="breadcrumb-item active">Job Request</li>
+								</ol>
+							</div>
+						</div>
+					</div>
+				</div>
+
 				<!-- Header banner -->
 				<div class="jrq-detail-header">
 					<div class="jrq-detail-header-left">
@@ -637,15 +766,12 @@ class JobRequestPage {
 					</div>
 					<div class="jrq-detail-header-actions">
 						<button class="jrq-btn jrq-btn-ghost" id="back-job-request-list">
-							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
 							Back
 						</button>
 						<button class="jrq-btn jrq-btn-outline" id="edit-job-request">
-							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
 							Edit
 						</button>
 						<button class="jrq-btn jrq-btn-danger" id="delete-job-request">
-							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
 							Delete
 						</button>
 					</div>
@@ -654,36 +780,24 @@ class JobRequestPage {
 				<!-- Stat cards -->
 				<div class="jrq-stat-grid">
 					<div class="jrq-stat-card">
-						<div class="jrq-stat-icon jrq-stat-icon-blue">
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-						</div>
 						<div class="jrq-stat-body">
 							<div class="jrq-stat-label">Requested By</div>
 							<div class="jrq-stat-value">${this.escapeHtml(r.requested_by_name || r.requested_by || '—')}</div>
 						</div>
 					</div>
 					<div class="jrq-stat-card">
-						<div class="jrq-stat-icon jrq-stat-icon-teal">
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
-						</div>
 						<div class="jrq-stat-body">
 							<div class="jrq-stat-label">Positions</div>
 							<div class="jrq-stat-value">${this.escapeHtml(String(r.no_of_positions || 0))}</div>
 						</div>
 					</div>
 					<div class="jrq-stat-card">
-						<div class="jrq-stat-icon jrq-stat-icon-amber">
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-						</div>
 						<div class="jrq-stat-body">
 							<div class="jrq-stat-label">Compensation</div>
 							<div class="jrq-stat-value">${this.escapeHtml(this.formatCurrency(r.expected_compensation))}</div>
 						</div>
 					</div>
 					<div class="jrq-stat-card">
-						<div class="jrq-stat-icon jrq-stat-icon-purple">
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-						</div>
 						<div class="jrq-stat-body">
 							<div class="jrq-stat-label">Posting Date</div>
 							<div class="jrq-stat-value">${this.escapeHtml(this.formatDate(r.posting_date) || '—')}</div>
@@ -726,11 +840,9 @@ class JobRequestPage {
 						<div class="jrq-detail-section-title">Linked Job Openings</div>
 						<div class="jrq-section-actions">
 							<button class="jrq-btn jrq-btn-primary" id="create-job-opening">
-								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 								Create Job Opening
 							</button>
 							<button class="jrq-btn jrq-btn-outline" id="associate-job-opening">
-								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
 								Associate
 							</button>
 						</div>
@@ -1071,87 +1183,136 @@ frappe.job_request_page_template = {
 
 			<!-- ===== FORM VIEW ===== -->
 			<div class="job-request-form-view d-none">
-				<div class="jrq-form-card">
-					<div class="jrq-form-header">
-						<div class="jrq-form-header-icon">
-							<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+				<div class="row mb-2">
+					<div class="col-12">
+						<div class="page-title-head d-flex align-items-center">
+							<div class="flex-grow-1">
+								<h3 class="fs-xl fw-bold m-0">Job Requisition Form</h3>
+							</div>
+							<div class="text-end">
+								<ol class="breadcrumb m-0 py-0" style="background-color: transparent;">
+									<li class="breadcrumb-item"><a href="javascript:void(0)">HR</a></li>
+									<li class="breadcrumb-item active">Job Requisition Form</li>
+								</ol>
+							</div>
 						</div>
-						<span>Job Requisition Form</span>
 					</div>
-					<form id="job-request-form" class="jrq-form">
-						<div class="jrq-form-section-label">Position Information</div>
-						<div class="jrq-form-grid">
-							<div class="jrq-form-group">
-								<label class="jrq-label">Designation <span class="jrq-req">*</span></label>
-								<input name="designation" class="jrq-field" list="job-request-designation-list" placeholder="e.g. Senior Engineer" required />
+				</div>
+
+				<div class="job-request-form-layout">
+					<div class="jrq-wizard-card">
+						<div class="wizard-progress-bar">
+							<div class="wizard-track"></div>
+							<div class="wizard-step-indicator active">
+								<div class="wizard-step-number">1</div>
+								<div class="wizard-step-label">Position</div>
 							</div>
-							<div class="jrq-form-group">
-								<label class="jrq-label">Department</label>
-								<input name="department" class="jrq-field" list="job-request-department-list" placeholder="e.g. Engineering" />
+							<div class="wizard-step-indicator">
+								<div class="wizard-step-number">2</div>
+								<div class="wizard-step-label">Request</div>
 							</div>
-							<div class="jrq-form-group">
-								<label class="jrq-label">Company <span class="jrq-req">*</span></label>
-								<input name="company" class="jrq-field" list="job-request-company-list" placeholder="Select company" required />
+							<div class="wizard-step-indicator">
+								<div class="wizard-step-number">3</div>
+								<div class="wizard-step-label">Compensation</div>
+							</div>
+							<div class="wizard-step-indicator">
+								<div class="wizard-step-number">4</div>
+								<div class="wizard-step-label">Details</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="jrq-form-card">
+						<form id="job-request-form" class="jrq-form">
+						<div class="wizard-step" id="job-request-step-1">
+							<div class="jrq-form-section-label">Position Information</div>
+							<div class="jrq-form-grid">
+								<div class="jrq-form-group">
+									<label class="jrq-label">Designation <span class="jrq-req">*</span></label>
+									<input name="designation" class="jrq-field" list="job-request-designation-list" placeholder="e.g. Senior Engineer" required />
+								</div>
+								<div class="jrq-form-group">
+									<label class="jrq-label">Department</label>
+									<input name="department" class="jrq-field" list="job-request-department-list" placeholder="e.g. Engineering" />
+								</div>
+								<div class="jrq-form-group">
+									<label class="jrq-label">Company <span class="jrq-req">*</span></label>
+									<input name="company" class="jrq-field" list="job-request-company-list" placeholder="Select company" required />
+								</div>
 							</div>
 						</div>
 
-						<div class="jrq-form-section-label">Request Details</div>
-						<div class="jrq-form-grid">
-							<div class="jrq-form-group">
-								<label class="jrq-label">Requested By <span class="jrq-req">*</span></label>
-								<input name="requested_by" class="jrq-field" list="job-request-employee-list" placeholder="Employee name or ID" required />
-							</div>
-							<div class="jrq-form-group">
-								<label class="jrq-label">Status</label>
-								<select name="status" class="jrq-field jrq-select-field">
-									<option value="Open">Open</option>
-									<option value="Open & Approved">Open &amp; Approved</option>
-									<option value="Rejected">Rejected</option>
-									<option value="On Hold">On Hold</option>
-									<option value="Cancelled">Cancelled</option>
-									<option value="Filled">Filled</option>
-								</select>
-							</div>
-							<div class="jrq-form-group">
-								<label class="jrq-label">No. of Positions</label>
-								<input type="number" min="1" name="no_of_positions" class="jrq-field" value="1" placeholder="1" />
-							</div>
-						</div>
-
-						<div class="jrq-form-section-label">Compensation &amp; Timeline</div>
-						<div class="jrq-form-grid">
-							<div class="jrq-form-group">
-								<label class="jrq-label">Expected Compensation</label>
-								<input type="number" min="0" step="0.01" name="expected_compensation" class="jrq-field" placeholder="0.00" />
-							</div>
-							<div class="jrq-form-group">
-								<label class="jrq-label">Posting Date</label>
-								<input type="date" name="posting_date" class="jrq-field" />
-							</div>
-							<div class="jrq-form-group">
-								<label class="jrq-label">Expected By</label>
-								<input type="date" name="expected_by" class="jrq-field" />
+						<div class="wizard-step d-none" id="job-request-step-2">
+							<div class="jrq-form-section-label">Request Details</div>
+							<div class="jrq-form-grid">
+								<div class="jrq-form-group">
+									<label class="jrq-label">Requested By <span class="jrq-req">*</span></label>
+									<input name="requested_by" class="jrq-field" list="job-request-employee-list" placeholder="Employee name or ID" required />
+								</div>
+								<div class="jrq-form-group">
+									<label class="jrq-label">Status</label>
+									<select name="status" class="jrq-field jrq-select-field">
+										<option value="Open">Open</option>
+										<option value="Open & Approved">Open &amp; Approved</option>
+										<option value="Rejected">Rejected</option>
+										<option value="On Hold">On Hold</option>
+										<option value="Cancelled">Cancelled</option>
+										<option value="Filled">Filled</option>
+									</select>
+								</div>
+								<div class="jrq-form-group">
+									<label class="jrq-label">No. of Positions</label>
+									<input type="number" min="1" name="no_of_positions" class="jrq-field" value="1" placeholder="1" />
+								</div>
 							</div>
 						</div>
 
-						<div class="jrq-form-section-label">Additional Information</div>
-						<div class="jrq-form-group jrq-form-group-full">
-							<label class="jrq-label">Reason for Requesting</label>
-							<textarea name="reason_for_requesting" rows="2" class="jrq-field jrq-textarea" placeholder="Brief reason for this requisition..."></textarea>
-						</div>
-						<div class="jrq-form-group jrq-form-group-full">
-							<label class="jrq-label">Description</label>
-							<textarea name="description" rows="4" class="jrq-field jrq-textarea" placeholder="Detailed job description, requirements..."></textarea>
+						<div class="wizard-step d-none" id="job-request-step-3">
+							<div class="jrq-form-section-label">Compensation &amp; Timeline</div>
+							<div class="jrq-form-grid">
+								<div class="jrq-form-group">
+									<label class="jrq-label">Expected Compensation</label>
+									<input type="number" min="0" step="0.01" name="expected_compensation" class="jrq-field" placeholder="0.00" />
+								</div>
+								<div class="jrq-form-group">
+									<label class="jrq-label">Posting Date</label>
+									<input type="date" name="posting_date" class="jrq-field" />
+								</div>
+								<div class="jrq-form-group">
+									<label class="jrq-label">Expected By</label>
+									<input type="date" name="expected_by" class="jrq-field" />
+								</div>
+							</div>
 						</div>
 
-						<div class="jrq-form-actions">
+						<div class="wizard-step d-none" id="job-request-step-4">
+							<div class="jrq-form-section-label">Additional Information</div>
+							<div class="jrq-form-group jrq-form-group-full">
+								<label class="jrq-label">Reason for Requesting</label>
+								<textarea name="reason_for_requesting" rows="2" class="jrq-field jrq-textarea" placeholder="Brief reason for this requisition..."></textarea>
+							</div>
+							<div class="jrq-form-group jrq-form-group-full">
+								<label class="jrq-label">Description</label>
+								<textarea name="description" rows="4" class="jrq-field jrq-textarea" placeholder="Detailed job description, requirements..."></textarea>
+							</div>
+						</div>
+
+						<div class="jrq-form-actions wizard-nav-row">
+							<button type="button" id="prev-job-request-step" class="jrq-btn jrq-btn-ghost btn-wizard-prev" style="display:none;">
+								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+								Previous
+							</button>
 							<button type="button" id="cancel-job-request-form" class="jrq-btn jrq-btn-ghost">
 								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 								Cancel
 							</button>
-							<button type="submit" class="jrq-btn jrq-btn-primary">
+							<button type="button" id="next-job-request-step" class="jrq-btn jrq-btn-primary btn-wizard-next">
+								Next
+								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+							</button>
+							<button type="submit" id="submit-job-request-step" class="jrq-btn jrq-btn-primary btn-wizard-submit" style="display:none;">
 								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-								Save Requisition
+								<span class="btn-wizard-submit-label">Create Requisition</span>
 							</button>
 						</div>
 

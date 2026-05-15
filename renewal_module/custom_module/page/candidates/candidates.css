@@ -89,6 +89,11 @@ body[data-route^="candidates"] .content1 {
     width: 100% !important;
 }
 
+[data-route^="candidates"] .body-sidebar-container {
+    display: none !important;
+    width: 0 !important;
+}
+
 [data-route^="candidates"] .row {
     margin-left: 0;
     margin-right: 0;
@@ -1656,6 +1661,313 @@ body[data-route^="candidates"] .content1 {
 [data-route^="candidates"] .page-title-head h3,
 [data-route^="candidates"] .page-title {
     color: var(--cand-secondary);
+}
+
+/* ========== CORPORATE PROFILE DETAIL VIEW ========== */
+[data-route^="candidates"] .cand-profile-layout {
+    display: grid;
+    grid-template-columns: minmax(290px, 340px) minmax(0, 1fr);
+    gap: 16px;
+    align-items: stretch;
+}
+
+[data-route^="candidates"] .cand-profile-panel {
+    align-self: stretch;
+}
+
+[data-route^="candidates"] .cand-profile-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    border: 1px solid #dbe5f2;
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    padding: 16px;
+}
+
+[data-route^="candidates"] .cand-profile-top {
+    text-align: center;
+    border-bottom: 1px solid #e8eef7;
+    padding-bottom: 12px;
+    margin-bottom: 10px;
+}
+
+[data-route^="candidates"] .cand-avatar.cand-avatar-lg {
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    margin: 0 auto 10px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+    color: #fff;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    box-shadow: 0 8px 16px rgba(37, 99, 235, 0.28);
+}
+
+[data-route^="candidates"] .cand-detail-id {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+[data-route^="candidates"] .cand-hero-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 8px;
+}
+
+[data-route^="candidates"] .cand-profile-meta {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+[data-route^="candidates"] .cand-detail-badge {
+    background: #e8f0ff;
+    color: #1e3a8a;
+    border: 1px solid #c8dafc;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 999px;
+    padding: 2px 8px;
+}
+
+[data-route^="candidates"] .cand-detail-badge-soft {
+    background: #f1f5f9;
+    color: #334155;
+    border-color: #e2e8f0;
+}
+
+[data-route^="candidates"] .cand-profile-status {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+[data-route^="candidates"] .cand-profile-quick {
+    display: grid;
+    gap: 2px;
+    margin-top: 4px;
+}
+
+[data-route^="candidates"] .cand-quick-row {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    padding: 7px 0;
+    border-bottom: 1px dashed #e2e8f0;
+}
+
+[data-route^="candidates"] .cand-quick-row:last-child {
+    border-bottom: 0;
+}
+
+[data-route^="candidates"] .cand-quick-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+[data-route^="candidates"] .cand-quick-value {
+    font-size: 13px;
+    color: #0f172a;
+    word-break: break-word;
+}
+
+[data-route^="candidates"] .cand-profile-actions {
+    margin-top: auto;
+    display: flex;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid #e8eef7;
+}
+
+[data-route^="candidates"] .cand-profile-main {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+[data-route^="candidates"] .cand-section-card {
+    border: 1px solid #dbe5f2;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    overflow: hidden;
+}
+
+[data-route^="candidates"] .cand-section-head {
+    width: 100%;
+    border: 0;
+    background: linear-gradient(180deg, #f8fbff 0%, #f2f7ff 100%);
+    padding: 12px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left;
+    cursor: pointer;
+}
+
+[data-route^="candidates"] .cand-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f3460;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+[data-route^="candidates"] .cand-section-head-right {
+    color: #4b5563;
+    transition: transform 0.2s ease;
+}
+
+[data-route^="candidates"] .cand-section-card.is-open .cand-section-head-right {
+    transform: rotate(180deg);
+}
+
+[data-route^="candidates"] .cand-section-body {
+    padding: 12px 14px;
+}
+
+[data-route^="candidates"] .cand-section-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+[data-route^="candidates"] .cand-field-row {
+    padding: 9px 10px;
+    border: 1px solid #edf2fb;
+    border-radius: 8px;
+    background: #fbfdff;
+}
+
+[data-route^="candidates"] .cand-field-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: #64748b;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+[data-route^="candidates"] .cand-field-value {
+    font-size: 13px;
+    color: #0f172a;
+    word-break: break-word;
+}
+
+[data-route^="candidates"] .cand-attachment-grid {
+    display: grid;
+    gap: 8px;
+}
+
+[data-route^="candidates"] .cand-attachment-item {
+    border: 1px solid #e3ecfa;
+    border-radius: 8px;
+    padding: 10px;
+    background: #f9fbff;
+}
+
+[data-route^="candidates"] .cand-attachment-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 4px;
+}
+
+[data-route^="candidates"] .cand-attachment-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+[data-route^="candidates"] .cand-attachment-actions a {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1d4ed8;
+    text-decoration: none;
+}
+
+[data-route^="candidates"] .cand-attachment-actions a:hover {
+    text-decoration: underline;
+}
+
+[data-route^="candidates"] .cand-attachment-meta-row {
+    font-size: 12px;
+    color: #475569;
+}
+
+[data-route^="candidates"] .cand-edu-wrap {
+    overflow-x: auto;
+    border: 1px solid #dbe5f2;
+    border-radius: 10px;
+}
+
+[data-route^="candidates"] .cand-edu-table {
+    width: 100%;
+    min-width: 680px;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+[data-route^="candidates"] .cand-edu-table th,
+[data-route^="candidates"] .cand-edu-table td {
+    width: calc(100% / 5);
+    vertical-align: middle;
+    word-break: break-word;
+}
+
+[data-route^="candidates"] .cand-edu-table th {
+    background: #f2f7ff;
+    color: #0f3460;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid #dbe5f2;
+    padding: 12px 14px;
+}
+
+[data-route^="candidates"] .cand-edu-table td {
+    color: #334155;
+    font-size: 13px;
+    border-bottom: 1px solid #edf2fb;
+    padding: 12px 14px;
+    line-height: 1.5;
+}
+
+[data-route^="candidates"] .cand-edu-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+[data-route^="candidates"] .cand-edu-table tbody tr:hover td {
+    background: #f8fbff;
+}
+
+@media (max-width: 992px) {
+    [data-route^="candidates"] .cand-profile-layout {
+        grid-template-columns: 1fr;
+    }
+
+    [data-route^="candidates"] .cand-section-grid {
+        grid-template-columns: 1fr;
+    }
+
+    [data-route^="candidates"] .cand-quick-row {
+        grid-template-columns: 1fr;
+        gap: 3px;
+    }
 }
 
 /* ensure body background uses theme variable */

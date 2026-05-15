@@ -1,0 +1,303 @@
+<div class="cof-page">
+	<div class="page-wrap">
+		<div class="">
+			<ol class="breadcrumb" style="background-color:transparent;padding:0px;margin-bottom:5px;">
+			<li class="breadcrumb-item"><a href="javascript:void(0)">Selling</a></li>
+			<li class="breadcrumb-item" style="padding-left:5px;"><a href="/app/cof-list">Cof List</a></li>
+			</ol>
+		</div>
+		
+		<div class="top-split">
+			<div class="top-left1">
+				<div class="subject-label">Subject · Lead #0041</div>
+				<div class="top-left-row1">
+					<div class="customer-avatar">KR</div>
+					<div class="customer-info">
+						<div class="customer-name">Kumar Retail Pvt. Ltd.</div>
+						<div class="customer-sub">Mumbai · GST: 27AABCK1234M1Z5</div>
+					</div>
+					<span class="badge badge-warning" id="statusBadge"><i class="ti ti-circle-dot"></i> Draft</span>
+				</div>
+				<div class="fin-grid">
+					<div class="fin-card">
+						<div class="fin-label">Selling Amt</div>
+						<div class="fin-value" id="cofSellingAmt">₹0.00</div>
+					</div>
+					<div class="fin-card">
+						<div class="fin-label">Buying Amt</div>
+						<div class="fin-value" id="cofBuyingAmt">₹0.00</div>
+					</div>
+					<div class="fin-card">
+						<div class="fin-label">ORC</div>
+						<div class="fin-value" id="cofOrcAmt">₹0.00</div>
+					</div>
+					<div class="fin-card">
+						<div class="fin-label">Profit</div>
+						<div class="fin-value profit" id="cofProfitAmt">₹0.00</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="top-right1">
+				<div class="top-actions-row">
+					<div class="header-title">Opportunity Detail</div>
+					<button class="icon-btn" title="Edit"><i class="ti ti-edit"></i></button>
+					<button class="icon-btn" title="More options"><i class="ti ti-dots"></i></button>
+					<div class="vdivider"></div>
+					<div class="wf-wrap" id="wfWrap">
+						<button class="btn wf-btn" id="wfBtn" type="button" data-action="toggle-workflow">
+							<i class="ti ti-git-branch"></i>
+							<span id="wfBtnLabel">Workflow</span>
+							<span class="wf-status-dot" id="wfDot"></span>
+							<i class="ti ti-chevron-down" id="wfChevron"></i>
+						</button>
+						<div class="wf-dropdown" id="wfDropdown">
+							<div class="wf-stage-label" id="wfStageLabel"></div>
+							<div class="wf-actions" id="wfActions"></div>
+						</div>
+					</div>
+					<button class="btn btn-with-badge" title="Connections">
+						<i class="ti ti-link"></i> Connections
+						<span class="btn-counter">5</span>
+					</button>
+					<div class="vdivider"></div>
+					<button class="btn"><i class="ti ti-phone-call"></i> Follow-up</button>
+					<button class="btn btn-primary"><i class="ti ti-send"></i> Send Quote</button>
+				</div>
+
+				<div class="opp-grid">
+					<div class="detail-row detail-col-right">
+						<span class="detail-label"><i class="ti ti-file-invoice"></i> Quotation ID</span>
+						<span class="detail-val" id="cofQuotationId">-</span>
+					</div>
+					<div class="detail-row detail-col-left">
+						<span class="detail-label"><i class="ti ti-id"></i> COF ID</span>
+						<span class="detail-val" id="cofRecordId">-</span>
+					</div>
+					<div class="detail-row detail-col-right detail-row-noborder">
+						<span class="detail-label"><i class="ti ti-user-check"></i> Salesperson</span>
+						<span class="detail-val" id="cofSalesperson">-</span>
+					</div>
+					<div class="detail-row detail-col-left detail-row-noborder">
+						<span class="detail-label"><i class="ti ti-receipt"></i> PO Ref No</span>
+						<span class="detail-val" id="cofPoRefNo">-</span>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<div class="section-head">
+				<div class="section-title">Opportunity Items</div>
+				<button class="btn"><i class="ti ti-plus"></i> Add Item</button>
+			</div>
+			<div class="table-wrap table-wrap-wide">
+				<table class="table-fixed-head">
+					<thead>
+						<tr>
+							<th class="w-42">ID</th>
+							<th class="w-200">Item</th>
+							<th class="w-90">Brand</th>
+							<th class="w-52 th-right">Qty</th>
+							<th class="w-110 th-right">SP (₹)</th>
+							<th class="w-130 th-right">Sell Amt</th>
+							<th class="w-110 th-right">BP (₹)</th>
+							<th class="w-130 th-right">Buy Amt</th>
+						</tr>
+					</thead>
+				</table>
+				<div class="table-body-scroll">
+					<table class="table-fixed-body">
+						<colgroup>
+							<col class="w-42">
+							<col class="w-200">
+							<col class="w-90">
+							<col class="w-52">
+							<col class="w-110">
+							<col class="w-130">
+							<col class="w-110">
+							<col class="w-130">
+						</colgroup>
+<tbody id="cofItemsTableBody">
+                            <tr>
+                                <td colspan="8" class="td-muted" style="text-align:center;">No items available</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="items-summary">
+                <div>
+                    <div class="total-label">Total Qty</div>
+                    <div class="total-val total-qty" id="cofItemsTotalQty">0</div>
+                </div>
+                <div class="summary-right">
+                    <div class="summary-line">
+                        <span class="total-label">Total Sell Amt</span>
+                        <span class="total-val" id="cofItemsSellAmt">₹ 0.00</span>
+                    </div>
+                    <div class="summary-line">
+                        <span class="total-label" id="cofItemsTaxLabel">Tax</span>
+                        <span class="total-val" id="cofItemsTax">₹ 0.00</span>
+                    </div>
+                    <div class="summary-grand">
+                        <span>Grand Total</span>
+                        <span id="cofItemsGrandTotal">₹ 0.00</span>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<div class="activity-header">
+				<div class="section-title">Activity</div>
+				<div class="activity-toolbar">
+					<div class="tabs-row" id="actTabs">
+						<div class="tab active" data-tab="notes">Notes</div>
+						<div class="tab" data-tab="calls">Calls</div>
+						<div class="tab" data-tab="appointments">Appointments</div>
+						<div class="tab" data-tab="comments">Comments</div>
+						<div class="tab" data-tab="attachments">Attachments</div>
+					</div>
+					<div class="vdivider" id="filterDivider"></div>
+					<div class="tabs-row" id="actFilter">
+						<div class="tab active" data-filter="all">All</div>
+						<div class="tab" data-filter="completed">Completed</div>
+						<div class="tab" data-filter="scheduled">Scheduled</div>
+					</div>
+				</div>
+			</div>
+
+			<div id="activityList">
+				<div class="act-item" data-tab="notes" data-status="completed">
+					<div class="act-icon note"><i class="ti ti-notes"></i></div>
+					<div class="act-body">
+						<div class="act-title">Follow-up on product demo - client requested revised pricing</div>
+						<div class="act-meta">Added by Divya Nair · 08 May 2025</div>
+					</div>
+					<span class="act-type">Note</span>
+				</div>
+				<div class="act-item" data-tab="calls" data-status="completed">
+					<div class="act-icon call"><i class="ti ti-phone"></i></div>
+					<div class="act-body">
+						<div class="act-title">Initial discovery call - 18 min, discussed requirements</div>
+						<div class="act-meta">Rajan Mehta · 05 May 2025</div>
+					</div>
+					<span class="act-type">Call</span>
+				</div>
+				<div class="act-item" data-tab="appointments" data-status="scheduled">
+					<div class="act-icon appt"><i class="ti ti-calendar-event"></i></div>
+					<div class="act-body">
+						<div class="act-title">Product presentation with Kiran Kumar</div>
+						<div class="act-meta">15 May 2025 · 11:00 AM · Conference Room B</div>
+					</div>
+					<span class="act-type act-type-warning">Scheduled</span>
+				</div>
+				<div class="act-item" data-tab="comments" data-status="completed">
+					<div class="act-icon note"><i class="ti ti-message-circle"></i></div>
+					<div class="act-body">
+						<div class="act-title">Client confirmed delivery timeline - end of June acceptable</div>
+						<div class="act-meta">Divya Nair · 06 May 2025</div>
+					</div>
+					<span class="act-type">Comment</span>
+				</div>
+			</div>
+
+			<div id="attachmentsPanel" class="attachments-panel hidden">
+				<div class="att-grid">
+					<div class="att-card">
+						<div class="att-card-icon att-pdf"><i class="ti ti-file-type-pdf"></i></div>
+						<div class="att-card-body">
+							<div class="att-card-title">Purchase Invoice</div>
+							<div class="att-card-file">INV-2024-0031.pdf</div>
+							<div class="att-card-meta">124 KB · May 2025</div>
+						</div>
+						<div class="att-card-actions">
+							<a href="#" class="att-card-btn" title="Download"><i class="ti ti-download"></i></a>
+							<a href="#" class="att-card-btn danger" title="Delete"><i class="ti ti-trash"></i></a>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div id="actBottom" class="act-bottom"></div>
+
+			<div id="inputNotes" class="act-input-area hidden">
+				<textarea id="noteText" class="act-textarea" placeholder="Write a note..."></textarea>
+				<div class="act-input-actions">
+					<button class="btn btn-primary" type="button" data-action="save-note"><i class="ti ti-check"></i> Save Note</button>
+					<button class="btn" type="button" data-close-tab="notes">Cancel</button>
+				</div>
+			</div>
+
+			<div id="inputCalls" class="act-input-area hidden">
+				<div class="act-form-grid">
+					<div class="act-field">
+						<label class="act-field-label">Call With</label>
+						<input type="text" class="act-input" placeholder="Contact name">
+					</div>
+					<div class="act-field">
+						<label class="act-field-label">Duration (min)</label>
+						<input type="number" class="act-input" placeholder="e.g. 20">
+					</div>
+				</div>
+				<div class="act-input-actions">
+					<button class="btn btn-primary" type="button" data-close-tab="calls"><i class="ti ti-check"></i> Log Call</button>
+					<button class="btn" type="button" data-close-tab="calls">Cancel</button>
+				</div>
+			</div>
+
+			<div id="inputAppointments" class="act-input-area hidden">
+				<div class="act-form-grid">
+					<div class="act-field">
+						<label class="act-field-label">Title</label>
+						<input type="text" class="act-input" placeholder="Appointment title">
+					</div>
+					<div class="act-field">
+						<label class="act-field-label">Location</label>
+						<input type="text" class="act-input" placeholder="e.g. Conference Room A">
+					</div>
+				</div>
+				<div class="act-input-actions">
+					<button class="btn btn-primary" type="button" data-close-tab="appointments"><i class="ti ti-check"></i> Schedule</button>
+					<button class="btn" type="button" data-close-tab="appointments">Cancel</button>
+				</div>
+			</div>
+
+			<div id="inputComments" class="act-input-area hidden">
+				<div class="rel-wrap">
+					<textarea id="commentText" class="act-textarea" placeholder="Write a comment... type @ to mention someone"></textarea>
+					<div id="mentionDropdown" class="mention-dropdown hidden">
+						<div class="mention-item" data-mention="Divya Nair"><div class="mention-avatar">DN</div><div><div class="mention-name">Divya Nair</div><div class="mention-role">Salesperson</div></div></div>
+					</div>
+				</div>
+				<div class="act-input-actions">
+					<button class="btn btn-primary" type="button" data-action="save-comment"><i class="ti ti-check"></i> Post Comment</button>
+					<button class="btn" type="button" data-close-tab="comments">Cancel</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<div class="section-head">
+				<div class="section-title">Payment Terms</div>
+				<button class="btn"><i class="ti ti-plus"></i> Add Instalment</button>
+			</div>
+			<div class="table-wrap">
+				<table>
+					<thead>
+						<tr>
+							<th class="w-36">#</th>
+							<th>Description</th>
+							<th>Due Date</th>
+							<th class="th-right">%</th>
+							<th class="th-right">Amount (₹)</th>
+							<th>Mode</th>
+							<th>Status</th>
+						</tr>
+					</thead>
+				</table>
+			</div>
+		</div>
+	</div>
+</div>

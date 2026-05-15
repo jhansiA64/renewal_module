@@ -3,6 +3,7 @@ from frappe.utils import flt
 import json
 from datetime import datetime
 from frappe.utils import get_datetime
+from frappe.utils import cint, cstr
 
 @frappe.whitelist()
 def get_filters():
@@ -14,6 +15,151 @@ def get_filters():
     )
     return {"owners": owners}
 
+
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def search_items_for_link(doctype, txt, searchfield, start, page_len, filters=None):
+    """Link-search helper for Item fields used by quotation page wizards."""
+    filters = frappe.parse_json(filters) if isinstance(filters, str) else (filters or {})
+    meta = frappe.get_meta("Item")
+
+    start = max(cint(start or 0), 0)
+    page_len = max(1, min(cint(page_len or 10), 50))
+
+    item_code = cstr(txt).strip()
+    brand = cstr(filters.get("brand")).strip()
+    item_group = cstr(filters.get("item_group")).strip()
+    tenure = cstr(filters.get("tenure")).strip()
+    years_months = cstr(filters.get("years_months")).strip()
+    product = cstr(filters.get("product")).strip()
+
+    conditions = ["ifnull(disabled, 0) = 0"]
+    values = {
+        "start": start,
+        "page_len": page_len,
+    }
+
+    if item_code:
+        values["item_code"] = f"%{item_code}%"
+        conditions.append(
+            "("
+            "name like %(item_code)s "
+            "or ifnull(item_name, '') like %(item_code)s "
+            "or ifnull(description, '') like %(item_code)s"
+            ")"
+        )
+
+    if brand and meta.has_field("brand"):
+        values["brand"] = f"%{brand}%"
+        conditions.append("ifnull(brand, '') like %(brand)s")
+
+    if item_group and meta.has_field("item_group"):
+        values["item_group"] = f"%{item_group}%"
+        conditions.append("ifnull(item_group, '') like %(item_group)s")
+
+    if product:
+        values["product"] = f"%{product}%"
+        conditions.append(
+            "("
+            "name like %(product)s "
+            "or ifnull(item_name, '') like %(product)s "
+            "or ifnull(description, '') like %(product)s"
+            ")"
+        )
+
+    tenure_fields = [
+        fieldname
+        for fieldname in ["tenure", "custom_tenure", "renewal_option"]
+        if meta.has_field(fieldname)
+    ]
+    if tenure and tenure_fields:
+        values["tenure"] = f"%{tenure}%"
+        conditions.append(
+            "(" + " or ".join([f"ifnull(`{fieldname}`, '') like %(tenure)s" for fieldname in tenure_fields]) + ")"
+        )
+
+    tenure_normalized = tenure.strip().lower()
+    if tenure_normalized == "years" and meta.has_field("years"):
+        conditions.append("ifnull(years, 0) > 0")
+    elif tenure_normalized == "months" and meta.has_field("months"):
+        conditions.append("ifnull(months, 0) > 0")
+
+    years_months_clauses = []
+    if years_months:
+        values["years_months"] = f"%{years_months}%"
+        if meta.has_field("years") and tenure_normalized != "months":
+            years_months_clauses.append("cast(ifnull(years, '') as char) like %(years_months)s")
+        if meta.has_field("months") and tenure_normalized != "years":
+            years_months_clauses.append("cast(ifnull(months, '') as char) like %(years_months)s")
+        if meta.has_field("years") and meta.has_field("months") and tenure_normalized not in {"years", "months"}:
+            years_months_clauses.append(
+                "concat(ifnull(years, ''), ' year ', ifnull(months, ''), ' month') like %(years_months)s"
+            )
+        if years_months_clauses:
+            conditions.append("(" + " or ".join(years_months_clauses) + ")")
+
+    tenure_summary_parts = []
+    if meta.has_field("tenure"):
+        tenure_summary_parts.append("ifnull(tenure, '')")
+
+    if meta.has_field("years"):
+        tenure_summary_parts.append("concat(ifnull(years, ''), 'Y')")
+    if meta.has_field("months"):
+        tenure_summary_parts.append("concat(ifnull(months, ''), 'M')")
+
+    tenure_summary_sql = (
+        f"concat_ws(' ', {', '.join(tenure_summary_parts)})"
+        if tenure_summary_parts
+        else "''"
+    )
+
+    rows = frappe.db.sql(
+        f"""
+        select
+            name,
+            ifnull(item_name, '') as item_name,
+            ifnull(brand, '') as brand,
+            {tenure_summary_sql} as tenure_summary
+        from `tabItem`
+        where {' and '.join(conditions)}
+        order by name asc
+        limit %(start)s, %(page_len)s
+        """,
+        values,
+        as_list=True,
+    )
+
+    return rows
+
+@frappe.whitelist()
+def get_enabled_users():
+	"""
+	Get list of enabled users with their details.
+	This method bypasses direct User doctype access by using the database query.
+	Returns users who are enabled and have valid email addresses.
+	"""
+	try:
+		# Query the database directly to get users, bypassing permission checks
+		users = frappe.db.get_list(
+			"User",
+			filters={"enabled": 1},
+			fields=["name", "email", "full_name"],
+			order_by="full_name asc",
+            ignore_permissions=True
+		)
+		
+		# Format the response
+		return [
+			{
+				"name": u.get("full_name") or u.get("name"),
+				"email": u.get("email") or u.get("name"),
+				"user_id": u.get("name")
+			}
+			for u in users
+		]
+	except Exception as e:
+		frappe.log_error(frappe.get_traceback(), "get_enabled_users error")
+		return []
 
 @frappe.whitelist()
 def get_customer_options(search_text="", limit=20):
@@ -46,6 +192,104 @@ def get_customer_options(search_text="", limit=20):
 
     return [r.get("party_name") for r in rows if r.get("party_name")]
 
+@frappe.whitelist()
+def get_party_link_details(link_doctype="", link_name="", parenttypes=None, limit=100):
+    """Return linked addresses / contacts for a party without client-side Dynamic Link access."""
+    link_doctype = cstr(link_doctype).strip()
+    link_name = cstr(link_name).strip()
+
+    try:
+        limit = max(1, min(cint(limit or 100), 200))
+    except Exception:
+        limit = 100
+
+    parenttypes = frappe.parse_json(parenttypes) if isinstance(parenttypes, str) else (parenttypes or [])
+    requested_parenttypes = [cstr(pt).strip() for pt in parenttypes if cstr(pt).strip()]
+    allowed_parenttypes = [pt for pt in requested_parenttypes if pt in {"Address", "Contact"}] or ["Address", "Contact"]
+
+    out = {
+        "addresses": [],
+        "contacts": [],
+        "customer_address": "",
+        "shipping_address": "",
+        "contact_person": "",
+        "company_address": "",
+    }
+
+    if not link_doctype or not link_name or not frappe.db.exists(link_doctype, link_name):
+        return out
+
+    try:
+        doc = frappe.get_doc(link_doctype, link_name)
+    except Exception:
+        return out
+
+    if not frappe.has_permission(doctype=link_doctype, ptype="read", doc=doc):
+        return out
+
+    if link_doctype == "Customer":
+        out["customer_address"] = cstr(
+            doc.get("customer_primary_address")
+            or doc.get("primary_address")
+            or doc.get("customer_address")
+        ).strip()
+        out["shipping_address"] = cstr(
+            doc.get("shipping_address_name")
+            or doc.get("shipping_address")
+        ).strip()
+        out["contact_person"] = cstr(
+            doc.get("customer_primary_contact")
+            or doc.get("primary_contact")
+            or doc.get("default_contact")
+        ).strip()
+    elif link_doctype == "Company":
+        out["company_address"] = cstr(
+            doc.get("company_address")
+            or doc.get("default_address")
+        ).strip()
+
+    placeholders = ", ".join(["%s"] * len(allowed_parenttypes))
+    rows = frappe.db.sql(
+        f"""
+        select distinct parent, parenttype
+        from `tabDynamic Link`
+        where link_doctype = %s
+          and link_name = %s
+          and parenttype in ({placeholders})
+          and ifnull(parent, '') != ''
+        order by modified desc, creation desc
+        limit %s
+        """,
+        [link_doctype, link_name, *allowed_parenttypes, limit],
+        as_dict=True,
+    )
+
+    for row in rows or []:
+        parent = cstr(row.get("parent")).strip()
+        parenttype = cstr(row.get("parenttype")).strip()
+        if not parent:
+            continue
+        if parenttype == "Address" and parent not in out["addresses"]:
+            out["addresses"].append(parent)
+        elif parenttype == "Contact" and parent not in out["contacts"]:
+            out["contacts"].append(parent)
+
+    if link_doctype == "Customer":
+        if not out["customer_address"] and out["addresses"]:
+            out["customer_address"] = out["addresses"][0]
+        if not out["shipping_address"]:
+            out["shipping_address"] = out["addresses"][1] if len(out["addresses"]) > 1 else (out["addresses"][0] if out["addresses"] else "")
+        if not out["customer_address"] and out["shipping_address"]:
+            out["customer_address"] = out["shipping_address"]
+        if not out["shipping_address"] and out["customer_address"]:
+            out["shipping_address"] = out["customer_address"]
+        if not out["contact_person"] and out["contacts"]:
+            out["contact_person"] = out["contacts"][0]
+    elif link_doctype == "Company":
+        if not out["company_address"] and out["addresses"]:
+            out["company_address"] = out["addresses"][0]
+
+    return out
 
 @frappe.whitelist()
 def get_users_basic_info(users):
@@ -245,21 +489,36 @@ def get_list_data(start=0, page_length=20, status="", probability="", owners=Non
 
     # -------- permissions --------
     current_user = frappe.session.user
-    permission_filter = "1=1"
+    permission_filter = "1=0"  # fail closed if permission resolver errors
     try:
         from renewal_module.user_permissions import quotation_permission_query
-        pf = quotation_permission_query(current_user)
-        if isinstance(pf, str) and pf.strip():
-            permission_filter = pf
-    except Exception:
-        pass
 
-    if permission_filter and permission_filter != "1=1":
-        conditions.append(permission_filter)
-    elif permission_filter == "1=0":
-        conditions.append(permission_filter)
+        pf = quotation_permission_query(current_user)
+        if isinstance(pf, str):
+            pf = pf.strip()
+            permission_filter = pf if pf else "1=1"
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "Quotation get_list_data permission filter error")
+
+    if permission_filter != "1=1":
+        conditions.append(f"({permission_filter})")
 
     # -------- helpers --------
+    parent_meta = frappe.get_meta(parent_doctype)
+    core_parent_fields = {
+        "name",
+        "owner",
+        "creation",
+        "modified",
+        "docstatus",
+        "idx",
+        "_assign",
+        "_comments",
+        "_liked_by",
+        "_seen",
+        "_user_tags",
+    }
+
     def get_child_table_for_field(parent_dt, fieldname):
         """Return child doctype name if `fieldname` is in any child table of parent_dt, else None."""
         try:
@@ -328,12 +587,23 @@ def get_list_data(start=0, page_length=20, status="", probability="", owners=Non
         except Exception:
             filters_obj = []
 
+    try:
+        from renewal_module.renewal_module.report.sales_based_on_timespan.test_timespan import (
+            add_to_date, get_timespan_date_range
+        )
+    except Exception:
+        add_to_date = None
+        get_timespan_date_range = None
+
     def add_condition_for(field, operator, val):
         """Add a condition for a field, detecting child table presence."""
         if "." in field:
             field = field.split(".")[-1]
 
         child_table = get_child_table_for_field(parent_doctype, field)
+        parent_has_field = field in core_parent_fields or parent_meta.has_field(field)
+        if not child_table and not parent_has_field:
+            return
         key = f"f_{field}_{len(values)}"
 
         def field_condition(sql_cond, **kwargs):
@@ -398,6 +668,20 @@ def get_list_data(start=0, page_length=20, status="", probability="", owners=Non
                     ph.append(f"%({kk})s")
                     values[kk] = v
                 field_condition(f"`{field}` NOT IN ({', '.join(ph)})")
+        elif op == "between":
+            rng = val
+            if isinstance(rng, str) and "," in rng:
+                rng = [v.strip() for v in rng.split(",")]
+            if isinstance(rng, (list, tuple)) and len(rng) == 2:
+                k1, k2 = f"{key}_start", f"{key}_end"
+                field_condition(f"`{field}` BETWEEN %({k1})s AND %({k2})s", **{k1: rng[0], k2: rng[1]})
+        elif op == "timespan" and get_timespan_date_range:
+            start_date, end_date = get_timespan_date_range(val) or (None, None)
+            if start_date and end_date:
+                start_dt = get_datetime(f"{start_date} 00:00:00")
+                end_dt = get_datetime(f"{end_date} 23:59:59")
+                k1, k2 = f"{key}_start", f"{key}_end"
+                field_condition(f"`{field}` BETWEEN %({k1})s AND %({k2})s", **{k1: start_dt, k2: end_dt})
         elif op == "is":
             val_lower = str(val).lower()
             if child_table:
@@ -502,3 +786,23 @@ def get_list_data(start=0, page_length=20, status="", probability="", owners=Non
             r["comment_count"] = 0
 
     return {"data": rows, "total": total}
+
+
+import frappe
+
+@frappe.whitelist()
+def get_sales_order_count(quotation_name):
+    if not quotation_name:
+        return {"count": 0, "fieldUsed": ""}
+
+    result = frappe.db.sql("""
+        SELECT COUNT(DISTINCT so.name) as count
+        FROM `tabSales Order` so
+        INNER JOIN `tabSales Order Item` soi ON soi.parent = so.name
+        WHERE soi.prevdoc_docname = %(q)s
+    """, {"q": quotation_name}, as_dict=True)
+
+    return {
+        "count": result[0]["count"] if result else 0,
+        "fieldUsed": "items.prevdoc_docname"
+    }

@@ -34,6 +34,11 @@ body[data-route^="customcalendar"] {
     max-width: 100% !important;
 }
 
+[data-route^="customcalendar"] .body-sidebar-container {
+    display: none !important;
+    width: 0 !important;
+}
+
 [data-route^="customcalendar"] .row {
     margin-left: 0;
     margin-right: 0;
@@ -188,6 +193,7 @@ body[data-route^="customcalendar"] {
 [data-route^="customcalendar"] .fc .fc-timegrid-event .fc-event-main {
     font-size: 12px;
     line-height: 1.25;
+    color: #1e3a8a;
 }
 
 [data-route^="customcalendar"] .fc .fc-daygrid-event .fc-event-title,

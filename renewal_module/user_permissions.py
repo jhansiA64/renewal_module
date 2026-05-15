@@ -207,63 +207,6 @@ def common_permission_query(user, doctype, sales_person_field=None):
  
     return "(" + " OR ".join(conditions) + ")" if conditions else "1=0"
 
- 
-def calllist_has_permission(doc, ptype, user):
-
-    return has_common_permission(
-
-        doc,
-
-        user,
-
-        sales_person_field="custom_sales_person"
-
-    )
- 
- 
-def calllist_permission_query(user):
-
-    return common_permission_query(
-
-        user,
-
-        doctype="Call List",
-
-        sales_person_field="custom_sales_person"
-
-    )
-
- 
-# def opportunity_has_permission(doc, ptype, user):
-
-#     return has_common_permission(
-
-#         doc,
-
-#         user,
-
-#         sales_person_field="sales_person"
-
-#     )
- 
- 
-# def opportunity_permission_query(user):
-
-#     return common_permission_query(
-
-#         user,
-
-#         doctype="Opportunity",
-
-#         sales_person_field="sales_person"
-
-#     )
-
-
-
-
-
-
 import frappe
 
 # -----------------------------
@@ -490,89 +433,42 @@ def opportunity_permission_query(user):
     return "(" + " OR ".join(conditions) + ")" if conditions else "1=0"
 
 
-def _get_appointment_custom_participants(doc):
-    users = set()
-    for row in getattr(doc, "custom_participants", []) or []:
-        if not row:
-            continue
 
-        if isinstance(row, dict):
-            user_id = row.get("user") or row.get("participant_name")
-        else:
-            user_id = getattr(row, "user", None) or getattr(row, "participant_name", None)
+def quotation_has_permission(doc, ptype, user):
+    ptype = (ptype or "read").lower()
 
-        if user_id:
-            users.add(user_id)
-    return users
-
-
-def _has_docshare_for_appointment(doc, user):
-    if not doc or not getattr(doc, "name", None):
-        return False
-
-    return frappe.db.exists(
-        "DocShare",
-        {
-            "user": user,
-            "share_doctype": "Appointment",
-            "share_name": doc.name,
-        },
-    )
-
-
-def appointment_has_permission(doc, ptype, user):
-    if not user:
-        user = frappe.session.user
-
+    # System Manager keeps full access.
     if "System Manager" in frappe.get_roles(user):
         return True
 
-    if doc.owner == user:
-        return True
-
+    # Owner / assigned user can read and edit.
     if _is_owner_or_assigned(doc, user):
         return True
 
-    if user in _get_appointment_custom_participants(doc):
-        return True
+    # Team lead access is read-only for direct-report docs.
+    edit_ptypes = {"write", "create", "delete", "submit", "cancel", "amend"}
+    if ptype in edit_ptypes:
+        return False
 
-    if _has_docshare_for_appointment(doc, user):
-        return True
-
-    return False
-
-
-def appointment_permission_query(user):
-    if "System Manager" in frappe.get_roles(user):
-        return ""
-
-    user_esc = frappe.db.escape(user).strip("'")
-
-    conditions = [
-        f"`tabAppointment`.owner = {frappe.db.escape(user)}",
-        _assigned_to_exists_sql("Appointment", user),
-        f"`tabAppointment`._assign LIKE '%\"{user_esc}\"%'",
-        f"EXISTS (SELECT 1 FROM `tabMultiselect Users` mu WHERE mu.parenttype = 'Appointment' AND mu.parent = `tabAppointment`.name AND mu.parentfield = 'custom_participants' AND mu.user = {frappe.db.escape(user)})",
-        f"EXISTS (SELECT 1 FROM `tabDocShare` ds WHERE ds.user = {frappe.db.escape(user)} AND ds.share_doctype = 'Appointment' AND ds.share_name = `tabAppointment`.name)",
-    ]
-
-    return "(" + " OR ".join(conditions) + ")" if conditions else "1=0"
-
-
-def quotation_has_permission(doc, ptype, user):
-    return has_common_permission(
-        doc,
-        user,
-        sales_person_field="sales_person"
-    )
+    return _is_read_only_team_lead_access(doc, user)
  
  
 def quotation_permission_query(user):
-    return common_permission_query(
-        user,
-        doctype="Quotation",
-        sales_person_field="sales_person"
-    )
+    if "System Manager" in frappe.get_roles(user):
+        return ""
+
+    conditions = [f"`tabQuotation`.owner = {frappe.db.escape(user)}"]
+
+    # Keep assignment-based visibility for the logged-in user.
+    conditions.append(_assigned_to_exists_sql("Quotation", user))
+
+    # Team lead can read docs owned by direct reports.
+    team_users = _get_direct_report_users(user)
+    if team_users:
+        team_users_sql = ", ".join(frappe.db.escape(u) for u in team_users)
+        conditions.append(f"`tabQuotation`.owner IN ({team_users_sql})")
+
+    return "(" + " OR ".join(conditions) + ")" if conditions else "1=0"
  
 def cof_has_permission(doc, ptype, user):
 
@@ -616,37 +512,6 @@ def orc_permission_query(user):
     )
 
 import frappe
- 
-# def get_allowed_customers(user):
-
-#     # System Manager → all customers
-
-#     if "System Manager" in frappe.get_roles(user):
-
-#         return []
- 
-#     from renewal_module.user_permissions import calllist_permission_query
- 
-#     condition = calllist_permission_query(user)
-
-#     if not condition:
-
-#         return []
- 
-#     customers = frappe.db.sql(f"""
-
-#         SELECT DISTINCT name1
-
-#         FROM `tabCall List`
-
-#         WHERE {condition}
-
-#         AND name1 IS NOT NULL
-
-#     """, pluck="name1")
- 
-#     return list(set(filter(None, customers)))
-
 
 def get_allowed_customers(user):
     roles = frappe.get_roles(user)
@@ -679,227 +544,3 @@ def get_allowed_customers(user):
         WHERE sales_person IN ({sp_list})
     """, pluck="customer")
 
- 
-import frappe
-
-from renewal_module.user_permissions import get_allowed_customers
- 
-# def contact_has_permission(doc, ptype, user):
-
-#     # Admin
-
-#     if "System Manager" in frappe.get_roles(user):
-
-#         return True
- 
-#     # Owner
-
-#     if doc.owner == user:
-
-#         return True
- 
-#     # Assigned
-
-#     if doc._assign and user in frappe.parse_json(doc._assign):
-
-#         return True
- 
-#     customers = get_allowed_customers(user)
-
-#     if not customers:
-
-#         return False
- 
-#     # Link exists → allow
-
-#     return frappe.db.exists(
-
-#         "Dynamic Link",
-
-#         {
-
-#             "parent": doc.name,
-
-#             "link_doctype": "Customer",
-
-#             "link_name": ("in", customers)
-
-#         }
-
-#     )
-
-
-def contact_has_permission(doc, ptype, user):
-    if "System Manager" in frappe.get_roles(user):
-        return True
-
-    roles = frappe.get_roles(user)
-    tech_roles = [
-        "L1 - Tech Support",
-        "Tech Support",
-        "L2 - Tech Support",
-        "L3 - Tech Support"
-    ]
-
-    # TECH → read access to ALL
-    if any(r in roles for r in tech_roles):
-        return True
-
-    # Owner / assigned
-    if doc.owner == user:
-        return True
-    if doc._assign and user in frappe.parse_json(doc._assign):
-        return True
-
-    customers = get_allowed_customers(user)
-    if not customers:
-        return False
-
-    return frappe.db.exists(
-        "Dynamic Link",
-        {
-            "parent": doc.name,
-            "link_doctype": "Customer",
-            "link_name": ("in", customers)
-        }
-    )
-
- 
-# def contact_permission_query(user):
-
-#     if "System Manager" in frappe.get_roles(user):
-
-#         return ""
- 
-#     customers = get_allowed_customers(user)
-
-#     if not customers:
-
-#         return f"`tabContact`.owner = '{user}'"
- 
-#     #cust_list = "', '".join(customers)
-#     cust_list = ", ".join(frappe.db.escape(c) for c in customers)
- 
-#     return f"""
-
-#         `tabContact`.owner = '{user}'
-
-#         OR EXISTS (
-
-#             SELECT 1 FROM `tabDynamic Link` dl
-
-#             WHERE dl.parent = `tabContact`.name
-
-#             AND dl.link_doctype = 'Customer'
-
-#             AND dl.link_name IN ({cust_list})
-
-#         )
-
-#     """
-
-def contact_permission_query(user):
-    roles = frappe.get_roles(user)
-
-    # TECH + SYSTEM MANAGER → NO FILTER
-    tech_roles = [
-        "L1 - Tech Support",
-        "Tech Support",
-        "L2 - Tech Support",
-        "L3 - Tech Support"
-    ]
-
-    if "System Manager" in roles or any(r in roles for r in tech_roles):
-        return ""
-
-    customers = get_allowed_customers(user)
-    if not customers:
-        return "1=0"
-
-    cust_list = ", ".join(frappe.db.escape(c) for c in customers)
-
-    return f"""
-        EXISTS (
-            SELECT 1 FROM `tabDynamic Link` dl
-            WHERE dl.parent = `tabContact`.name
-            AND dl.link_doctype = 'Customer'
-            AND dl.link_name IN ({cust_list})
-        )
-    """
-
- 
-import frappe
-
-from renewal_module.user_permissions import get_allowed_customers
- 
-def address_has_permission(doc, ptype, user):
-
-    if "System Manager" in frappe.get_roles(user):
-
-        return True
- 
-    if doc.owner == user:
-
-        return True
- 
-    if doc._assign and user in frappe.parse_json(doc._assign):
-
-        return True
- 
-    customers = get_allowed_customers(user)
-
-    if not customers:
-
-        return False
- 
-    return frappe.db.exists(
-
-        "Dynamic Link",
-
-        {
-
-            "parent": doc.name,
-
-            "link_doctype": "Customer",
-
-            "link_name": ("in", customers)
-
-        }
-
-    )
-
- 
-def address_permission_query(user):
-
-    if "System Manager" in frappe.get_roles(user):
-
-        return ""
- 
-    customers = get_allowed_customers(user)
-
-    if not customers:
-
-        return f"`tabAddress`.owner = '{user}'"
- 
-    #cust_list = "', '".join(customers)
-    cust_list = ", ".join(frappe.db.escape(c) for c in customers)
- 
-    return f"""
-
-        `tabAddress`.owner = '{user}'
-
-        OR EXISTS (
-
-            SELECT 1 FROM `tabDynamic Link` dl
-
-            WHERE dl.parent = `tabAddress`.name
-
-            AND dl.link_doctype = 'Customer'
-
-            AND dl.link_name IN ({cust_list})
-
-        )
-
-    """
-
- 

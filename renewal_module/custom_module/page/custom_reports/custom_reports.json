@@ -4,13 +4,17 @@
  "docstatus": 0,
  "doctype": "Page",
  "idx": 0,
- "modified": "2026-01-29 12:25:38.502264",
+ "modified": "2026-04-16 12:11:59.220639",
  "modified_by": "Administrator",
  "module": "Custom Module",
  "name": "custom-reports",
  "owner": "Administrator",
  "page_name": "custom-reports",
- "roles": [],
+ "roles": [
+  {
+   "role": "System Manager"
+  }
+ ],
  "script": null,
  "standard": "Yes",
  "style": null,

@@ -4,13 +4,26 @@
  "docstatus": 0,
  "doctype": "Page",
  "idx": 0,
- "modified": "2026-03-09 16:03:27.190146",
+ "modified": "2026-04-16 17:47:35.079479",
  "modified_by": "Administrator",
  "module": "Custom Module",
  "name": "quotation-list",
  "owner": "Administrator",
  "page_name": "quotation-list",
- "roles": [],
+ "roles": [
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Tech Sales"
+  }
+ ],
  "script": null,
  "standard": "Yes",
  "style": null,

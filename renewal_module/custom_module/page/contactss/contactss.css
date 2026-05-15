@@ -37,32 +37,42 @@ body[data-route^="contactss"] {
     margin-right: 0;
 }
 
+[data-route^="contactss"] .body-sidebar-container {
+    display: none !important;
+    width: 0 !important;
+}
+
 [data-route^="contactss"] [class^="col"],
 [data-route^="contactss"] [class*=" col"] {
     padding: 4px;
 }
 
 
-[data-route="contacts"] .ellipsis {
+[data-route="contactss"] .ellipsis {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-[data-route="contacts"] .gap-1 {
+[data-route="contactss"] .gap-1 {
     gap: 0.25rem !important;
 }
 
-[data-route="contacts"] .gap-2 {
+[data-route="contactss"] .gap-2 {
     gap: 0.75rem !important;
 }
 
-[data-route="contacts"] .gap-3 {
+[data-route="contactss"] .gap-3 {
     gap: 1rem !important;
 }
 
-[data-route="contacts"] .btn-default2 {
+[data-route="contactss"] .btn-default2 {
     font-size: 12px;
+}
+
+[data-route^="contactss"] .btn-primary1 {
+    background: #007bff !important;
+    color: #fff !important;
 }
 
 /*List View*/
@@ -949,4 +959,205 @@ body[data-route^="contactss"] {
 [data-route^="contactss"] .contact-email-card,
 [data-route^="contactss"] .contact-link-card {
     min-width: max-content;
+}
+
+
+/** wizard styles **/
+[data-route^="contactss"] .new-contact-wrap {
+    margin: 0;
+}
+
+[data-route^="contactss"] .new-contact-wizard-bar {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+[data-route^="contactss"] .new-contact-wizard-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    background: transparent;
+    border: 0;
+    padding: 0;
+}
+
+[data-route^="contactss"] .new-contact-wizard-circle {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    color: #9ca3af;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, color 0.2s;
+}
+
+[data-route^="contactss"] .new-contact-wizard-step.is-active .new-contact-wizard-circle {
+    background: #2563eb;
+    color: #fff;
+}
+
+[data-route^="contactss"] .new-contact-wizard-step.is-done .new-contact-wizard-circle {
+    background: #16a34a;
+    color: #fff;
+}
+
+[data-route^="contactss"] .new-contact-wizard-label {
+    font-size: 12px;
+    color: #9ca3af;
+    font-weight: 500;
+    white-space: nowrap;
+    text-align: center;
+}
+
+[data-route^="contactss"] .new-contact-wizard-step.is-active .new-contact-wizard-label {
+    color: #2563eb;
+    font-weight: 600;
+}
+
+[data-route^="contactss"] .new-contact-wizard-step.is-done .new-contact-wizard-label {
+    color: #16a34a;
+}
+
+[data-route^="contactss"] .new-contact-wizard-connector {
+    flex: 1;
+    height: 2px;
+    background: #e5e7eb;
+    margin: 0 10px;
+    margin-bottom: 20px;
+    transition: background 0.2s;
+}
+
+[data-route^="contactss"] .new-contact-wizard-connector.is-done {
+    background: #16a34a;
+}
+
+[data-route^="contactss"] .new-contact-wizard-panel {
+    display: block;
+}
+
+[data-route^="contactss"] .new-contact-wizard-panel.d-none {
+    display: none !important;
+}
+
+[data-route^="contactss"] .new-contact-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+[data-route^="contactss"] .new-contact-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 12px;
+}
+
+[data-route^="contactss"] .new-contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+[data-route^="contactss"] .new-contact-row {
+    display: grid;
+    gap: 14px;
+    min-width: 0;
+}
+
+[data-route^="contactss"] .new-contact-row.two-col {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+[data-route^="contactss"] .new-contact-row.one-col {
+    grid-template-columns: 1fr;
+}
+
+[data-route^="contactss"] .new-contact-field,
+[data-route^="contactss"] .new-contact-field .frappe-control,
+[data-route^="contactss"] .new-contact-field .form-group {
+    min-width: 0;
+}
+
+[data-route^="contactss"] .new-contact-field .form-group {
+    margin-bottom: 0 !important;
+}
+
+[data-route^="contactss"] .new-contact-field .control-label {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: 4px;
+}
+
+[data-route^="contactss"] .new-contact-field .control-input-wrapper,
+[data-route^="contactss"] .new-contact-field .control-input,
+[data-route^="contactss"] .new-contact-field .control-value,
+[data-route^="contactss"] .new-contact-field .awesomplete,
+[data-route^="contactss"] .new-contact-field .awesomplete input,
+[data-route^="contactss"] .new-contact-field input.form-control,
+[data-route^="contactss"] .new-contact-field select.form-control {
+    width: 100%;
+    margin: 0 !important;
+}
+
+[data-route^="contactss"] .new-contact-field input.form-control,
+[data-route^="contactss"] .new-contact-field select.form-control,
+[data-route^="contactss"] .new-contact-field .awesomplete input {
+    border-radius: 10px;
+    min-height: 34px;
+    padding: 6px 10px;
+}
+
+[data-route^="contactss"] .new-contact-field .checkbox {
+    margin-top: 8px;
+}
+
+[data-route^="contactss"] .new-contact-list-block label.control-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+[data-route^="contactss"] .new-contact-wizard-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    padding: 0 2px;
+}
+
+[data-route^="contactss"] .new-contact-wizard-nav {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    [data-route^="contactss"] .new-contact-wizard-bar {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    [data-route^="contactss"] .new-contact-row.two-col {
+        grid-template-columns: 1fr;
+    }
 }

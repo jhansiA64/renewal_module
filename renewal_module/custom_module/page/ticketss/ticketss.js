@@ -98,8 +98,8 @@ class ticketspage {
 		if (route.length === 1) {
 			return this.show_list();
 		}
-		// ticket/new-tickets
-		if (route.length === 2 && route[1] === "new-tickets") {
+		// ticket/new
+		if (route.length === 2 && route[1] === "new") {
 			return this.show_new();
 		}
 		// ticket/<issue_id>
@@ -224,9 +224,92 @@ class ticketspage {
 		$(".ticket-list-view").addClass("d-none");
 		$(".ticket-details-view").addClass("d-none");
 		$(".new-tickets").removeClass("d-none");
-		this.bind_issue_form_events();
+		this._newIssueCurrentStep = 1;
+		// Read any pre-filled values from the URL query string
+		// e.g. /app/ticketss/new?customer=CustomerName
+		const urlParams = new URLSearchParams(window.location.search);
+		const prefilledCustomer = urlParams.get("customer") || "";
+		this.bind_issue_form_events({ customer: prefilledCustomer });
+		this.gotoNewIssueWizardStep(1);
 		this.bindActionDropdown();
 
+	}
+
+	gotoNewIssueWizardStep(step) {
+		const safeStep = Math.min(3, Math.max(1, parseInt(step, 10) || 1));
+		this._newIssueCurrentStep = safeStep;
+
+		const $root = $(this.page.wrapper);
+		$root.find(".new-ticket-wizard-step").each(function () {
+			const currentStep = parseInt($(this).attr("data-step"), 10) || 1;
+			$(this).toggleClass("is-active", currentStep === safeStep);
+			$(this).toggleClass("is-done", currentStep < safeStep);
+		});
+
+		$root.find(".new-ticket-wizard-connector").each(function (idx) {
+			$(this).toggleClass("is-done", (idx + 1) < safeStep);
+		});
+
+		$root.find(".new-ticket-wizard-panel").addClass("d-none");
+		$root.find(`.new-ticket-wizard-panel[data-panel="${safeStep}"]`).removeClass("d-none");
+
+		$root.find("#new-ticket-back").toggleClass("d-none", safeStep === 1);
+		$root.find("#new-ticket-next").toggleClass("d-none", safeStep === 3);
+		$root.find("#save-issue-btn").toggleClass("d-none", safeStep !== 3);
+	}
+
+	validateNewIssueWizardStep(step, controls = {}, me = this) {
+		if (step === 1) {
+			const subject = (controls.subject?.get_value?.() || "").trim();
+			const customer = (controls.customer?.get_value?.() || "").trim();
+			const department = (controls.department?.get_value?.() || "").trim();
+
+			if (!subject || !customer || !department) {
+				frappe.msgprint(__("Please fill Subject, Customer and Department before continuing."));
+				return false;
+			}
+		}
+
+		if (step === 2) {
+			const department = (controls.department?.get_value?.() || "").trim();
+			const queryType = (controls.queryType?.get_value?.() || "").trim();
+			const activeSubscription = (controls.activeSubscription?.get_value?.() || "").trim();
+
+			if (department === "Technical" && (!queryType || !activeSubscription)) {
+				frappe.msgprint(__("For Technical department, please select Active Subscription and Query Type."));
+				return false;
+			}
+		}
+
+		if (step === 3) {
+			const description = (controls.description?.get_value?.() || "").trim();
+			if (!description) {
+				frappe.msgprint(__("Please fill Description before saving."));
+				return false;
+			}
+
+			const contactList = me.getContactList?.() || [];
+			if (contactList.length < 2) {
+				frappe.msgprint({
+					title: __("Add Contact Persons"),
+					message: __("Please add at least <b>two contact persons</b> before submitting the issue."),
+					indicator: "red"
+				});
+				return false;
+			}
+
+			const hasTpoc = contactList.some((row) => Number(row?.tpoc || 0) === 1);
+			if (!hasTpoc) {
+				frappe.msgprint({
+					title: __("TPOC Required"),
+					message: __("Please mark at least <b>one contact person</b> as TPOC before submitting the issue."),
+					indicator: "red"
+				});
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 
@@ -280,46 +363,26 @@ class ticketspage {
 					? normalizeAgents(override_filters.working_agent)
 					: this.getSelectValues(workingAgentEl);
 
-				// Normalize saved_filters -> filtersPayload (kept your robust mapping)
-				const normalizedFilters = (saved_filters || []).map(f => {
+				// Normalize saved_filters to ensure consistent format (following appointments.js pattern)
+				const filtersPayload = (saved_filters || []).map(f => {
+					// Handle array formats: [doctype, field, operator, value] or [field, operator, value]
 					if (Array.isArray(f)) {
-						const arr = f.length >= 5 ? f.slice(1, 4) : f.slice(0, 3);
-						const [field, operatorRaw, valueRaw] = arr;
-						const operator = (operatorRaw || "=").toLowerCase();
-						let value = valueRaw;
-						if (operator === "between" && typeof value === "string" && value.includes(",")) {
-							value = value.split(",").map(v => v.trim());
+						if (f.length === 4 || f.length === 5) {
+							// Format: [doctype, field, operator, value] or [doctype, field, operator, value, flag]
+							// Skip first element (doctype) and return [field, operator, value]
+							return [f[1], f[2], f[3]];
+						} else if (f.length === 3) {
+							// Format: [field, operator, value] - already normalized
+							return f;
 						}
-						return { field, operator, value };
+						return f;
 					}
-					if (typeof f === "object" && f !== null) {
-						const field = f.fieldname || f.field || "";
-						const operator = (f.operator || "=").toLowerCase();
-						let value = f.value;
-						if (operator === "between" && typeof value === "string" && value.includes(",")) {
-							value = value.split(",").map(v => v.trim());
-						}
-						return { field, operator, value };
-					}
-					return {};
-				});
-
-				const filtersPayload = normalizedFilters.map(f => {
-					if (f.field && f.operator) {
-						let val = f.value;
-						if (f.operator === "between") {
-							if (typeof val === "string" && val.includes(",")) {
-								val = val.split(",").map(v => v.trim());
-							} else if (!Array.isArray(val)) {
-								val = [val, val];
-							}
-						}
-						return [f.field, f.operator, val];
-					}
+					// If object format, return as-is
 					return f;
 				});
 
-				//console.log("%c[DEBUG] → filtersPayload:", "color: #4caf50;", filtersPayload);
+				console.log("%c[DEBUG] saved_filters:", "color: #ff6b6b;", saved_filters);
+				console.log("%c[DEBUG] filtersPayload:", "color: #4caf50;", filtersPayload);
 
 				// Backend call
 				frappe.call({
@@ -961,6 +1024,29 @@ class ticketspage {
 			});
 	}
 
+	// Helper: Normalize filters from filter_group to backend format
+	normalizeFiltersFromFilterGroup(rawFilters) {
+		return (rawFilters || []).map(f => {
+			if (Array.isArray(f)) {
+				const normalized = [...f]; // Copy to avoid mutation
+				// Convert Frappe operators to backend operators
+				if (normalized[2] === "Equals") normalized[2] = "=";
+				else if (normalized[2] === "Not Equals") normalized[2] = "!=";
+				else if (normalized[2] === "Not Equal") normalized[2] = "!=";
+				else if (normalized[2] === "Like") normalized[2] = "like";
+				else if (normalized[2] === "Not Like") normalized[2] = "not like";
+				else if (normalized[2] === "In") normalized[2] = "in";
+				else if (normalized[2] === "Not In") normalized[2] = "not in";
+				else if (normalized[2] === "Is") normalized[2] = "is";
+				else if (normalized[2] === "Between") normalized[2] = "between";
+				// Normalize operator to lowercase
+				normalized[2] = (normalized[2] || "=").toLowerCase();
+				return normalized;
+			}
+			return f;
+		});
+	}
+
 	bindFilterEvents() {
 		const me = this;
 		const wrapper = this.page.wrapper[0] || this.page.wrapper;
@@ -1115,7 +1201,9 @@ class ticketspage {
 				doctype: "Issue",
 				on_change: function () {
 					if (me._suspend_on_change) return;
-					me.saved_filters = filter_group.get_filters();
+					// Get and normalize filters from filter_group
+					let rawFilters = filter_group.get_filters();
+					me.saved_filters = me.normalizeFiltersFromFilterGroup(rawFilters);
 					me.fetch_list_data({ reset: true, saved_filters: me.saved_filters });
 					update_filter_button_count($btn, me.saved_filters.length);
 					updateUrlWithFilters(me.saved_filters);
@@ -1192,13 +1280,13 @@ class ticketspage {
 			footer.find('.add-filter').on("click", () => filter_group.add_filter("Issue", "name", "=", "", false));
 
 			// --- Popover: Clear button (explicitly reset UI + state + URL + fetch + close popover)
-			footer.find('.clear-filters').on("click", () => {
+			footer.find('.clear-filters').on("click", async () => {
 				if (filter_group) {
 					filter_group.clear_filters();
 				}
 				me.saved_filters = [];
 				me._suspend_on_change = false;
-				me.fetch_list_data({
+				await me.fetch_list_data({
 					reset: true,
 					saved_filters: []
 				});
@@ -1208,11 +1296,22 @@ class ticketspage {
 			});
 
 
-			footer.find('.apply-filters').on("click", () => {
+			footer.find('.apply-filters').on("click", async () => {
 				if (filter_group) {
-					me.saved_filters = filter_group.get_filters();
+					// Get raw filters from filter_group and normalize
+					let rawFilters = filter_group.get_filters();
+					me.saved_filters = me.normalizeFiltersFromFilterGroup(rawFilters);
+					
 					me._suspend_on_change = false;
-					me.fetch_list_data({ reset: true, saved_filters: me.saved_filters });
+					await me.fetch_list_data({ 
+						reset: true, 
+						saved_filters: me.saved_filters,
+						override_filters: {
+							status: me.active_status,
+							priority: me.active_priority,
+							working_agent: me.active_working_agent
+						}
+					});
 					update_filter_button_count($btn, me.saved_filters.length);
 					updateUrlWithFilters(me.saved_filters);
 				}
@@ -1589,7 +1688,7 @@ class ticketspage {
 				statusDiv.style.backgroundColor = nowSelected ? "#e8f4fd" : "white";
 			});
 
-			statusDiv.addEventListener("click", (e) => {
+			statusDiv.addEventListener("click", async (e) => {
 				e.stopPropagation();
 				if (this.selectedStatuses.includes(lbl)) {
 					this.selectedStatuses = this.selectedStatuses.filter(s => s !== lbl);
@@ -1600,7 +1699,7 @@ class ticketspage {
 				const nowSelected = this.selectedStatuses.includes(lbl);
 				statusDiv.style.backgroundColor = nowSelected ? "#e8f4fd" : "white";
 
-				this.applyStatusFilterImmediately();
+				await this.applyStatusFilterImmediately();
 			});
 
 			optionsList.appendChild(statusDiv);
@@ -1614,12 +1713,20 @@ class ticketspage {
 		}
 	}
 
-	applyStatusFilterImmediately() {
+	async applyStatusFilterImmediately() {
 		this.updateStatusDisplay();
 		this.updateStatusTooltip(document.getElementById("filterstatus"));
 
 		this.active_status = this.selectedStatuses;
-		this.fetch_list_data({ reset: true, saved_filters: this.saved_filters });
+		await this.fetch_list_data({ 
+			reset: true, 
+			saved_filters: this.saved_filters,
+			override_filters: {
+				status: this.selectedStatuses,
+				priority: this.active_priority,
+				working_agent: this.active_working_agent
+			}
+		});
 
 		const newUrl = new URL(window.location.href);
 		const priorityEl = document.querySelector('[data-table-range-filter="priority"]');
@@ -1769,7 +1876,7 @@ class ticketspage {
 			});
 
 			// Click to toggle and apply immediately
-			agentDiv.addEventListener("click", (e) => {
+			agentDiv.addEventListener("click", async (e) => {
 				e.stopPropagation();
 
 				// Toggle selection
@@ -1784,7 +1891,7 @@ class ticketspage {
 				agentDiv.style.backgroundColor = nowSelected ? "#e8f4fd" : "white";
 
 				// Apply filter immediately
-				me.applyWorkingAgentFilterImmediately();
+				await me.applyWorkingAgentFilterImmediately();
 			});
 
 			optionsList.appendChild(agentDiv);
@@ -1798,14 +1905,22 @@ class ticketspage {
 		}
 	}
 
-	applyWorkingAgentFilterImmediately() {
+	async applyWorkingAgentFilterImmediately() {
 		const me = this;
 		me.updateWorkingAgentDisplay();
 		me.updateWorkingAgentTooltip();
 
 		// Apply filter
 		me.active_working_agent = me.selectedAgents;
-		me.fetch_list_data({ reset: true, saved_filters: me.saved_filters });
+		await me.fetch_list_data({ 
+			reset: true, 
+			saved_filters: me.saved_filters,
+			override_filters: {
+				status: me.active_status,
+				priority: me.active_priority,
+				working_agent: me.selectedAgents
+			}
+		});
 
 		// Update URL
 		const params = new URLSearchParams(window.location.search);
@@ -1893,6 +2008,14 @@ class ticketspage {
 			.replace(/>/g, "&gt;")
 			.replace(/"/g, "&quot;")
 			.replace(/'/g, "&#039;");
+	}
+
+	get_issue_time_logs(issue) {
+		if (!issue || typeof issue !== "object") return [];
+
+		const logs = Array.isArray(issue.time_logs) ? issue.time_logs : [];
+		issue.time_logs = logs;
+		return logs;
 	}
 
 	populateFilter(fieldname, list) {
@@ -2467,45 +2590,143 @@ class ticketspage {
 
 			// ✅ Assign To
 			else if (action === "assign_to") {
-				let d = new frappe.ui.form.AssignToDialog({ doctype, docname: issues[0] });
+				let supportUsersPromise = null;
 
-				d.dialog.set_primary_action(__("Assign"), () => {
-					const values = d.dialog.get_values();
-					if (!values) return;
-					d.dialog.hide();
+				const getSupportUsers = () => {
+					if (!supportUsersPromise) {
+						supportUsersPromise = frappe.call({
+							method: "renewal_module.custom_module.page.ticketss.ticketss.get_enabled_users"
+						}).then((r) => r.message || []);
+					}
+					return supportUsersPromise;
+				};
 
-					const calls = issues.map(name =>
-						frappe.call({
+				const dialog = new frappe.ui.Dialog({
+					title: __("Assign To"),
+					fields: [
+						{
+							label: __("Assign To Me"),
+							fieldname: "assign_to_me",
+							fieldtype: "Check",
+							default: 0,
+							onchange: () => {
+								if (!dialog.get_value("assign_to_me")) return;
+								dialog.set_value("assign_to_user_group", "");
+								dialog.set_value("assign_to", [frappe.session.user]);
+							}
+						},
+						{
+							label: __("Assign To User Group"),
+							fieldname: "assign_to_user_group",
+							fieldtype: "Link",
+							options: "User Group",
+							onchange: async () => {
+								const userGroup = dialog.get_value("assign_to_user_group");
+								dialog.set_value("assign_to_me", 0);
+
+								if (!userGroup) return;
+
+								const members = await frappe.db.get_list("User Group Member", {
+									parent_doctype: "User Group",
+									filters: { parent: userGroup },
+									fields: ["user"],
+									limit_page_length: 0
+								});
+
+								dialog.set_value("assign_to", (members || []).map((row) => row.user).filter(Boolean));
+							}
+						},
+						{
+							label: __("Assign To"),
+							fieldname: "assign_to",
+							fieldtype: "MultiSelectPills",
+							reqd: 0,
+							get_data: async (txt) => {
+								const users = await getSupportUsers();
+								const query = (txt || "").trim().toLowerCase();
+
+								return users
+									.filter((user) => {
+										if (!query) return true;
+										const fullName = (user.name || "").toLowerCase();
+										const userEmail = (user.email || "").toLowerCase();
+										return fullName.includes(query) || userEmail.includes(query);
+									})
+									.map((user) => ({
+										value: user.user_id,
+										label: user.user_id,
+										description: user.name || user.email
+									}));
+							}
+						},
+						{ fieldtype: "Section Break" },
+						{
+							label: __("Complete By"),
+							fieldname: "date",
+							fieldtype: "Date"
+						},
+						{ fieldtype: "Column Break" },
+						{
+							label: __("Priority"),
+							fieldname: "priority",
+							fieldtype: "Select",
+							options: "Low\nMedium\nHigh",
+							default: "Medium"
+						},
+						{ fieldtype: "Section Break" },
+						{
+							label: __("Description"),
+							fieldname: "description",
+							fieldtype: "Small Text"
+						}
+					],
+					primary_action_label: __("Assign"),
+					primary_action(values) {
+						if (!values) return;
+
+						const assignToList = Array.isArray(values.assign_to)
+							? values.assign_to.map((value) => {
+								if (typeof value === "string") return value;
+								return value?.value || value?.name || value?.email || "";
+							}).filter(Boolean)
+							: (values.assign_to ? [values.assign_to] : []);
+						const assignToMe = values.assign_to_me ? 1 : 0;
+						const assignToUserGroup = values.assign_to_user_group || null;
+
+						if (!assignToList.length && !assignToMe && !assignToUserGroup) {
+							frappe.msgprint(__("Please select Assign To, Assign To Me, or Assign To User Group."));
+							return;
+						}
+
+						const calls = issues.map((name) => frappe.call({
 							method: "frappe.desk.form.assign_to.add",
 							args: {
 								doctype,
 								name,
-								assign_to: values.assign_to,
-								assign_to_me: values.assign_to_me,
-								assign_to_user_group: values.assign_to_user_group,
-								description: values.description,
-								due_date: values.due_date,
-								priority: values.priority,
-								notify: values.notify || 0
+								assign_to: assignToList,
+								assign_to_me: assignToMe,
+								assign_to_user_group: assignToUserGroup,
+								description: values.description || "",
+								date: values.date || null,
+								priority: values.priority || "Medium"
 							}
-						})
-					);
+						}));
 
-					Promise.allSettled(calls).then(() => {
-						frappe.show_alert({ message: __("Assigned successfully"), indicator: "green" });
-						me.resetActionBar();
-						me.refreshAllData();
-					});
+						Promise.allSettled(calls).then(() => {
+							frappe.show_alert({ message: __("Assigned successfully"), indicator: "green" });
+							dialog.hide();
+							me.resetActionBar();
+							me.refreshAllData();
+						});
+					}
 				});
 
-				d.dialog.show();
+				dialog.show();
 				setTimeout(() => {
-					const closeBtn = d.dialog.get_close_btn();
-					if (!closeBtn || !closeBtn.length) {
-						return;
-					}
+					const closeBtn = dialog.get_close_btn();
+					if (!closeBtn || !closeBtn.length) return;
 					closeBtn.off("click.dialog").on("click.dialog", function () {
-						d.dialog.hide();
+						dialog.hide();
 					});
 				}, 50);
 			}
@@ -2935,70 +3156,163 @@ class ticketspage {
 
 		$(this.wrapper).off("click", "[data-action='set_assign_user']").on("click", "[data-action='set_assign_user']", async function (e) {
 			e.preventDefault();
+			if (!issue) return frappe.msgprint("No issue selected.");
 
-			let doctype = "Issue";
-
-			// issue is a single string (one ID)
-			let docname = issue;
-
-			// Open Assign Dialog
-			let d = new frappe.ui.form.AssignToDialog({
-				doctype: doctype,
-				docname: docname
-			});
 			const issueSubject = (window.issue_data && window.issue_data.name === issue)
 				? (window.issue_data.subject || "")
 				: "";
+			let supportUsersPromise = null;
 
-			d.dialog.set_primary_action(__("Assign"), () => {
-				const values = d.dialog.get_values();
-				if (!values) return;
+			const getSupportUsers = () => {
+				if (!supportUsersPromise) {
+					supportUsersPromise = frappe.call({
+						method: "renewal_module.custom_module.page.ticketss.ticketss.get_enabled_users"
+					}).then((r) => r.message || []);
+				}
+				return supportUsersPromise;
+			};
 
-				d.dialog.hide();
-
-				// Single call only
-				frappe.call({
-					method: "frappe.desk.form.assign_to.add",
-					args: {
-						doctype: doctype,
-						name: docname,
-						assign_to: values.assign_to,
-						assign_to_me: values.assign_to_me,
-						assign_to_user_group: values.assign_to_user_group,
-						description: values.description,
-						due_date: values.due_date,
-						priority: values.priority,
-						notify: values.notify || 0
+			let dialog = new frappe.ui.Dialog({
+				title: __("Set Assign User"),
+				fields: [
+					{
+						label: __("Assign To Me"),
+						fieldname: "assign_to_me",
+						fieldtype: "Check",
+						default: 0,
+						onchange: () => {
+							if (!dialog.get_value("assign_to_me")) return;
+							dialog.set_value("assign_to_user_group", "");
+							dialog.set_value("assign_to", [frappe.session.user]);
+						}
 					},
-					callback: () => {
-						frappe.show_alert({
-							message: __("Assigned successfully"),
-							indicator: "green"
-						});
-						me.load_issue_details(issue);
-						me.resetActionBar();
-						me.refreshAllData();
-					}
-				});
-			});
+					{
+						label: __("Assign To User Group"),
+						fieldname: "assign_to_user_group",
+						fieldtype: "Link",
+						options: "User Group",
+						onchange: async () => {
+							const userGroup = dialog.get_value("assign_to_user_group");
+							dialog.set_value("assign_to_me", 0);
 
-			d.dialog.show();
-			if (issueSubject) {
-				setTimeout(() => {
-					if (!d.dialog.get_value("description")) {
-						d.dialog.set_value("description", issueSubject);
-					}
-				}, 0);
-			}
+							if (!userGroup) return;
 
-			// Close button fix
-			setTimeout(() => {
-				const closeBtn = d.dialog.get_close_btn();
-				if (closeBtn && closeBtn.length) {
-					closeBtn.off("click.dialog").on("click.dialog", function () {
-						d.dialog.hide();
+							const members = await frappe.db.get_list("User Group Member", {
+								parent_doctype: "User Group",
+								filters: { parent: userGroup },
+								fields: ["user"],
+								limit_page_length: 0
+							});
+
+							dialog.set_value("assign_to", (members || []).map((row) => row.user).filter(Boolean));
+						}
+					},
+					{
+						label: __("Assign To"),
+						fieldname: "assign_to",
+						fieldtype: "MultiSelectPills",
+						reqd: 0,
+						get_data: async (txt) => {
+							const users = await getSupportUsers();
+							const query = (txt || "").trim().toLowerCase();
+
+							return users
+								.filter((user) => {
+									if (!query) return true;
+									const fullName = (user.name || "").toLowerCase();
+									const userEmail = (user.email || "").toLowerCase();
+									return fullName.includes(query) || userEmail.includes(query);
+								})
+								.map((user) => ({
+									value: user.user_id,
+									label: user.user_id,
+									description: user.name || user.email
+								}));
+						}
+					},
+					{ fieldtype: "Section Break" },
+					{
+						label: __("Complete By"),
+						fieldname: "date",
+						fieldtype: "Date"
+					},
+					{ fieldtype: "Column Break" },
+					{
+						label: __("Priority"),
+						fieldname: "priority",
+						fieldtype: "Select",
+						options: "Low\nMedium\nHigh",
+						default: "Medium"
+					},
+					{ fieldtype: "Section Break" },
+					{
+						label: __("Description"),
+						fieldname: "description",
+						fieldtype: "Small Text"
+					}
+				],
+				primary_action_label: __("Assign"),
+				primary_action(values) {
+					if (!values) return;
+
+					const assignToList = Array.isArray(values.assign_to)
+						? values.assign_to.map((value) => {
+							if (typeof value === "string") return value;
+							return value?.value || value?.name || value?.email || "";
+						}).filter(Boolean)
+						: (values.assign_to ? [values.assign_to] : []);
+					const assignToMe = values.assign_to_me ? 1 : 0;
+					const assignToUserGroup = values.assign_to_user_group || null;
+
+					if (!assignToList.length && !assignToMe && !assignToUserGroup) {
+						frappe.msgprint(__("Please select Assign To, Assign To Me, or Assign To User Group."));
+						return;
+					}
+
+					frappe.call({
+						method: "frappe.desk.form.assign_to.add",
+						args: {
+							doctype: "Issue",
+							name: issue,
+							assign_to: assignToList,
+							assign_to_me: assignToMe,
+							assign_to_user_group: assignToUserGroup,
+							description: values.description || issueSubject || "",
+							date: values.date || null,
+							priority: values.priority || "Medium",
+						},
+						callback: (r) => {
+							if (r.exc) return;
+							frappe.show_alert({
+								message: __("Assigned successfully"),
+								indicator: "green"
+							});
+							dialog.hide();
+							me.load_issue_details(issue);
+							me.resetActionBar();
+							me.refreshAllData();
+						},
+						error: () => {
+							frappe.show_alert({
+								message: __("Failed to assign. Please try again."),
+								indicator: "red"
+							});
+						}
 					});
 				}
+			});
+
+			dialog.show();
+			if (issueSubject) {
+				setTimeout(() => dialog.set_value("description", issueSubject), 100);
+			}
+
+			setTimeout(() => {
+				const closeBtn = dialog.get_close_btn();
+				if (!closeBtn || !closeBtn.length) return;
+				closeBtn.off("click.dialog").on("click.dialog", function () {
+					dialog.hide();
+				});
 			}, 50);
 		});
 
@@ -3311,6 +3625,8 @@ class ticketspage {
 				}
 			};
 
+
+
 			// 🔹 Fetch contact + user email options
 			let email_options = [];
 			try {
@@ -3330,6 +3646,20 @@ class ticketspage {
 			const defaultCcList = await buildDefaultCc();
 			const ccDefaults = normalizeEmails(defaultCcList);
 			email_options = normalizeEmails([...email_options, ...defaultRecipients, ...ccDefaults]);
+
+			const getCurrentUserEmailSignature = async () => {
+				try {
+					const response = await frappe.db.get_value("User", frappe.session.user, "email_signature");
+					return String(response?.message?.email_signature || "").trim();
+				} catch (err) {
+					console.warn("Unable to fetch current user email signature", err);
+					return "";
+				}
+			};
+			const userEmailSignature = await getCurrentUserEmailSignature();
+			const defaultMessageContent = userEmailSignature
+				? `${"<p><br></p>".repeat(5)}${userEmailSignature}`
+				: "";
 
 			// 🔹 Create dialog
 			let email_dialog = new frappe.ui.Dialog({
@@ -3380,7 +3710,8 @@ class ticketspage {
 						label: __("Message"),
 						fieldname: "content",
 						fieldtype: "Text Editor",
-						reqd: 1
+						reqd: 1,
+						default: defaultMessageContent
 					},
 					{
 						fieldtype: "Section Break",
@@ -6947,6 +7278,7 @@ class ticketspage {
 				if (activeType === 'Appointments') {
 					const appointment_with = ($('#ticket-appointment-with').val() || 'Customer').trim();
 					const party = ($('#ticket-appointment-party').val() || '').trim();
+					const custom_subject = ($('#ticket-appointment-subject').val() || '').trim();
 					const customer_name = ($('#ticket-appointment-name').val() || '').trim();
 					const customer_email = ($('#ticket-appointment-email').val() || '').trim();
 					const customer_phone_number = ($('#ticket-appointment-phone').val() || '').trim();
@@ -6976,6 +7308,7 @@ class ticketspage {
 								doctype: 'Appointment',
 								appointment_with,
 								party,
+								custom_subject,
 								customer_name,
 								customer_phone_number,
 								customer_email,
@@ -7120,11 +7453,15 @@ class ticketspage {
 						$("#" + colId).addClass('d-none');
 					}
 				};
-				setField('col-opening-date', 'res-opening-date', fmtDate(response.message?.opening_date));
-				setField('col-opening-time', 'res-opening-time', fmtTime(response.message?.opening_time));
 				setField('col-resolution-date', 'res-resolution-date', fmtDate(response.message?.sla_resolution_date));
 				setField('col-resolution-time', 'res-resolution-time', fmtDuration(response.message?.resolution_time));
 				setField('col-user-resolution-time', 'res-user-resolution-time', fmtDuration(response.message?.user_resolution_time));
+
+				const hasResolutionTimeData =
+					!!response.message?.sla_resolution_date ||
+					(response.message?.resolution_time !== null && response.message?.resolution_time !== undefined && String(response.message?.resolution_time) !== "") ||
+					(response.message?.user_resolution_time !== null && response.message?.user_resolution_time !== undefined && String(response.message?.user_resolution_time) !== "");
+				$("#resolution-time-fields").closest('.row').toggle(!!hasResolutionTimeData);
 
 				// Remove any existing editor container first
 				$("#resolution-editor-container").remove();
@@ -7740,6 +8077,9 @@ class ticketspage {
 		const { $timerLabel, $timerValue, $startBtn, $stopBtn, $overtimeBtn } = this.get_work_timer_elements();
 		if (!$timerValue.length) return;
 
+		// Stop button must only appear for approved overtime outside shift.
+		$stopBtn.addClass("d-none");
+
 		// Store initial state for monitoring changes
 		let lastKnownIssueData = null;
 		let isFirstUpdate = true;
@@ -7842,6 +8182,7 @@ class ticketspage {
 
 					this.stop_work_timer_interval();
 					this.set_paused_timer_ui(fromTimeStr);
+					$stopBtn.addClass("d-none");
 					lastApprovalState = false;
 					isFirstUpdate = false;
 				},
@@ -7871,6 +8212,7 @@ class ticketspage {
 					if (currentIssue.status === "Closed") {
 						this.stop_work_timer_interval();
 						this.set_paused_timer_ui(fromTimeStr);
+						$stopBtn.addClass("d-none");
 						$overtimeBtn.removeClass("d-none");
 						frappe.show_alert({
 							message: __("Issue status changed to Closed. Timer paused."),
@@ -7883,6 +8225,7 @@ class ticketspage {
 					if (currentIssue.working_agent && currentIssue.working_agent !== currentUser) {
 						this.stop_work_timer_interval();
 						this.set_paused_timer_ui(fromTimeStr);
+						$stopBtn.addClass("d-none");
 						frappe.show_alert({
 							message: __("Working agent changed. Timer paused."),
 							indicator: "orange"
@@ -7938,7 +8281,8 @@ class ticketspage {
 			return;
 		}
 
-		const openLog = (issue.custom_issue_time_log || []).find((log) => {
+		const timeLogs = this.get_issue_time_logs(issue);
+		const openLog = timeLogs.find((log) => {
 			return log.user === currentUser && !log.to_time;
 		});
 
@@ -8074,13 +8418,24 @@ class ticketspage {
 					}
 
 					if ((status === "started" || status === "resumed") && fromTime) {
+						const syncedLogs = this.get_issue_time_logs(issue);
+						const hasOpenLog = syncedLogs.some((log) => log.user === currentUser && !log.to_time);
+						if (!hasOpenLog) {
+							syncedLogs.unshift({
+								user: currentUser,
+								from_time: fromTime,
+								to_time: null,
+								doctype: "Issue Time Log"
+							});
+							issue.time_logs = syncedLogs;
+							if (window.issue_data?.name === issue.name) {
+								window.issue_data.time_logs = syncedLogs;
+							}
+						}
+
 						$startBtn.addClass("d-none");
 						$timer.removeClass("d-none");
-						if (isAfterShiftApprovedRun) {
-							$stopBtn.removeClass("d-none");
-						} else {
-							$stopBtn.addClass("d-none");
-						}
+						$stopBtn.addClass("d-none");
 						$overtimeBtn.addClass("d-none").removeData("otPending");
 						this.set_manual_resume_required(issue.name, false);
 						this.set_stopped_until_next_shift(issue.name, false);
@@ -8316,6 +8671,8 @@ class ticketspage {
 				}
 				const displayContainer = $("#issuedatadisplay");
 				let issue = r.message;
+				const normalizedTimeLogs = me.get_issue_time_logs(issue);
+				issue.time_logs = normalizedTimeLogs;
 				console.log("issue", issue);
 				window.issue_data = issue;
 				me.init_attachment_section(issue.name);
@@ -8806,9 +9163,7 @@ class ticketspage {
 
 				$(document).off("click", "#time-logs-btn, .time-logs-btn").on("click", "#time-logs-btn, .time-logs-btn", function () {
 					const esc = (val) => frappe.utils.escape_html(val || "");
-					const logs = Array.isArray(issue.custom_issue_time_log)
-						? issue.custom_issue_time_log.slice()
-						: [];
+					const logs = me.get_issue_time_logs(issue).slice();
 
 					logs.sort((a, b) => {
 						const aTime = a.from_time ? new Date(a.from_time.replace(" ", "T")).getTime() : 0;
@@ -9476,9 +9831,7 @@ class ticketspage {
 				//time logs button click handler
 				$(document).off("click", "#time-logs-btn, .time-logs-btn").on("click", "#time-logs-btn, .time-logs-btn", function () {
 					const esc = (val) => frappe.utils.escape_html(val || "");
-					const logs = Array.isArray(issue.custom_issue_time_log)
-						? issue.custom_issue_time_log.slice()
-						: [];
+					const logs = me.get_issue_time_logs(issue).slice();
 
 					logs.sort((a, b) => {
 						const aTime = a.from_time ? new Date(a.from_time.replace(" ", "T")).getTime() : 0;
@@ -9722,7 +10075,7 @@ class ticketspage {
 
 	//new ticket methods
 
-	bind_issue_form_events() {
+	bind_issue_form_events(opts = {}) {
 		// if (window.issue_form_initialized) {
 		// 	console.log("Issue form already initialized — skipping duplicate init");
 		// 	return;
@@ -9731,8 +10084,10 @@ class ticketspage {
 		//const STORAGE_KEY = "support_issue_form";
 		console.log("Binding New Issue form events...");
 		const me = this;
+		const prefillCustomer = (opts && opts.customer) ? opts.customer : "";
 		const form = document.getElementById("new-issue-form");
 		if (!form) return;
+		this._newIssueCurrentStep = this._newIssueCurrentStep || 1;
 
 		const statusBox = document.createElement("div");
 		form.appendChild(statusBox);
@@ -9919,6 +10274,34 @@ class ticketspage {
 			otherQueryWrapper.style.display = "none";
 		}
 		toggleQueryTypeFields();
+
+		const wizardControls = {
+			subject: subjectControl,
+			customer: customerControl,
+			department: departmentControl,
+			activeSubscription: activesubscriptionControl,
+			queryType: querytypeControl,
+			description: descriptionControl
+		};
+
+		const $root = $(this.page.wrapper);
+		$root.find("#new-ticket-back").off("click").on("click", () => {
+			this.gotoNewIssueWizardStep((this._newIssueCurrentStep || 1) - 1);
+		});
+
+		$root.find("#new-ticket-next").off("click").on("click", () => {
+			const currentStep = this._newIssueCurrentStep || 1;
+			if (!this.validateNewIssueWizardStep(currentStep, wizardControls, me)) {
+				return;
+			}
+			this.gotoNewIssueWizardStep(currentStep + 1);
+		});
+
+		$root.find("#new-ticket-cancel").off("click").on("click", () => {
+			frappe.set_route("ticketss");
+		});
+
+		this.gotoNewIssueWizardStep(this._newIssueCurrentStep || 1);
 
 		let selectedPriority = "";
 		let selectedSupportType = "";
@@ -10120,6 +10503,10 @@ class ticketspage {
 		frappe.after_ajax(() => {
 			setupContactPersonSection(me);
 			//restoreFormState();
+			// Pre-fill customer from URL parameter if provided
+			if (prefillCustomer) {
+				customerControl.set_value(prefillCustomer);
+			}
 		});
 
 		let activeRenewalsData = [];
@@ -10176,8 +10563,13 @@ class ticketspage {
 		});
 
 		// Handle form submission
-		form.addEventListener("submit", function (e) {
+		form.onsubmit = function (e) {
 			e.preventDefault();
+
+			if (!me.validateNewIssueWizardStep(3, wizardControls, me)) {
+				return;
+			}
+
 			const subject = subjectControl.get_value();
 			const customer = customerControl.get_value();
 			const department = departmentControl.get_value();
@@ -10194,15 +10586,6 @@ class ticketspage {
 				frappe.msgprint({
 					title: __("message"),
 					message: __("Please fill required fields"),
-					indicator: "red"
-				});
-				return;
-			}
-
-			if (contact_list.length < 2) {
-				frappe.msgprint({
-					title: __("Add Contact Persons"),
-					message: __("Please add at least <b>two contact persons</b> before submitting the issue."),
 					indicator: "red"
 				});
 				return;
@@ -10282,7 +10665,6 @@ class ticketspage {
 						customerControl.set_value("");
 						departmentControl.set_value("");
 						querytypeControl.set_value("");
-						provisonalcontrol.set_value("");
 						otherquerytypeControl.set_value("");
 						descriptionControl.set_value("");
 						selectedSalesperson = "";
@@ -10307,7 +10689,7 @@ class ticketspage {
 
 			});
 
-		});
+		};
 	}
 
 }
@@ -10388,7 +10770,7 @@ frappe.tickets_page_template = {
 										</button>
 									</div>
 
-									<a id="new-ticket-btn" href="/app/ticketss/new-tickets" class="btn btn-sm btn-primary1 mr-2">
+									<a id="new-ticket-btn" href="/app/ticketss/new" class="btn btn-sm btn-primary1 mr-2">
 										<i class="fa fa-plus me-1"></i> New Ticket
 									</a>
 									
@@ -10633,21 +11015,8 @@ frappe.tickets_page_template = {
 									</div>
 								</div>
 								<div class="row bg-white rounded p-3 mb-3">
-
 									<!-- Resolution Date/Time Info -->
 									<div id="resolution-time-fields" class="d-flex flex-wrap gap-2 mt-1">
-										<div id="col-opening-date" style="flex: 1 1 auto; min-width: 120px;">
-											<div class="border rounded p-2 bg-light h-100 d-flex flex-column" style="font-size:12px;">
-												<div class="text-muted mb-1" style="font-size:11px; font-weight:600; text-transform:uppercase;">Opening Date</div>
-												<div id="res-opening-date" class="fw-semibold text-dark mt-auto">-</div>
-											</div>
-										</div>
-										<div id="col-opening-time" style="flex: 1 1 auto; min-width: 120px;">
-											<div class="border rounded p-2 bg-light h-100 d-flex flex-column" style="font-size:12px;">
-												<div class="text-muted mb-1" style="font-size:11px; font-weight:600; text-transform:uppercase;">Opening Time</div>
-												<div id="res-opening-time" class="fw-semibold text-dark mt-auto">-</div>
-											</div>
-										</div>
 										<div id="col-resolution-date" style="flex: 1 1 auto; min-width: 120px;">
 											<div class="border rounded p-2 bg-light h-100 d-flex flex-column" style="font-size:12px;">
 												<div class="text-muted mb-1" style="font-size:11px; font-weight:600; text-transform:uppercase;">Resolution Date</div>
@@ -10870,76 +11239,93 @@ frappe.tickets_page_template = {
 				</div>
 
 				<div class="row mt-3">
-					<div class="card w-100" style="min-height:80vh;">
+					<div class="card w-100" style="background:transparent; border:none;">
 						<div class="card-body p-2" style="padding:5px;">
 							<h5 class="mb-1">New Issue</h5>
 							<form id="new-issue-form">
-								<div class="row">
-									<div class="col-12 col-md-6">
-										<div class="mb-3">
-											<div id="subject-field"></div>
-										</div>
+								<div class="new-ticket-wrap">
+									<div class="new-ticket-wizard-bar">
+										<button type="button" class="new-ticket-wizard-step is-active" data-step="1">
+											<div class="new-ticket-wizard-circle">1</div>
+											<div class="new-ticket-wizard-label">Basic</div>
+										</button>
+										<div class="new-ticket-wizard-connector"></div>
+										<button type="button" class="new-ticket-wizard-step" data-step="2">
+											<div class="new-ticket-wizard-circle">2</div>
+											<div class="new-ticket-wizard-label">Issue Type</div>
+										</button>
+										<div class="new-ticket-wizard-connector"></div>
+										<button type="button" class="new-ticket-wizard-step" data-step="3">
+											<div class="new-ticket-wizard-circle">3</div>
+											<div class="new-ticket-wizard-label">Contacts & Description</div>
+										</button>
 									</div>
-								</div>
 
-								<div class="row">
-									<div class="col-6">
-										<div class="mb-3">
-											<div id="customer-field"></div>
+									<div class="new-ticket-wizard-panel" data-panel="1">
+										<div class="card mb-3 border new-ticket-card">
+											<div class="card-body">
+												<div class="new-ticket-row one-col">
+													<div class="new-ticket-field" id="subject-field"></div>
+												</div>
+												<div class="new-ticket-row two-col">
+													<div class="new-ticket-field" id="customer-field"></div>
+													<div class="new-ticket-field" id="department-field"></div>
+												</div>
+											</div>
 										</div>
 									</div>
-									<div class="col-6">
-										<div class="mb-3">
-											<div id="department-field"></div>
-										</div>
-									</div>
-								</div>
 
-								<div class="row">
-									<div class="col-6">
-										<div class="mb-3">
-											<div id="activesubscription-field"></div>
+									<div class="new-ticket-wizard-panel d-none" data-panel="2">
+										<div class="card mb-3 border new-ticket-card">
+											<div class="card-body">
+												<div class="new-ticket-row two-col">
+													<div class="new-ticket-field" id="activesubscription-field"></div>
+													<div class="new-ticket-field" id="querytype-field"></div>
+												</div>
+												<div class="new-ticket-row one-col">
+													<div class="new-ticket-field" id="other-query-field"></div>
+												</div>
+											</div>
 										</div>
 									</div>
-									<div class="col-6">
-										<div class="mb-3">
-											<div id="querytype-field"></div>
-										</div>
-										<div class="mb-3" id="other-query-field"></div>
-									</div>
-								</div>
 
-								<div class="row">
-									<div class="col-6">
-										<div class="mb-3">
-											<label class="control-label reqd">
-												Contact Person <span style="color:#eb9091">*</span>
-												<i id="add-contact-person" class="fa fa-plus text-primary ms-1" style="cursor:pointer;" title="Add Contact"></i>
-											</label>
-											<div id="contact-list-container" class="ps-2 gap-2"></div>
+									<div class="new-ticket-wizard-panel d-none" data-panel="3">
+										<div class="card mb-3 border new-ticket-card">
+											<div class="card-body">
+												<div class="new-ticket-row one-col">
+													<div class="new-ticket-field">
+														<label class="control-label reqd">
+															Contact Person <span style="color:#eb9091">*</span>
+															<i id="add-contact-person" class="fa fa-plus text-primary ms-1" style="cursor:pointer;" title="Add Contact"></i>
+														</label>
+														<div id="contact-list-container" class="ps-2 gap-2"></div>
+													</div>
+												</div>
+											</div>
 										</div>
 
-									</div>
-								</div>
-
-
-								<div class="row">
-									<div class="col-12">
-										<div class="mb-3">
-											<div id="description-field"></div>
+										<div class="card mb-3 border new-ticket-card">
+											<div class="card-body">
+												<div class="new-ticket-row one-col">
+													<div class="new-ticket-field" id="description-field"></div>
+												</div>
+											</div>
 										</div>
 									</div>
-								</div>
-								
-								<div class="row">
-									<div class="col-12 text-end">
-										<button type="submit" class="btn btn-primary">Save Issue</button>
+
+									<div class="new-ticket-wizard-footer">
+										<button type="button" id="new-ticket-cancel" class="btn btn-default btn-sm">Cancel</button>
+										<div class="new-ticket-wizard-nav">
+											<button type="button" id="new-ticket-back" class="btn btn-default btn-sm d-none">&#8592; Back</button>
+											<button type="button" id="new-ticket-next" class="btn btn-primary1 btn-sm">Next</button>
+											<button type="submit" id="save-issue-btn" class="btn btn-primary btn-sm rounded d-none">Save Issue</button>
+										</div>
 									</div>
 								</div>
 							</form>
 						</div>
 					</div>
-				</div>	
+				</div>
 			</div>
 
 			<footer class="footer">

@@ -28,7 +28,7 @@ app_license = "MIT"
 app_include_js = [
     #"https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js",
     # "https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js",
-     "/assets/renewal_module/js/issue_themes/brandlogo.js",
+    "/assets/renewal_module/js/issue_themes/brandlogo.js",
 ]
 
 app_include_css = [
@@ -93,7 +93,8 @@ page_js = {
 # ----------
 
 # application home page (will override Website Settings)
-# home_page = "login"
+#home_page = "login"
+#home_page = "index"
 
 # website user home page (by Role)
 # role_home_page = {
@@ -101,18 +102,20 @@ page_js = {
 # }
 
 role_home_page = {
-    "Customer": "/me",
-    # Redirect users with the "Customer" role to the /me page
+    "Customer": "me",
 }
 
-#when the custom pages to redirect after login
-auth_hooks = ["renewal_module.api.redirect_after_login"]
+# when the custom pages to redirect after login
+on_session_creation = ["renewal_module.api.redirect_after_login"]
+boot_session = ["renewal_module.api.apply_role_home_page_in_boot"]
 
-# website_route_rules = [
-#     {"from_route": "/job-opening/<name>", "to_route": "job_opening"}
+# website_redirects = [
+#     {"source": "/", "target": "/app"}
 # ]
-
+# website_redirects removed — role_home_page handles per-role routing;
+# a blanket / → /app redirect bypassed role-based home pages in new tabs
 website_route_rules = [
+    # {"from_route": "/", "to_route": "/app"},
     {"from_route": "/job-opening/<name>", "to_route": "job_opening"},
     { "from_route":"/renewal_list","to_route":"renewal_list" },
     {
@@ -197,28 +200,34 @@ website_context = {
     },
 }
 
+#after_migrate = ["renewal_module.customizations.login_navbar.ensure_login_navbar_block"]
 
-has_permission = {
-    "Call List": "renewal_module.user_permissions.calllist_has_permission",
-    "Opportunity": "renewal_module.user_permissions.opportunity_has_permission",
-    "Quotation": "renewal_module.user_permissions.quotation_has_permission",
-    "Customer Order Form": "renewal_module.user_permissions.cof_has_permission",
-    "ORC List": "renewal_module.user_permissions.orc_has_permission",
-    "Appointment": "renewal_module.user_permissions.appointment_has_permission",
-    "Contact": "renewal_module.user_permissions.contact_has_permission",
-    "Address": "renewal_module.user_permissions.address_has_permission",
-}
- 
-permission_query_conditions = {
-    "Call List": "renewal_module.user_permissions.calllist_permission_query",
-    "Opportunity": "renewal_module.user_permissions.opportunity_permission_query",
-    "Quotation": "renewal_module.user_permissions.quotation_permission_query",
-    "Customer Order Form": "renewal_module.user_permissions.cof_permission_query",
-    "ORC List": "renewal_module.user_permissions.orc_permission_query",
-    "Appointment": "renewal_module.user_permissions.appointment_permission_query",
-    "Contact": "renewal_module.user_permissions.contact_permission_query",
-    "Address": "renewal_module.user_permissions.address_permission_query",
-}
+
+# has_permission = {
+#     "Call List": "renewal_module.user_permissions.calllist_has_permission",
+#     "Opportunity": "renewal_module.user_permissions.opportunity_has_permission",
+#     "Quotation": "renewal_module.user_permissions.quotation_has_permission",
+#     "Customer Order Form": "renewal_module.user_permissions.cof_has_permission",
+#     "ORC List": "renewal_module.user_permissions.orc_has_permission",
+#     "Appointment": "renewal_module.user_permissions.appointment_has_permission",
+#     "Contact": "renewal_module.user_permissions.contact_has_permission",
+#     "Address": "renewal_module.user_permissions.address_has_permission",
+#     "Sales Order": "renewal_module.user_permissions.sales_order_has_permission",
+#     "Sales Invoice": "renewal_module.user_permissions.sales_invoice_has_permission",
+# }
+
+# permission_query_conditions = {
+#     "Call List": "renewal_module.user_permissions.calllist_permission_query",
+#     "Opportunity": "renewal_module.user_permissions.opportunity_permission_query",
+#     "Quotation": "renewal_module.user_permissions.quotation_permission_query",
+#     "Customer Order Form": "renewal_module.user_permissions.cof_permission_query",
+#     "ORC List": "renewal_module.user_permissions.orc_permission_query",
+#     "Appointment": "renewal_module.user_permissions.appointment_permission_query",
+#     "Contact": "renewal_module.user_permissions.contact_permission_query",
+#     "Address": "renewal_module.user_permissions.address_permission_query",
+#     "Sales Order": "renewal_module.user_permissions.sales_order_permission_query",
+#     "Sales Invoice": "renewal_module.user_permissions.sales_invoice_permission_query",
+# }
 
 # Generators
 # ----------
@@ -314,10 +323,10 @@ doc_events = {
         # "before_save": "renewal_module.custom_issue.before_save_issue",
         #"after_insert": "renewal_module.api.send_issue_email"
     },
-    "ToDo":{
-        "after_insert": "renewal_module.issues.after_insert",
+    # "ToDo":{
+    #     "after_insert": "renewal_module.issues.after_insert",
 
-    },
+    # },
 
     # "Issue Time Log": {
     #     "before_save": "renewal_module.custom_issue.calculate_working_hours_duration"

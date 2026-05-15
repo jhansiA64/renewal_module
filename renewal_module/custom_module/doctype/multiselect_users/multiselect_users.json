@@ -12,6 +12,7 @@
   {
    "fieldname": "user",
    "fieldtype": "Link",
+   "ignore_user_permissions": 1,
    "in_list_view": 1,
    "label": "User",
    "options": "User"
@@ -21,7 +22,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-09-08 11:17:44.752222",
+ "modified": "2026-04-01 15:51:41.621883",
  "modified_by": "Administrator",
  "module": "Custom Module",
  "name": "Multiselect Users",

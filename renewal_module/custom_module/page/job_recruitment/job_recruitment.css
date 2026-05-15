@@ -35,6 +35,11 @@
     color: #000000;
 }
 
+[data-route^="job-recruitment"] .body-sidebar-container {
+    display: none !important;
+    width: 0 !important;
+}
+
 [data-route^="job-recruitment"] .jp-title,
 [data-route^="job-recruitment"] .card-header h3,
 [data-route^="job-recruitment"] .req-item .title,

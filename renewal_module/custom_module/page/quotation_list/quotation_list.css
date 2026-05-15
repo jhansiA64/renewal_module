@@ -91,6 +91,11 @@ body[data-route^="quotation-list"] {
     margin-right: 0;
 }
 
+[data-route^="quotation-list"] .body-sidebar-container {
+    display: none !important;
+    width: 0 !important;
+}
+
 /* [data-route^="quotation-list"] .col {
     padding: 4px;
 } */

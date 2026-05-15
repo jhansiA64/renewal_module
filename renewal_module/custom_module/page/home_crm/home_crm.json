@@ -1,0 +1,25 @@
+{
+ "content": null,
+ "creation": "2026-03-30 10:43:16.162356",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2026-04-16 17:46:27.585008",
+ "modified_by": "Administrator",
+ "module": "Custom Module",
+ "name": "home-crm",
+ "owner": "Administrator",
+ "page_name": "home-crm",
+ "roles": [
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "Sales Manager"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0
+}

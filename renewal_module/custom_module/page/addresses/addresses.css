@@ -37,6 +37,11 @@ body[data-route^="addresses"] {
     margin-right: 0;
 }
 
+[data-route^="addresses"] .body-sidebar-container {
+    display: none !important;
+    width: 0 !important;
+}
+
 [data-route^="addresses"] [class^="col"],
 [data-route^="addresses"] [class*=" col"] {
     padding: 4px;
@@ -63,6 +68,11 @@ body[data-route^="addresses"] {
 
 [data-route="addresses"] .btn-default2 {
     font-size: 12px;
+}
+
+[data-route^="addresses"] .btn-primary1 {
+    background: #007bff !important;
+    color: #fff !important;
 }
 
 /*List View*/
@@ -1067,4 +1077,204 @@ body[data-route^="addresses"] {
 
 [data-route^="addresses"] .addr-label-col--tax {
     min-width: 100px;
+}
+
+/* Address wizard styles */
+[data-route^="addresses"] .new-address-wrap {
+    margin: 0;
+}
+
+[data-route^="addresses"] .new-address-wizard-bar {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+[data-route^="addresses"] .new-address-wizard-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    background: transparent;
+    border: 0;
+    padding: 0;
+}
+
+[data-route^="addresses"] .new-address-wizard-circle {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    color: #9ca3af;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, color 0.2s;
+}
+
+[data-route^="addresses"] .new-address-wizard-step.is-active .new-address-wizard-circle {
+    background: #2563eb;
+    color: #fff;
+}
+
+[data-route^="addresses"] .new-address-wizard-step.is-done .new-address-wizard-circle {
+    background: #16a34a;
+    color: #fff;
+}
+
+[data-route^="addresses"] .new-address-wizard-label {
+    font-size: 12px;
+    color: #9ca3af;
+    font-weight: 500;
+    white-space: nowrap;
+    text-align: center;
+}
+
+[data-route^="addresses"] .new-address-wizard-step.is-active .new-address-wizard-label {
+    color: #2563eb;
+    font-weight: 600;
+}
+
+[data-route^="addresses"] .new-address-wizard-step.is-done .new-address-wizard-label {
+    color: #16a34a;
+}
+
+[data-route^="addresses"] .new-address-wizard-connector {
+    flex: 1;
+    height: 2px;
+    background: #e5e7eb;
+    margin: 0 10px;
+    margin-bottom: 20px;
+    transition: background 0.2s;
+}
+
+[data-route^="addresses"] .new-address-wizard-connector.is-done {
+    background: #16a34a;
+}
+
+[data-route^="addresses"] .new-address-wizard-panel {
+    display: block;
+}
+
+[data-route^="addresses"] .new-address-wizard-panel.d-none {
+    display: none !important;
+}
+
+[data-route^="addresses"] .new-address-form-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+[data-route^="addresses"] .new-address-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 12px;
+}
+
+[data-route^="addresses"] .new-address-form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+[data-route^="addresses"] .new-address-row {
+    display: grid;
+    gap: 14px;
+    min-width: 0;
+}
+
+[data-route^="addresses"] .new-address-row.two-col {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+[data-route^="addresses"] .new-address-row.one-col {
+    grid-template-columns: 1fr;
+}
+
+[data-route^="addresses"] .new-address-field,
+[data-route^="addresses"] .new-address-field .frappe-control,
+[data-route^="addresses"] .new-address-field .form-group {
+    min-width: 0;
+}
+
+[data-route^="addresses"] .new-address-field .form-group {
+    margin-bottom: 0 !important;
+}
+
+[data-route^="addresses"] .new-address-field .control-label {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: 4px;
+}
+
+[data-route^="addresses"] .new-address-field .control-input-wrapper,
+[data-route^="addresses"] .new-address-field .control-input,
+[data-route^="addresses"] .new-address-field .control-value,
+[data-route^="addresses"] .new-address-field .awesomplete,
+[data-route^="addresses"] .new-address-field .awesomplete input,
+[data-route^="addresses"] .new-address-field input.form-control,
+[data-route^="addresses"] .new-address-field select.form-control {
+    width: 100%;
+    margin: 0 !important;
+}
+
+[data-route^="addresses"] .new-address-field input.form-control,
+[data-route^="addresses"] .new-address-field select.form-control,
+[data-route^="addresses"] .new-address-field .awesomplete input {
+    border-radius: 10px;
+    min-height: 34px;
+    padding: 6px 10px;
+}
+
+[data-route^="addresses"] .new-address-field .checkbox {
+    margin-top: 8px;
+}
+
+[data-route^="addresses"] .new-address-list-block label.control-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+[data-route^="addresses"] .new-address-wizard-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    padding: 0 2px;
+}
+
+[data-route^="addresses"] .new-address-wizard-nav {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    [data-route^="addresses"] .new-address-wizard-bar {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    [data-route^="addresses"] .new-address-row.two-col {
+        grid-template-columns: 1fr;
+    }
 }

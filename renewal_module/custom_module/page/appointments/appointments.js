@@ -65,8 +65,8 @@ class appointmentspage {
 		if (route.length === 1) {
 			return this.show_list();
 		}
-		// appointments/new-appointments
-		if (route.length === 2 && route[1] === "new-appointments") {
+		// appointments/new
+		if (route.length === 2 && route[1] === "new") {
 			return this.show_new();
 		}
 		// appointments/<appointment_id>
@@ -731,9 +731,10 @@ class appointmentspage {
 				if (me._filter_group) me._filter_group.clear_filters();
 				me.saved_filters = [];
 				me._suspend_on_change = false;
-				me.fetch_list_data({ reset: true });
-				update_filter_button_count($btn, 0);
+				me._fetch_in_progress = false;
 				updateUrlWithFilters([]);
+				update_filter_button_count($btn, 0);
+				me.fetch_list_data({ reset: true });
 				closePopover($btn);
 			});
 
@@ -741,9 +742,10 @@ class appointmentspage {
 				if (me._filter_group) {
 					me.saved_filters = me._filter_group.get_filters();
 					me._suspend_on_change = false;
-					me.fetch_list_data({ reset: true });
-					update_filter_button_count($btn, me.saved_filters.length);
+					me._fetch_in_progress = false;
 					updateUrlWithFilters(me.saved_filters);
+					update_filter_button_count($btn, me.saved_filters.length);
+					me.fetch_list_data({ reset: true });
 				}
 				closePopover($btn);
 			});
@@ -1703,6 +1705,20 @@ class appointmentspage {
 				if (keyName) enabledUserEmailMap.set(keyName, email);
 			});
 
+			const getCurrentUserEmailSignature = async () => {
+				try {
+					const response = await frappe.db.get_value("User", frappe.session.user, "email_signature");
+					return String(response?.message?.email_signature || "").trim();
+				} catch (err) {
+					console.warn("Unable to fetch current user email signature", err);
+					return "";
+				}
+			};
+			const userEmailSignature = await getCurrentUserEmailSignature();
+			const defaultMessageContent = userEmailSignature
+				? `${"<p><br></p>".repeat(5)}${userEmailSignature}`
+				: "";
+
 			// Collect appointment's own emails
 			const apt_emails_raw = [];
 			if (apt.customer_email) apt_emails_raw.push(apt.customer_email);
@@ -1774,7 +1790,8 @@ class appointmentspage {
 						label: __("Message"),
 						fieldname: "content",
 						fieldtype: "TextEditor",
-						reqd: 1
+						reqd: 1,
+						default: defaultMessageContent
 					},
 					{
 						fieldtype: "Section Break",
@@ -2657,7 +2674,53 @@ class appointmentspage {
 		$(".appointment-list-view").addClass("d-none");
 		$(".appointment-details-view").addClass("d-none");
 		$(".new-appointments").removeClass("d-none");
+		this._newAppointmentCurrentStep = 1;
 		this.bind_new_form_events();
+		this.gotoNewAppointmentWizardStep(1);
+	}
+
+	gotoNewAppointmentWizardStep(step) {
+		const safeStep = Math.min(3, Math.max(1, cint(step) || 1));
+		this._newAppointmentCurrentStep = safeStep;
+
+		const $root = $(this.page.wrapper);
+		$root.find(".new-apt-wizard-step").each(function () {
+			const s = cint($(this).attr("data-step")) || 1;
+			$(this).toggleClass("is-active", s === safeStep);
+			$(this).toggleClass("is-done", s < safeStep);
+		});
+
+		$root.find(".new-apt-wizard-connector").each(function (idx) {
+			$(this).toggleClass("is-done", (idx + 1) < safeStep);
+		});
+
+		$root.find(".new-apt-wizard-panel").addClass("d-none");
+		$root.find(`.new-apt-wizard-panel[data-panel="${safeStep}"]`).removeClass("d-none");
+
+		$root.find("#new-apt-back").toggleClass("d-none", safeStep === 1);
+		$root.find("#new-apt-next").toggleClass("d-none", safeStep === 3);
+		$root.find("#save-appointment-btn").toggleClass("d-none", safeStep !== 3);
+	}
+
+	validateNewAppointmentWizardStep(step, controls = {}) {
+		if (step === 1) {
+			const customerName = (controls.customer_name?.get_value?.() || "").trim();
+			const customerEmail = (controls.customer_email?.get_value?.() || "").trim();
+			if (!customerName || !customerEmail) {
+				frappe.msgprint(__("Please fill customer name and email before continuing."));
+				return false;
+			}
+		}
+
+		if (step === 2) {
+			const scheduledTime = controls.scheduled_time?.get_value?.();
+			if (!scheduledTime) {
+				frappe.msgprint(__("Please select Scheduled Time before continuing."));
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	async bind_new_form_events() {
@@ -2702,25 +2765,25 @@ class appointmentspage {
 		});
 
 		let startDateControl = frappe.ui.form.make_control({
-			df: { fieldtype: "Date", label: "Start Date", fieldname: "custom_start_date" },
+			df: { fieldtype: "Date", label: "Start Date", fieldname: "custom_start_date", reqd: 1 },
 			parent: document.getElementById("start-date-field"),
 			render_input: true
 		});
 
 		let endDateControl = frappe.ui.form.make_control({
-			df: { fieldtype: "Date", label: "End Date", fieldname: "custom_end_date" },
+			df: { fieldtype: "Date", label: "End Date", fieldname: "custom_end_date", reqd: 1 },
 			parent: document.getElementById("end-date-field"),
 			render_input: true
 		});
 
 		let startTimeControl = frappe.ui.form.make_control({
-			df: { fieldtype: "Time", label: "Start Time", fieldname: "custom_start_time" },
+			df: { fieldtype: "Time", label: "Start Time", fieldname: "custom_start_time", reqd: 1 },
 			parent: document.getElementById("start-time-field"),
 			render_input: true
 		});
 
 		let endTimeControl = frappe.ui.form.make_control({
-			df: { fieldtype: "Time", label: "End Time", fieldname: "custom_end_time" },
+			df: { fieldtype: "Time", label: "End Time", fieldname: "custom_end_time", reqd: 1 },
 			parent: document.getElementById("end-time-field"),
 			render_input: true
 		});
@@ -2745,14 +2808,58 @@ class appointmentspage {
 			render_input: true
 		});
 
-		// Ensure the child doctype meta is loaded before creating the TableMultiSelect
-		// control, otherwise frappe.get_meta("Multiselect Users") returns undefined
-		// and the formatter crashes with "Cannot read properties of undefined (reading 'fields')".
-		await frappe.model.with_doctype("Multiselect Users");
+		let participant_options = [];
+		try {
+			const usersResp = await frappe.call({
+				method: "renewal_module.custom_module.page.appointments.appointments.get_enabled_users"
+			});
+			const users = usersResp?.message || [];
+			participant_options = users.map((u) => ({
+				label: u.full_name || u.name || u.email,
+				value: u.email || u.name,
+				description: u.name || ""
+			}));
+		} catch (err) {
+			console.warn("Failed to load participant options", err);
+		}
+
 		let participantsControl = frappe.ui.form.make_control({
-			df: { fieldtype: "Table MultiSelect", label: "Participants", fieldname: "participants", options: "Multiselect Users" },
+			df: {
+				fieldtype: "MultiSelect",
+				label: "Participants",
+				fieldname: "participants",
+				options: participant_options
+			},
 			parent: document.getElementById("participants-field"),
 			render_input: true
+		});
+
+		const controls = {
+			customer_name: customerNameControl,
+			customer_email: customerEmailControl,
+			scheduled_time: scheduledTimeControl
+		};
+
+		const $scope = $(this.page.wrapper[0] || this.page.wrapper);
+		$scope.find("#new-apt-cancel").off("click").on("click", function () {
+			frappe.set_route("appointments");
+		});
+
+		$scope.find("#new-apt-back").off("click").on("click", function () {
+			me.gotoNewAppointmentWizardStep((me._newAppointmentCurrentStep || 1) - 1);
+		});
+
+		$scope.find("#new-apt-next").off("click").on("click", function () {
+			const current = me._newAppointmentCurrentStep || 1;
+			if (!me.validateNewAppointmentWizardStep(current, controls)) return;
+			me.gotoNewAppointmentWizardStep(current + 1);
+		});
+
+		$scope.find(".new-apt-wizard-step").off("click").on("click", function () {
+			const targetStep = cint($(this).attr("data-step")) || 1;
+			const current = me._newAppointmentCurrentStep || 1;
+			if (targetStep > current && !me.validateNewAppointmentWizardStep(current, controls)) return;
+			me.gotoNewAppointmentWizardStep(targetStep);
 		});
 
 
@@ -2766,6 +2873,14 @@ class appointmentspage {
 		const saveBtn = form.querySelector("#save-appointment-btn");
 		saveBtn.addEventListener("click", function (e) {
 			e.preventDefault();
+			if (!me.validateNewAppointmentWizardStep(1, controls)) {
+				me.gotoNewAppointmentWizardStep(1);
+				return;
+			}
+			if (!me.validateNewAppointmentWizardStep(2, controls)) {
+				me.gotoNewAppointmentWizardStep(2);
+				return;
+			}
 
 			const customer_name = customerNameControl.get_value();
 			const customer_email = customerEmailControl.get_value();
@@ -4036,7 +4151,7 @@ frappe.appointments_page_template = {
 									</button>
 								</div>
 
-								<a id="new-appointment-btn" href="/app/appointments/new-appointments" class="btn btn-sm btn-primary1 mr-2">
+								<a id="new-appointment-btn" href="/app/appointments/new" class="btn btn-sm btn-primary1 mr-2">
 									<i class="fa fa-plus me-1"></i> New Appointment
 								</a>
 
@@ -4180,89 +4295,88 @@ frappe.appointments_page_template = {
 				<div class="col-lg-12 col-12">
 					<div class="rounded p-0 appointment-form-container" style="background-color: transparent;">
 						<form id="new-appointment-form" autocomplete="off">
-							<!-- Customer Details Card -->
-							<div class="card mb-4 border">
-								<div class="card-header bg-white border-bottom-0 pb-0 pt-3">
-									<h6 class="fw-bold mb-0 text-dark" style="font-size: 15px;">Customer Details</h6>
+							<div class="new-apt-wrap">
+								<div class="new-apt-wizard-bar">
+									<button type="button" class="new-apt-wizard-step is-active" data-step="1">
+										<div class="new-apt-wizard-circle">1</div>
+										<div class="new-apt-wizard-label">Customer</div>
+									</button>
+									<div class="new-apt-wizard-connector"></div>
+									<button type="button" class="new-apt-wizard-step" data-step="2">
+										<div class="new-apt-wizard-circle">2</div>
+										<div class="new-apt-wizard-label">Schedule</div>
+									</button>
+									<div class="new-apt-wizard-connector"></div>
+									<button type="button" class="new-apt-wizard-step" data-step="3">
+										<div class="new-apt-wizard-circle">3</div>
+										<div class="new-apt-wizard-label">Participants &amp; Details</div>
+									</button>
 								</div>
-								<div class="card-body">
-									<div class="row">
-										<div class="col-md-6">
-											<div id="appointment-with-field"></div>
-										</div>
-										<div class="col-md-6">
-											<div id="party-field"></div>
-										</div>
-									</div>
 
-									<div class="row">
-										<div class="col-md-6">
-											<div id="customer-name-field"></div>
-										</div>
-										<div class="col-md-6">
-											<div id="customer-phone-field"></div>
-										</div>
-									</div>
-
-									<div class="row">
-										<div class="col-md-6">
-											<div id="customer-email-field"></div>
-										</div>
-										<div class="col-md-6">
-											<div id="customer-skype-field"></div>
-										</div>
-									</div>
-
-									<div class="row">
-										<div class="col-md-6">
-											<div id="start-date-field"></div>
-										</div>
-										<div class="col-md-6">
-											<div id="end-date-field"></div>
-										</div>
-									</div>
-
-									<div class="row">
-										<div class="col-md-6">
-											<div id="start-time-field"></div>
-										</div>
-										<div class="col-md-6">
-											<div id="end-time-field"></div>
-										</div>
-									</div>
-                                    
-									<div class="row">
-										<div class="col-md-6">
-											<div id="participants-field"></div>
-										</div>
-									</div>
-
-									<div class="row">
-										<div class="col-12">
-											<div id="customer-details-field"></div>
-										</div>
-									</div>	
-
-									<div class="row">
-										<div class="col-md-6">
-											<div id="scheduled-time-field"></div>
-										</div>
-										<div class="col-md-6">
-											<div id="status-field"></div>
-										</div>
-									</div>
-								
-									<div class="row">
-										<div class="col-12">	
-											<div class="d-flex gap-2 justify-content-between align-items-center mb-2">
-												<button type="button" id="save-appointment-btn" class="btn btn-primary btn-sm rounded">
-													Save
-												</button>
+								<div class="new-apt-wizard-panel" data-panel="1">
+									<div class="card mb-3 border new-apt-card">
+										<div class="card-body">
+											<div class="new-apt-row two-col">
+												<div class="new-apt-field" id="appointment-with-field"></div>
+												<div class="new-apt-field" id="party-field"></div>
+											</div>
+											<div class="new-apt-row two-col">
+												<div class="new-apt-field" id="customer-name-field"></div>
+												<div class="new-apt-field" id="customer-phone-field"></div>
+											</div>
+											<div class="new-apt-row two-col">
+												<div class="new-apt-field" id="customer-email-field"></div>
+												<div class="new-apt-field" id="customer-skype-field"></div>
 											</div>
 										</div>
-									</div>	
+									</div>
 								</div>
-							</div>	
+
+								<div class="new-apt-wizard-panel d-none" data-panel="2">
+									<div class="card mb-3 border new-apt-card">
+										<div class="card-body">
+											<div class="new-apt-row two-col">
+												<div class="new-apt-field" id="start-date-field"></div>
+												<div class="new-apt-field" id="end-date-field"></div>
+											</div>
+											<div class="new-apt-row two-col">
+												<div class="new-apt-field" id="start-time-field"></div>
+												<div class="new-apt-field" id="end-time-field"></div>
+											</div>
+											<div class="new-apt-row two-col">
+												<div class="new-apt-field" id="scheduled-time-field"></div>
+												<div class="new-apt-field" id="status-field"></div>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<div class="new-apt-wizard-panel d-none" data-panel="3">
+									<div class="card mb-3 border new-apt-card">
+										<div class="card-body">
+											<div class="new-apt-row one-col">
+												<div class="new-apt-field" id="participants-field"></div>
+											</div>
+										</div>
+									</div>
+									<div class="card mb-3 border new-apt-card">
+										<div class="card-body">
+											<div class="new-apt-row one-col">
+												<div class="new-apt-field" id="customer-details-field"></div>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<div class="new-apt-wizard-footer">
+									<button type="button" id="new-apt-cancel" class="btn btn-default btn-sm">Cancel</button>
+									<div class="new-apt-wizard-nav">
+										<button type="button" id="new-apt-back" class="btn btn-default btn-sm d-none">&#8592; Back</button>
+										<button type="button" id="new-apt-next" class="btn btn-primary1 btn-sm">Next</button>
+										<button type="button" id="save-appointment-btn" class="btn btn-primary btn-sm rounded d-none">Save</button>
+									</div>
+								</div>
+							</div>
 						</form>
 					</div>
 				</div>

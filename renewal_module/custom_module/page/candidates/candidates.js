@@ -10,7 +10,7 @@ frappe.pages['candidates'].on_page_show = function (wrapper) {
 			setTimeout(cb, 10);
 		});
 		frappe.require([
-			"/assets/renewal_module/css/issue_themes/support_theme2.css",
+			"/assets/renewal_module/css/issue_themes/support_theme2.css"
 		]);
 	};
 	ensureSupportLayoutLoaded(() => {
@@ -59,7 +59,7 @@ function parseDateDDMMYYYY(dateStr) {
 }
 
 function getStatusClass(status) {
-	switch(status) {
+	switch (status) {
 		case 'Pending': return 'status-pending';
 		case 'Accepted': return 'status-accepted';
 		case 'Rejected': return 'status-rejected';
@@ -82,6 +82,8 @@ class candidatespage {
 		this.total_records = 0;
 		this.selected_candidates = new Set();
 		this.candidate_ids_set = new Set();
+		this.validSourceValues = new Set();
+		this.languageOptions = null;
 	}
 
 	removeDuplicates(candidates) {
@@ -155,119 +157,7 @@ class candidatespage {
 		return { min: null, max: null };
 	}
 
-	renderFitDashboard(detailsView, candidate, job) {
-		if (!detailsView) return;
 
-		const scoreEl = detailsView.querySelector("#fit-score-value");
-		const expFitEl = detailsView.querySelector("#fit-exp-value");
-		const skillsFitEl = detailsView.querySelector("#fit-skills-value");
-		const missingEl = detailsView.querySelector("#fit-missing-skills");
-		const matchedEl = detailsView.querySelector("#fit-matched-skills");
-		const workflowEl = detailsView.querySelector("#fit-workflow");
-
-		const candidateSkills = this.normalizeSkillList(candidate.skills || "");
-		const jobSkills = this.extractJobSkills(job);
-		const candidateSet = new Set(candidateSkills);
-		const matched = jobSkills.filter(skill => candidateSet.has(skill));
-		const missing = jobSkills.filter(skill => !candidateSet.has(skill));
-
-		const skillPct = jobSkills.length ? Math.round((matched.length / jobSkills.length) * 100) : 0;
-
-		const candidateMin = this.toNumberOrNull(candidate.min_experience);
-		const candidateMax = this.toNumberOrNull(candidate.max_experience);
-		const candidateExp = candidateMax ?? candidateMin;
-		const jobRange = this.getExperienceRangeFromJob(job);
-
-		let expText = "Not enough data";
-		let expScore = 0;
-		if (candidateExp !== null && jobRange.min !== null && jobRange.max !== null) {
-			if (candidateExp >= jobRange.min && candidateExp <= jobRange.max) {
-				expText = `In range (${jobRange.min}-${jobRange.max} yrs)`;
-				expScore = 100;
-			} else if (candidateExp < jobRange.min) {
-				expText = `Below range (${jobRange.min}-${jobRange.max} yrs)`;
-				expScore = 40;
-			} else {
-				expText = `Above range (${jobRange.min}-${jobRange.max} yrs)`;
-				expScore = 80;
-			}
-		} else if (candidateExp !== null && jobRange.min !== null) {
-			expText = candidateExp >= jobRange.min ? `Meets minimum (${jobRange.min}+ yrs)` : `Below minimum (${jobRange.min}+ yrs)`;
-			expScore = candidateExp >= jobRange.min ? 100 : 45;
-		}
-
-		const overall = Math.round((skillPct * 0.6) + (expScore * 0.4));
-
-		if (scoreEl) scoreEl.textContent = `${overall}%`;
-		if (expFitEl) expFitEl.textContent = expText;
-		if (skillsFitEl) skillsFitEl.textContent = `${matched.length}/${jobSkills.length || 0} matched (${skillPct}%)`;
-
-		if (matchedEl) {
-			matchedEl.innerHTML = matched.length
-				? matched.map(s => `<span class="badge bg-success-subtle text-success me-1 mb-1">${escapeHtml(s)}</span>`).join("")
-				: '<span class="text-muted">No matched skills</span>';
-		}
-
-		if (missingEl) {
-			missingEl.innerHTML = missing.length
-				? missing.map(s => `<span class="badge bg-warning-subtle text-warning-emphasis me-1 mb-1">${escapeHtml(s)}</span>`).join("")
-				: '<span class="text-muted">No missing skills</span>';
-		}
-
-		if (workflowEl) {
-			const steps = [];
-			steps.push(`1. Job requirement loaded from ${escapeHtml(job.name || "selected posting")}`);
-			steps.push(`2. Candidate profile parsed (${candidateSkills.length} skills, exp ${candidateExp ?? "N/A"} yrs)`);
-			steps.push(`3. Skill overlap computed (${matched.length} matched, ${missing.length} missing)`);
-			steps.push(`4. Experience check: ${escapeHtml(expText)}`);
-			steps.push(`5. Final fit score: ${overall}%`);
-			workflowEl.innerHTML = steps.map(step => `<div class="small text-muted mb-1">${step}</div>`).join("");
-		}
-	}
-
-	loadAndRenderFitDashboard(detailsView, candidate) {
-		if (!detailsView) return;
-
-		const dashboardTitle = detailsView.querySelector("#fit-job-name");
-		if (dashboardTitle) {
-			dashboardTitle.textContent = candidate.job_title || candidate.designation || "N/A";
-		}
-
-		if (!candidate.job_title) {
-			this.renderFitDashboard(detailsView, candidate, {});
-			return;
-		}
-
-		const tryLoadJob = (doctype, onDone, onFail) => {
-			frappe.call({
-				method: "frappe.client.get",
-				args: {
-					doctype,
-					name: candidate.job_title
-				},
-				callback: (jobRes) => {
-					if (jobRes && jobRes.message) {
-						onDone(jobRes.message);
-						return;
-					}
-					onFail();
-				},
-				error: onFail
-			});
-		};
-
-		tryLoadJob(
-			"Job Opening",
-			(job) => this.renderFitDashboard(detailsView, candidate, job),
-			() => {
-				tryLoadJob(
-					"Job Position",
-					(job) => this.renderFitDashboard(detailsView, candidate, job),
-					() => this.renderFitDashboard(detailsView, candidate, {})
-				);
-			}
-		);
-	}
 
 	render() {
 		const waitForContent = () => {
@@ -373,7 +263,7 @@ class candidatespage {
 		$(".new-candidates").removeClass("d-none");
 		this.setPageTitle("Create New Candidate");
 		this.setActiveSidebar();
-		
+
 		setTimeout(() => {
 			this.initializeWizard();
 			this.bind_candidate_form_events();
@@ -437,31 +327,31 @@ class candidatespage {
 							// For pagination: replace on reset, otherwise append (load more)
 							if (reset) {
 								this.all_candidates = Array.isArray(data) ? data.slice() : [];
-							this.candidate_ids_set.clear();
-							data.forEach(c => this.candidate_ids_set.add(c.name));
-						} else {
-							const uniqueDataToAdd = this.removeDuplicates(Array.isArray(data) ? data.slice() : []);
-							this.all_candidates = (this.all_candidates || []).concat(uniqueDataToAdd);
+								this.candidate_ids_set.clear();
+								data.forEach(c => this.candidate_ids_set.add(c.name));
+							} else {
+								const uniqueDataToAdd = this.removeDuplicates(Array.isArray(data) ? data.slice() : []);
+								this.all_candidates = (this.all_candidates || []).concat(uniqueDataToAdd);
+							}
+							this.visible_count = this.all_candidates.length;
+
+							if (this.total_records === 0) {
+								this.all_candidates = [];
+								this.visible_count = 0;
+								this.candidate_ids_set.clear();
+							}
+
+							// Calculate total pages
+							this.total_pages = Math.ceil(this.total_records / this.page_length) || 1;
+
+							this.filtered_candidates = this.all_candidates.slice();
+							this.render_rows(true);
+							resolve();
+						} catch (err) {
+							reject(err);
+						} finally {
+							this._fetch_in_progress = false;
 						}
-						this.visible_count = this.all_candidates.length;
-
-						if (this.total_records === 0) {
-							this.all_candidates = [];
-							this.visible_count = 0;
-							this.candidate_ids_set.clear();
-						}
-
-						// Calculate total pages
-						this.total_pages = Math.ceil(this.total_records / this.page_length) || 1;
-
-						this.filtered_candidates = this.all_candidates.slice();
-						this.render_rows(true);
-						resolve();
-					} catch (err) {
-						reject(err);
-					} finally {
-						this._fetch_in_progress = false;
-					}
 					},
 					error: (err) => {
 						this._fetch_in_progress = false;
@@ -669,102 +559,59 @@ class candidatespage {
 				if (r.message) {
 					const candidate = r.message;
 					const detailsView = document.querySelector(".candidates-details-view");
+					this.renderCandidateProfileDetails(detailsView, candidate, candidate_id);
 
 					// Update header with candidate info
 					const nameId = detailsView.querySelector("#candidate-name-id");
 					if (nameId) nameId.textContent = candidate.name;
 
-				// Update subject and priority in card header
-				const subject = detailsView.querySelector("#detail-subject");
-				if (subject) subject.textContent = candidate.applicant_name || 'N/A';
+					// Update subject and priority in card header
+					const subject = detailsView.querySelector("#detail-subject");
+					if (subject) subject.textContent = candidate.applicant_name || 'N/A';
 
-				// Update job title in blue header
-				const jobTitleBadge = detailsView.querySelector("#detail-job-title");
-				if (jobTitleBadge) {
-					if (candidate.job_title) {
-						jobTitleBadge.innerHTML = `<a href="javascript:void(0)" class="job-posting-link" data-job-posting="${escapeHtml(candidate.job_title)}" style="color: inherit; text-decoration: underline; cursor: pointer;">${escapeHtml(candidate.designation || 'N/A')}</a>`;
-						jobTitleBadge.querySelector('.job-posting-link').addEventListener('click', (e) => {
-							e.preventDefault();
-							frappe.set_route('Form', 'Job Position', candidate.job_title);
-						});
-					} else {
-						jobTitleBadge.textContent = candidate.designation || 'N/A';
+					// Update job title in blue header
+					const jobTitleBadge = detailsView.querySelector("#detail-job-title");
+					if (jobTitleBadge) {
+						if (candidate.job_title) {
+							jobTitleBadge.innerHTML = `<a href="javascript:void(0)" class="job-posting-link" data-job-posting="${escapeHtml(candidate.job_title)}" style="color: inherit; text-decoration: underline; cursor: pointer;">${escapeHtml(candidate.designation || 'N/A')}</a>`;
+							jobTitleBadge.querySelector('.job-posting-link').addEventListener('click', (e) => {
+								e.preventDefault();
+								frappe.set_route('Form', 'Job Position', candidate.job_title);
+							});
+						} else {
+							jobTitleBadge.textContent = candidate.designation || 'N/A';
+						}
 					}
-				}
 
-				// Update status badge
-				const statusBadge = detailsView.querySelector("#candidate-status-badge");
-				if (statusBadge) {
-					statusBadge.textContent = candidate.status || 'Pending';
-					statusBadge.className = 'status-badge ' + getStatusClass(candidate.status);
-				}
-
-				// Update all email fields
-				detailsView.querySelectorAll(".candidate-email").forEach(el => {
-					el.textContent = candidate.email_id || 'N/A';
-				});
-
-				// Update all phone fields
-				detailsView.querySelectorAll(".candidate-phone").forEach(el => {
-					el.textContent = candidate.phone_number || 'N/A';
-				});
-
-				// Update all job title fields
-				detailsView.querySelectorAll(".candidate-job-title").forEach(el => {
-					if (candidate.job_title) {
-						el.innerHTML = `<a href="javascript:void(0)" class="job-posting-link" data-job-posting="${escapeHtml(candidate.job_title)}" style="color: inherit; text-decoration: underline; cursor: pointer;">${escapeHtml(candidate.designation || 'N/A')}</a>`;
-						el.querySelector('.job-posting-link').addEventListener('click', (e) => {
-							e.preventDefault();
-							frappe.set_route('Form', 'Job Position', candidate.job_title);
-						});
-					} else {
-						el.textContent = candidate.designation || 'N/A';
+					// Update status badge
+					const statusBadge = detailsView.querySelector("#candidate-status-badge");
+					if (statusBadge) {
+						statusBadge.textContent = candidate.status || 'Pending';
+						statusBadge.className = 'status-badge ' + getStatusClass(candidate.status);
 					}
-				});
 
-				// Update experience fields
-				const minExp = detailsView.querySelector(".candidate-min-exp");
-				if (minExp) minExp.textContent = candidate.min_experience || 'N/A';
+					// Update all email fields
+					detailsView.querySelectorAll(".candidate-email").forEach(el => {
+						el.textContent = candidate.email_id || 'N/A';
+					});
 
-				const maxExp = detailsView.querySelector(".candidate-max-exp");
-				if (maxExp) maxExp.textContent = candidate.max_experience || 'N/A';
+					// Bind dropdown actions
+					const actionDropdown = detailsView.querySelector("#candidate-actions-dropdown");
+					if (actionDropdown) {
+						const dropdownItems = actionDropdown.querySelectorAll(".dropdown-item");
+						dropdownItems.forEach(item => {
+							item.addEventListener("click", (e) => {
+								e.preventDefault();
+								const action = item.getAttribute("data-action");
 
-				// Update CTC fields
-				const minCtc = detailsView.querySelector(".candidate-min-ctc");
-				if (minCtc) minCtc.textContent = candidate.min_ctc || 'N/A';
-
-				const maxCtc = detailsView.querySelector(".candidate-max-ctc");
-				if (maxCtc) maxCtc.textContent = candidate.max_ctc || 'N/A';
-
-				// Update skills
-				const skills = detailsView.querySelector(".candidate-skills");
-				if (skills) skills.textContent = candidate.skills || 'N/A';
-
-				// Render job-vs-candidate fit mini dashboard
-				this.loadAndRenderFitDashboard(detailsView, candidate);
-
-				// Update all status fields
-				detailsView.querySelectorAll(".candidate-status").forEach(el => {
-					el.textContent = candidate.status || 'Pending';
-				});
-
-				// Bind dropdown actions
-				const actionDropdown = detailsView.querySelector("#candidate-actions-dropdown");
-				if (actionDropdown) {
-					const dropdownItems = actionDropdown.querySelectorAll(".dropdown-item");
-					dropdownItems.forEach(item => {
-						item.addEventListener("click", (e) => {
-							e.preventDefault();
-							const action = item.getAttribute("data-action");
-
-							if (action === "back") {
-								frappe.set_route("candidates");
-							} else if (action === "edit") {
-								frappe.ui.form.make_quick_entry("Job Applicant", {
-									doc: candidate,
-									after_insert: () => {
-										this.fetch_list_data({ reset: true });
-										frappe.set_route("candidates");
+								if (action === "back") {
+									frappe.set_route("candidates");
+								} else if (action === "edit") {
+									frappe.ui.form.make_quick_entry("Job Applicant", {
+										doc: candidate,
+										after_insert: () => {
+											this.fetch_list_data({ reset: true });
+											frappe.set_route("candidates");
 										}
 									});
 								} else if (action === "delete") {
@@ -842,7 +689,7 @@ class candidatespage {
 						if (candidate.tags) {
 							const tagsArray = candidate.tags.split(',').map(t => t.trim()).filter(t => t);
 							if (tagsArray.length > 0) {
-								tagsContainer.innerHTML = tagsArray.map(tag => 
+								tagsContainer.innerHTML = tagsArray.map(tag =>
 									`<span class="candidate-tag">${tag} <span class="remove-tag">×</span></span>`
 								).join('');
 							}
@@ -882,21 +729,21 @@ class candidatespage {
 						}
 					});
 
-				// Fetch and display attachments
-				frappe.call({
-					method: "frappe.client.get_list",
-					args: {
-						doctype: "File",
-						filters: {
-							attached_to_doctype: "Job Applicant",
-							attached_to_name: candidate_id
+					// Fetch and display attachments
+					frappe.call({
+						method: "frappe.client.get_list",
+						args: {
+							doctype: "File",
+							filters: {
+								attached_to_doctype: "Job Applicant",
+								attached_to_name: candidate_id
+							},
+							fields: ["name", "file_name", "file_url", "creation", "owner"]
 						},
-						fields: ["name", "file_name", "file_url", "creation", "owner"]
-					},
-					callback: (r) => {
-						if (r.message && r.message.length > 0) {
-							const attachmentsList = detailsView.querySelector("#candidate-attachments-list");
-							attachmentsList.innerHTML = r.message.map(file => `
+						callback: (r) => {
+							if (r.message && r.message.length > 0) {
+								const attachmentsList = detailsView.querySelector("#candidate-attachments-list");
+								attachmentsList.innerHTML = r.message.map(file => `
 								<div class="attachment-item border round" style="display: flex; align-items: center; gap: 8px; padding: 6px;">
 									<i class="fa fa-file"></i>
 									<a href="${file.file_url}" target="_blank" title="${file.file_name}" style="text-decoration: none; color: #007bff;">
@@ -908,40 +755,368 @@ class candidatespage {
 								</div>
 							`).join('');
 
-							// Bind delete attachment buttons
-							const deleteButtons = attachmentsList.querySelectorAll(".delete-attachment");
-							deleteButtons.forEach(btn => {
-								btn.addEventListener("click", () => {
-									const fileId = btn.getAttribute("data-file-id");
-									if (confirm("Are you sure you want to delete this attachment?")) {
-										frappe.call({
-											method: "frappe.client.delete",
-											args: {
-												doctype: "File",
-												name: fileId
-											},
-											callback: (r) => {
-												if (!r.exc) {
-													frappe.show_alert("Attachment deleted", "green");
-													this.load_candidate_details(candidate_id);
+								// Bind delete attachment buttons
+								const deleteButtons = attachmentsList.querySelectorAll(".delete-attachment");
+								deleteButtons.forEach(btn => {
+									btn.addEventListener("click", () => {
+										const fileId = btn.getAttribute("data-file-id");
+										if (confirm("Are you sure you want to delete this attachment?")) {
+											frappe.call({
+												method: "frappe.client.delete",
+												args: {
+													doctype: "File",
+													name: fileId
+												},
+												callback: (r) => {
+													if (!r.exc) {
+														frappe.show_alert("Attachment deleted", "green");
+														this.load_candidate_details(candidate_id);
+													}
 												}
-											}
-										});
-									}
+											});
+										}
+									});
 								});
-							});
+							}
 						}
-					}
-				});
+					});
 
 				}
 			}
 		});
 	}
 
+	renderCandidateProfileDetails(detailsView, candidate, candidate_id) {
+		if (!detailsView) return;
+
+		const wrap = detailsView.querySelector("#candidate-data-display");
+		if (!wrap) return;
+
+		const fullName = candidate.applicant_name || candidate.name || "Candidate";
+		const initials = fullName
+			.split(" ")
+			.filter(Boolean)
+			.slice(0, 2)
+			.map((part) => part.charAt(0).toUpperCase())
+			.join("") || "C";
+
+		const createdDate = formatDate(candidate.creation);
+		const leftProfileFields = [
+			{ label: "Applicant Name", value: fullName || "—" },
+			{ label: "Email", value: candidate.email_id || "—" },
+			{ label: "Phone", value: candidate.phone_number || "—" },
+			{ label: "Designation", value: candidate.designation || "—" },
+			{ label: "Department", value: candidate.department || "—" },
+			{ label: "Address Line 1", value: candidate.custom_address_line_1 || candidate.address_line_1 || "—" },
+			{ label: "Address Line 2", value: candidate.custom_address_line_2 || candidate.address_line_2 || "—" },
+			{ label: "State", value: candidate.custom_state || candidate.state || "—" },
+			{ label: "Country", value: candidate.custom_country || candidate.country || "—" },
+			{ label: "Created", value: createdDate || "—" },
+			{ label: "Job Title", value: candidate.job_title || "—" }
+		];
+
+		const attachmentFields = [
+			{ label: "Resume", value: candidate.resume_attachment || "" },
+			{ label: "Aadhaar Attachment", value: candidate.custom_aadhar_attachment || "", isAadhaar: true },
+			{ label: "Profile Image", value: candidate.custom_profile_image || "" }
+		].filter((item) => item.value);
+
+		const educationRows = this.parseEmployeeEducation(candidate.custom_employee_education);
+
+		const sections = [
+			{
+				title: "Professional",
+				rows: [
+					{ label: "Status", value: candidate.status || "—" },
+					{ label: "Source", value: candidate.source || "—" },
+					{ label: "Current Location", value: candidate.current_location || "—" },
+					{ label: "Preferred Location", value: candidate.preferred_location || "—" }
+				]
+			},
+			{
+				title: "Experience & CTC",
+				rows: [
+					{ label: "Min Experience", value: candidate.min_experience || "—" },
+					{ label: "Max Experience", value: candidate.max_experience || "—" },
+					{ label: "Min CTC", value: candidate.min_ctc || "—" },
+					{ label: "Max CTC", value: candidate.max_ctc || "—" },
+					{ label: "Current CTC", value: candidate.current_ctc || "—" },
+					{ label: "Expected CTC", value: candidate.expected_ctc || "—" }
+				]
+			},
+			{
+				title: "Profile",
+				rows: [
+					{ label: "Skills", value: candidate.skills || "—" },
+					{ label: "Soft Skills", value: candidate.soft_skills || "—" },
+					{ label: "LinkedIn", value: candidate.linkedin_url || "—" },
+					{ label: "Portfolio", value: candidate.portfolio_url || "—" },
+					{ label: "Date of Birth", value: candidate.date_of_birth || "—" },
+					{ label: "Gender", value: candidate.gender || "—" }
+				]
+			}
+		].filter((sec) => sec.rows.some((r) => r.value && r.value !== "—"));
+
+		wrap.innerHTML = `
+			<div class="cand-profile-layout">
+				<aside class="cand-profile-panel">
+					<div class="cand-profile-card">
+						<div class="cand-profile-top">
+							<div class="cand-avatar cand-avatar-lg">${escapeHtml(initials)}</div>
+							<div class="cand-detail-id">${escapeHtml(candidate.name || "")}</div>
+							<div class="cand-hero-name">${escapeHtml(fullName)}</div>
+							<div class="cand-detail-meta cand-profile-meta">
+								${candidate.designation ? `<span class="cand-detail-badge">${escapeHtml(candidate.designation)}</span>` : ""}
+								${candidate.city ? `<span class="cand-detail-badge cand-detail-badge-soft">${escapeHtml(candidate.city)}</span>` : ""}
+							</div>
+							<div class="cand-profile-status">
+								<span class="pill ${getStatusClass(candidate.status)}">${escapeHtml(candidate.status || "Pending")}</span>
+							</div>
+						</div>
+						<div class="cand-profile-quick">
+							${leftProfileFields.map((field) => `
+								<div class="cand-quick-row">
+									<div class="cand-quick-label">${escapeHtml(field.label)}</div>
+									<div class="cand-quick-value">${escapeHtml(field.value || "—")}</div>
+								</div>
+							`).join("")}
+						</div>
+						<div class="cand-profile-actions">
+							<button class="btn btn-sm btn-primary1 cand-action-edit" data-candidate-id="${escapeHtml(candidate_id)}">Edit</button>
+							<button class="btn btn-sm btn-light cand-action-back">Back</button>
+						</div>
+					</div>
+				</aside>
+				<div class="cand-profile-main">
+					${attachmentFields.length ? `
+						<div class="cand-detail-card cand-section-card is-open cand-attachment-section">
+							<button class="cand-section-head" type="button">
+								<div class="cand-section-head-left"><div class="cand-section-title">Files</div></div>
+								<div class="cand-section-head-right"><i class="fa fa-chevron-down"></i></div>
+							</button>
+							<div class="cand-section-body" style="display:block;">
+								<div class="cand-attachment-grid">
+									${attachmentFields.map((item) => `
+										<div class="cand-attachment-item">
+											<div class="cand-attachment-label">${escapeHtml(item.label)}</div>
+											<div class="cand-attachment-actions">
+												<a href="#" data-preview-file="${escapeHtml(item.value)}">Preview</a>
+												<a href="#" data-open-file="${escapeHtml(item.value)}">Open</a>
+											</div>
+											${item.isAadhaar && candidate.custom_aadhar_number ? `<div class="cand-attachment-meta-row"><strong>Aadhaar Number:</strong> ${escapeHtml(candidate.custom_aadhar_number)}</div>` : ""}
+										</div>
+									`).join("")}
+								</div>
+							</div>
+						</div>
+					` : ""}
+
+					${educationRows.length ? `
+						<div class="cand-detail-card cand-section-card is-open cand-education-section">
+							<button class="cand-section-head" type="button">
+								<div class="cand-section-head-left"><div class="cand-section-title">Employee Education</div></div>
+								<div class="cand-section-head-right"><i class="fa fa-chevron-down"></i></div>
+							</button>
+							<div class="cand-section-body" style="display:block;">
+								<div class="cand-edu-wrap">
+									<table class="cand-edu-table">
+										<thead>
+											<tr>
+												<th>Qualification</th>
+												<th>Level</th>
+												<th>School/University</th>
+												<th>Year</th>
+												<th>Grade</th>
+											</tr>
+										</thead>
+										<tbody>
+											${educationRows.map((row) => `
+												<tr>
+													<td>${escapeHtml(row.qualification)}</td>
+													<td>${escapeHtml(row.level)}</td>
+													<td>${escapeHtml(row.school_univ)}</td>
+													<td>${escapeHtml(row.year_of_passing)}</td>
+													<td>${escapeHtml(row.class_per)}</td>
+												</tr>
+											`).join("")}
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</div>
+					` : ""}
+
+					${sections.map((section, idx) => `
+						<div class="cand-detail-card cand-section-card ${idx === 0 ? "is-open" : ""}">
+							<button class="cand-section-head" type="button">
+								<div class="cand-section-head-left"><div class="cand-section-title">${escapeHtml(section.title)}</div></div>
+								<div class="cand-section-head-right"><i class="fa fa-chevron-down"></i></div>
+							</button>
+							<div class="cand-section-body" style="display:${idx === 0 ? "block" : "none"};">
+								<div class="cand-section-grid">
+									${section.rows.map((row) => `
+										<div class="cand-field-row">
+											<div class="cand-field-label">${escapeHtml(row.label)}</div>
+											<div class="cand-field-value">${escapeHtml(String(row.value || "—"))}</div>
+										</div>
+									`).join("")}
+								</div>
+							</div>
+						</div>
+					`).join("")}
+				</div>
+			</div>
+
+			<!-- File Preview Modal -->
+			<div class="modal fade" id="cand-file-preview-modal" tabindex="-1" aria-labelledby="candPreviewModalLabel" aria-hidden="true">
+				<div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+					<div class="modal-content" style="border:none; border-radius:12px; overflow:hidden;">
+						<div class="modal-header" style="background:#0F3460; color:#fff; padding:14px 20px;">
+							<h5 class="modal-title" id="candPreviewModalLabel" style="font-size:15px; font-weight:600; margin:0;">File Preview</h5>
+							<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+						</div>
+						<div class="modal-body" style="padding:0; min-height:70vh; display:flex; align-items:center; justify-content:center; background:#f8fafc;">
+							<div data-preview-content style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;"></div>
+						</div>
+						<div class="modal-footer" style="padding:10px 20px; background:#f1f5f9;">
+							<a id="cand-preview-open-link" href="#" target="_blank" class="btn btn-sm btn-primary" style="font-size:13px;">Open in new tab</a>
+							<button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal" style="font-size:13px;">Close</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		`;
+
+		wrap.querySelectorAll(".cand-section-head").forEach((head) => {
+			head.addEventListener("click", () => {
+				const card = head.closest(".cand-section-card");
+				const body = card && card.querySelector(".cand-section-body");
+				if (!card || !body) return;
+				const open = card.classList.toggle("is-open");
+				body.style.display = open ? "block" : "none";
+			});
+		});
+
+		const modal = wrap.querySelector("#cand-file-preview-modal");
+		const modalContent = wrap.querySelector("[data-preview-content]");
+		const modalTitle = wrap.querySelector("#candPreviewModalLabel");
+		const previewOpenLink = wrap.querySelector("#cand-preview-open-link");
+		let bsModal = null;
+		if (modal && typeof bootstrap !== "undefined") {
+			bsModal = new bootstrap.Modal(modal);
+		}
+		const openModal = () => { if (bsModal) bsModal.show(); else if (modal) modal.classList.add("is-open"); };
+		const closeModal = () => {
+			if (bsModal) bsModal.hide(); else if (modal) modal.classList.remove("is-open");
+			if (modalContent) modalContent.innerHTML = "";
+		};
+
+		wrap.addEventListener("click", (e) => {
+			const preview = e.target.closest("[data-preview-file]");
+			const open = e.target.closest("[data-open-file]");
+			const close = e.target.closest("[data-preview-close]");
+			const back = e.target.closest(".cand-action-back");
+			const edit = e.target.closest(".cand-action-edit");
+
+			if (back) {
+				e.preventDefault();
+				frappe.set_route("candidates");
+				return;
+			}
+
+			if (edit) {
+				e.preventDefault();
+				frappe.ui.form.make_quick_entry("Job Applicant", {
+					doc: candidate,
+					after_insert: () => {
+						this.fetch_list_data({ reset: true });
+						frappe.set_route("candidates");
+					}
+				});
+				return;
+			}
+
+			if (close) {
+				e.preventDefault();
+				closeModal();
+				return;
+			}
+
+			if (open) {
+				e.preventDefault();
+				const file = open.getAttribute("data-open-file");
+				if (file) window.open(file, "_blank");
+				return;
+			}
+
+			if (preview) {
+				e.preventDefault();
+				const file = preview.getAttribute("data-preview-file");
+				if (!file || !modal || !modalContent) return;
+				const lower = file.toLowerCase();
+				const fileName = file.split("/").pop().split("?")[0] || "File Preview";
+				if (modalTitle) modalTitle.textContent = fileName;
+				if (previewOpenLink) previewOpenLink.href = file;
+
+				const showNotAvailable = () => {
+					modalContent.innerHTML = `<div style="text-align:center; padding:40px; color:#64748b;">
+						<i class="fa fa-file-o" style="font-size:48px; margin-bottom:12px; display:block; opacity:0.4;"></i>
+						<div style="font-size:15px; font-weight:600; color:#1e293b; margin-bottom:6px;">File not available</div>
+						<div style="font-size:13px;">This file could not be loaded or no longer exists.</div>
+					</div>`;
+					if (previewOpenLink) previewOpenLink.style.display = "none";
+					openModal();
+				};
+
+				if (/\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/.test(lower)) {
+					const img = new Image();
+					img.onload = () => {
+						modalContent.innerHTML = `<img src="${escapeHtml(file)}" alt="File preview" style="max-width:100%; max-height:75vh; object-fit:contain; display:block; margin:auto; padding:16px;">`;
+						if (previewOpenLink) previewOpenLink.style.display = "";
+						openModal();
+					};
+					img.onerror = () => showNotAvailable();
+					img.src = file;
+				} else if (/\.pdf(\?|$)/.test(lower)) {
+					fetch(file, { method: "HEAD" })
+						.then((res) => {
+							if (!res.ok) { showNotAvailable(); return; }
+							modalContent.innerHTML = `<iframe src="${escapeHtml(file)}" style="width:100%; height:75vh; border:none;"></iframe>`;
+							if (previewOpenLink) previewOpenLink.style.display = "";
+							openModal();
+						})
+						.catch(() => showNotAvailable());
+				} else {
+					window.open(file, "_blank");
+					return;
+				}
+			}
+		});
+	}
+
+	parseEmployeeEducation(raw) {
+		if (!raw) return [];
+		let rows = raw;
+		if (typeof rows === "string") {
+			try {
+				rows = JSON.parse(rows);
+			} catch (e) {
+				rows = [];
+			}
+		}
+		if (!Array.isArray(rows)) return [];
+		return rows.map((row) => ({
+			qualification: String(row?.qualification || "-").trim(),
+			level: String(row?.level || "-").trim(),
+			school_univ: String(row?.school_univ || "-").trim(),
+			year_of_passing: String(row?.year_of_passing || "-").trim(),
+			class_per: String(row?.class_per || "-").trim()
+		}));
+	}
+
 	bind_candidate_details_events(candidate_id) {
 		const wrapper = this.page.wrapper[0] || this.page.wrapper;
-		
+
 		// Bind add attachment button
 		const addAttachmentBtn = wrapper.querySelector("#add-attachment-btn");
 		if (addAttachmentBtn) {
@@ -1008,19 +1183,19 @@ class candidatespage {
 				input.click();
 			});
 		}
-		
+
 		// Bind comment button
 		const commentBtn = wrapper.querySelector("#add-candidate-comment-btn");
 		if (commentBtn) {
 			commentBtn.addEventListener("click", () => {
 				const commentInput = wrapper.querySelector("#new-candidate-comment");
 				const text = commentInput?.textContent?.trim();
-				
+
 				if (!text) {
 					frappe.msgprint("Please enter a note");
 					return;
 				}
-				
+
 				frappe.call({
 					method: "frappe.client.insert",
 					args: {
@@ -1041,20 +1216,20 @@ class candidatespage {
 				});
 			});
 		}
-		
+
 		// Bind status change dropdown
 		const statusItems = wrapper.querySelectorAll(".dropdown-menu .dropdown-item[data-action^='set_']");
 		statusItems.forEach(item => {
 			item.addEventListener("click", (e) => {
 				e.preventDefault();
 				const action = item.getAttribute("data-action");
-				
+
 				let newStatus = null;
 				if (action === "set_pending") newStatus = "Pending";
 				else if (action === "set_accepted") newStatus = "Accepted";
 				else if (action === "set_rejected") newStatus = "Rejected";
 				else return;
-				
+
 				frappe.call({
 					method: "frappe.client.set_value",
 					args: {
@@ -1114,6 +1289,10 @@ class candidatespage {
 		const wrapper = this.page.wrapper[0] || this.page.wrapper;
 		const form = wrapper.querySelector("#new-candidate-form");
 		if (!form) return;
+		// Disabled dynamic meta-driven fields because broken/custom doctypes
+		// (e.g., missing Languages) can block create-candidate flow.
+		// Keep base form stable for reliable candidate save.
+		this.loadSourceOptions(form);
 
 		const submitBtn = form.querySelector(".btn-wizard-submit");
 		const cancelBtn = form.querySelector(".btn-cancel");
@@ -1192,6 +1371,66 @@ class candidatespage {
 				}
 			});
 		}
+
+		const bindFilePreview = (inputSelector, previewSelector, filenameSelector, removeSelector, options = {}) => {
+			const inputEl = form.querySelector(inputSelector);
+			const previewEl = form.querySelector(previewSelector);
+			const filenameEl = form.querySelector(filenameSelector);
+			const removeBtn = form.querySelector(removeSelector);
+			if (!inputEl) return;
+
+			inputEl.addEventListener("change", (e) => {
+				const file = e.target.files && e.target.files[0];
+				if (!file) return;
+
+				const maxSize = options.maxSize || (5 * 1024 * 1024);
+				if (file.size > maxSize) {
+					frappe.msgprint({
+						title: "File Too Large",
+						message: options.sizeMessage || "File size should not exceed 5MB",
+						indicator: "red"
+					});
+					inputEl.value = "";
+					return;
+				}
+
+				if (options.allowed && options.allowed.length) {
+					const ext = "." + (file.name.split(".").pop() || "").toLowerCase();
+					if (!options.allowed.includes(ext)) {
+						frappe.msgprint({
+							title: "Invalid File Type",
+							message: options.typeMessage || "Invalid file type",
+							indicator: "red"
+						});
+						inputEl.value = "";
+						return;
+					}
+				}
+
+				if (filenameEl) filenameEl.textContent = file.name;
+				if (previewEl) previewEl.style.display = "block";
+			});
+
+			if (removeBtn) {
+				removeBtn.addEventListener("click", () => {
+					inputEl.value = "";
+					if (previewEl) previewEl.style.display = "none";
+					if (filenameEl) filenameEl.textContent = "";
+				});
+			}
+		};
+
+		bindFilePreview("#profile-image-upload", "#profile-image-preview", "#profile-image-filename", "#remove-profile-image", {
+			allowed: [".png", ".jpg", ".jpeg", ".webp"],
+			typeMessage: "Please upload PNG, JPG, JPEG, or WEBP image",
+			sizeMessage: "Profile image size should not exceed 5MB"
+		});
+
+		bindFilePreview("#aadhar-upload", "#aadhar-preview", "#aadhar-filename", "#remove-aadhar", {
+			allowed: [".pdf", ".png", ".jpg", ".jpeg"],
+			typeMessage: "Please upload Aadhaar as PDF, PNG, JPG, or JPEG",
+			sizeMessage: "Aadhaar file size should not exceed 5MB"
+		});
 
 		// Define field of study options by qualification
 		const fieldOfStudyOptions = {
@@ -1277,6 +1516,46 @@ class candidatespage {
 				"Attention to Detail", "Stress Management", "Project Management", "Customer Service",
 				"Strategic Thinking", "Interpersonal Skills", "Analytical Skills", "Mentoring", "Public Speaking"
 			]
+		});
+	}
+
+	loadSourceOptions(form) {
+		const sourceSelect = form.querySelector('select[name="source"]');
+		if (!sourceSelect) return;
+
+		const previousValue = sourceSelect.value || "";
+		sourceSelect.innerHTML = '<option value="">Loading sources...</option>';
+
+		frappe.call({
+			method: "frappe.client.get_list",
+			args: {
+				doctype: "Job Applicant Source",
+				fields: ["name"],
+				order_by: "name asc",
+				limit_page_length: 500
+			},
+			callback: (r) => {
+				const rows = Array.isArray(r?.message) ? r.message : [];
+				this.validSourceValues = new Set(rows.map((row) => String(row.name || "")).filter(Boolean));
+
+				sourceSelect.innerHTML = '<option value="">Select Source</option>';
+				rows.forEach((row) => {
+					const name = String(row.name || "").trim();
+					if (!name) return;
+					const opt = document.createElement("option");
+					opt.value = name;
+					opt.textContent = name;
+					sourceSelect.appendChild(opt);
+				});
+
+				if (previousValue && this.validSourceValues.has(previousValue)) {
+					sourceSelect.value = previousValue;
+				}
+			},
+			error: () => {
+				this.validSourceValues = new Set();
+				sourceSelect.innerHTML = '<option value="">Select Source</option>';
+			}
 		});
 	}
 
@@ -1522,35 +1801,282 @@ class candidatespage {
 		});
 	}
 
+	getJobApplicantMetaFields() {
+		return new Promise((resolve) => {
+			const useLoadedMeta = () => {
+				const meta = frappe.get_meta ? frappe.get_meta("Job Applicant") : null;
+				resolve((meta && meta.fields) ? meta.fields : []);
+			};
+
+			if (frappe.model && frappe.model.with_doctype) {
+				frappe.model.with_doctype("Job Applicant", useLoadedMeta);
+				return;
+			}
+
+			useLoadedMeta();
+		});
+	}
+
+	renderDynamicJobApplicantField(df) {
+		const fieldname = df.fieldname;
+		const label = df.label || fieldname;
+		const requiredMark = df.reqd ? ' <span style="color: #ef4444;">*</span>' : '';
+
+		const baseStyle = "padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: all 0.2s;";
+		const dataAttr = `data-dynamic-fieldname="${escapeHtml(fieldname)}" data-dynamic-fieldtype="${escapeHtml(df.fieldtype || "Data")}"`;
+		const requiredAttr = df.reqd ? "required" : "";
+
+		if (df.fieldtype === "Check") {
+			return `
+				<div class="col-12 col-md-6">
+					<div class="mb-3" style="display: flex; align-items: center; gap: 8px; margin-top: 28px;">
+						<input type="checkbox" name="${escapeHtml(fieldname)}" ${dataAttr} class="form-check-input" style="width: 16px; height: 16px;">
+						<label class="form-label" style="font-weight: 600; color: #1e293b; font-size: 14px; margin: 0;">${escapeHtml(label)}${requiredMark}</label>
+					</div>
+				</div>
+			`;
+		}
+
+		if (df.fieldtype === "Small Text" || df.fieldtype === "Text" || df.fieldtype === "Long Text" || df.fieldtype === "Text Editor") {
+			return `
+				<div class="col-12">
+					<div class="mb-3">
+						<label class="form-label" style="font-weight: 600; color: #1e293b; font-size: 14px; margin-bottom: 8px;">${escapeHtml(label)}${requiredMark}</label>
+						<textarea name="${escapeHtml(fieldname)}" ${dataAttr} ${requiredAttr} class="form-control" rows="3" style="${baseStyle} resize: vertical;"></textarea>
+					</div>
+				</div>
+			`;
+		}
+
+		if (df.fieldtype === "Select") {
+			const options = String(df.options || "")
+				.split("\n")
+				.map((o) => o.trim())
+				.filter(Boolean)
+				.map((o) => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`)
+				.join("");
+
+			return `
+				<div class="col-12 col-md-6">
+					<div class="mb-3">
+						<label class="form-label" style="font-weight: 600; color: #1e293b; font-size: 14px; margin-bottom: 8px;">${escapeHtml(label)}${requiredMark}</label>
+						<select name="${escapeHtml(fieldname)}" ${dataAttr} ${requiredAttr} class="form-control" style="${baseStyle}">
+							<option value="">Select ${escapeHtml(label)}</option>
+							${options}
+						</select>
+					</div>
+				</div>
+			`;
+		}
+
+		if (df.fieldtype === "Table MultiSelect" && fieldname === "custom_language") {
+			return `
+				<div class="col-12 col-md-6">
+					<div class="mb-3">
+						<label class="form-label" style="font-weight: 600; color: #1e293b; font-size: 14px; margin-bottom: 8px;">${escapeHtml(label)}${requiredMark}</label>
+						<select name="${escapeHtml(fieldname)}" ${dataAttr} ${requiredAttr} class="form-control dynamic-language-select" multiple style="${baseStyle} min-height: 110px;"></select>
+						<small class="text-muted" style="display:block; margin-top:4px;">Hold Ctrl/Cmd to select multiple languages.</small>
+					</div>
+				</div>
+			`;
+		}
+
+		const typeMap = {
+			Int: "number",
+			Float: "number",
+			Currency: "number",
+			Date: "date",
+			Datetime: "datetime-local",
+			Email: "email",
+			Phone: "text",
+			URL: "url",
+			Link: "text",
+			Data: "text"
+		};
+
+		const inputType = typeMap[df.fieldtype] || "text";
+		const stepAttr = (df.fieldtype === "Float" || df.fieldtype === "Currency") ? 'step="0.01"' : "";
+
+		return `
+			<div class="col-12 col-md-6">
+				<div class="mb-3">
+					<label class="form-label" style="font-weight: 600; color: #1e293b; font-size: 14px; margin-bottom: 8px;">${escapeHtml(label)}${requiredMark}</label>
+					<input type="${inputType}" name="${escapeHtml(fieldname)}" ${dataAttr} ${requiredAttr} ${stepAttr} class="form-control" style="${baseStyle}">
+				</div>
+			</div>
+		`;
+	}
+
+	async loadDynamicJobApplicantFields(form) {
+		const step = form.querySelector("#step-6");
+		if (!step) return;
+
+		const existing = new Set(
+			Array.from(form.querySelectorAll("[name]")).map((el) => el.getAttribute("name")).filter(Boolean)
+		);
+
+		const excludedFieldnames = new Set([
+			"name", "owner", "creation", "modified", "modified_by", "docstatus", "idx", "naming_series",
+			"applicant_name", "email_id", "phone_number", "designation", "job_title", "department",
+			"custom_address_line_1", "custom_address_line_2", "custom_state", "custom_country",
+			"min_experience", "max_experience", "current_ctc", "expected_ctc", "min_ctc", "max_ctc", "notice_period",
+			"hs_field_of_study", "hs_institution", "hs_graduation_year", "hs_grade",
+			"int_field_of_study", "int_institution", "int_graduation_year", "int_grade",
+			"grad_field_of_study", "grad_institution", "grad_graduation_year", "grad_grade",
+			"skills", "soft_skills", "profile_summary", "linkedin_url", "portfolio_url",
+			"status", "source", "current_location", "preferred_location", "date_of_birth", "gender",
+			"additional_notes", "referral_name", "custom_employee_education", "resume_attachment",
+			"custom_profile_image", "custom_aadhar_number", "custom_aadhar_attachment", "custom_aadhar_details",
+			"image", "user_image", "photo", "resume",
+			"languages", "language", "known_languages", "language_known", "custom_languages"
+		]);
+
+		const excludedFieldtypes = new Set([
+			"Section Break", "Column Break", "Tab Break", "HTML", "Button", "Fold", "Heading", "Table", "Attach"
+		]);
+
+		const metaFields = await this.getJobApplicantMetaFields();
+		const dynamicFields = (metaFields || [])
+			.filter((df) => df && df.fieldname)
+			.filter((df) => !df.hidden && !df.read_only)
+			.filter((df) => !(df.fieldtype === "Link" && String(df.options || "").trim() === "Languages"))
+			.filter((df) => !excludedFieldtypes.has(df.fieldtype))
+			.filter((df) => !excludedFieldnames.has(df.fieldname))
+			.filter((df) => !existing.has(df.fieldname))
+			.filter((df) => {
+				if (df.fieldtype !== "Table MultiSelect") return true;
+				return df.fieldname === "custom_language";
+			})
+			.sort((a, b) => (a.idx || 0) - (b.idx || 0));
+
+		const oldContainer = step.querySelector("#dynamic-job-applicant-fields");
+		if (oldContainer) oldContainer.remove();
+
+		if (!dynamicFields.length) return;
+
+		const container = document.createElement("div");
+		container.id = "dynamic-job-applicant-fields";
+		container.innerHTML = `
+			<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-top: 6px;">
+				<h5 style="color: #1e293b; font-weight: 700; margin-bottom: 10px; font-size: 16px;">Additional Job Applicant Fields</h5>
+				<div class="row">
+					${dynamicFields.map((df) => this.renderDynamicJobApplicantField(df)).join("")}
+				</div>
+			</div>
+		`;
+
+		step.appendChild(container);
+		await this.populateDynamicLanguageOptions(container, dynamicFields);
+	}
+
+	fetchLanguageOptions() {
+		this.languageOptions = [];
+		return Promise.resolve(this.languageOptions);
+	}
+
+	async populateDynamicLanguageOptions(container, dynamicFields) {
+		const hasLanguage = (dynamicFields || []).some((df) => df.fieldname === "custom_language");
+		if (!hasLanguage) return;
+
+		const select = container.querySelector('select[name="custom_language"]');
+		if (!select) return;
+
+		const options = await this.fetchLanguageOptions();
+		if (!options.length) {
+			const wrapper = select.closest(".mb-3");
+			if (wrapper) {
+				select.remove();
+				const input = document.createElement("input");
+				input.type = "text";
+				input.name = "custom_language";
+				input.className = "form-control";
+				input.placeholder = "Type languages (comma separated)";
+				input.setAttribute("data-dynamic-fieldname", "custom_language");
+				input.setAttribute("data-dynamic-fieldtype", "Table MultiSelect");
+				input.style.cssText = "padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: all 0.2s;";
+				wrapper.appendChild(input);
+
+				const help = wrapper.querySelector("small");
+				if (help) {
+					help.textContent = "Languages master is missing. You can type manually; values will be stored in notes.";
+				}
+			}
+			return;
+		}
+
+		select.innerHTML = options.map((name) =>
+			`<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`
+		).join("");
+	}
+
+	collectDynamicJobApplicantValues(form) {
+		const out = {};
+		const dynamicInputs = form.querySelectorAll("[data-dynamic-fieldname]");
+		dynamicInputs.forEach((el) => {
+			const key = el.getAttribute("data-dynamic-fieldname");
+			const fieldtype = el.getAttribute("data-dynamic-fieldtype") || "Data";
+			if (!key) return;
+			if (["languages", "language", "known_languages", "language_known", "custom_languages"].includes(key)) return;
+
+			if (fieldtype === "Table MultiSelect" && key === "custom_language") {
+				if (el.tagName !== "SELECT") {
+					const manual = (el.value || "").trim();
+					if (manual) out.__manual_languages_text = manual;
+					return;
+				}
+				const selected = Array.from(el.selectedOptions || [])
+					.map((opt) => (opt.value || "").trim())
+					.filter(Boolean);
+				if (selected.length) {
+					out[key] = selected.map((val) => ({
+						doctype: "Multiselect Languages",
+						language: val
+					}));
+				}
+				return;
+			}
+
+			if (fieldtype === "Check") {
+				out[key] = el.checked ? 1 : 0;
+				return;
+			}
+
+			const val = (el.value || "").trim();
+			if (val === "") return;
+			out[key] = val;
+		});
+		return out;
+	}
+
 	initializeWizard() {
 		const wrapper = this.page.wrapper[0] || this.page.wrapper;
 		this.currentStep = 1;
 		this.totalSteps = 6;
-		
+
 		this.showStep(1);
 		this.updateWizardNavigation();
 	}
 
 	showStep(stepNumber) {
 		const wrapper = this.page.wrapper[0] || this.page.wrapper;
-		
+
 		// Hide all steps
 		wrapper.querySelectorAll('.wizard-step').forEach(step => {
 			step.classList.add('d-none');
 		});
-		
+
 		// Show current step
 		const currentStepEl = wrapper.querySelector(`#step-${stepNumber}`);
 		if (currentStepEl) {
 			currentStepEl.classList.remove('d-none');
 		}
-		
+
 		// Update step indicators
 		wrapper.querySelectorAll('.wizard-step-indicator').forEach((indicator, idx) => {
 			const stepNum = idx + 1;
 			const circle = indicator.querySelector('div:first-child');
 			const label = indicator.querySelector('div:last-child');
-			
+
 			if (stepNum < stepNumber) {
 				// Completed step
 				indicator.classList.add('completed');
@@ -1579,30 +2105,30 @@ class candidatespage {
 				}
 			}
 		});
-		
+
 		this.currentStep = stepNumber;
 		this.updateWizardNavigation();
 	}
 
 	updateWizardNavigation() {
 		const wrapper = this.page.wrapper[0] || this.page.wrapper;
-		
+
 		const prevBtn = wrapper.querySelector('.btn-wizard-prev');
 		const nextBtn = wrapper.querySelector('.btn-wizard-next');
 		const submitBtn = wrapper.querySelector('.btn-wizard-submit');
-		
+
 		if (prevBtn) {
 			prevBtn.style.display = this.currentStep === 1 ? 'none' : 'inline-block';
 		}
-		
+
 		if (nextBtn) {
 			nextBtn.style.display = this.currentStep === this.totalSteps ? 'none' : 'inline-block';
 		}
-		
+
 		if (submitBtn) {
 			submitBtn.style.display = this.currentStep === this.totalSteps ? 'inline-block' : 'none';
 		}
-		
+
 		// Bind navigation events
 		if (prevBtn) {
 			prevBtn.onclick = () => {
@@ -1611,7 +2137,7 @@ class candidatespage {
 				}
 			};
 		}
-		
+
 		if (nextBtn) {
 			nextBtn.onclick = () => {
 				if (this.validateCurrentStep() && this.currentStep < this.totalSteps) {
@@ -1624,13 +2150,13 @@ class candidatespage {
 	validateCurrentStep() {
 		const wrapper = this.page.wrapper[0] || this.page.wrapper;
 		const currentStepEl = wrapper.querySelector(`#step-${this.currentStep}`);
-		
+
 		if (!currentStepEl) return true;
-		
+
 		const requiredFields = currentStepEl.querySelectorAll('[required]');
 		let isValid = true;
 		const missingFields = [];
-		
+
 		requiredFields.forEach(field => {
 			if (!field.value || !field.value.trim()) {
 				field.style.borderColor = '#ef4444';
@@ -1641,7 +2167,7 @@ class candidatespage {
 				field.style.borderColor = '#e2e8f0';
 			}
 		});
-		
+
 		if (!isValid) {
 			frappe.msgprint({
 				title: "Validation Error",
@@ -1649,7 +2175,7 @@ class candidatespage {
 				indicator: "red"
 			});
 		}
-		
+
 		return isValid;
 	}
 
@@ -1657,6 +2183,9 @@ class candidatespage {
 		const wrapper = this.page.wrapper[0] || this.page.wrapper;
 		const form = wrapper.querySelector("#new-candidate-form");
 		if (!form) return;
+
+		const designationInput = form.querySelector('input[name="designation"]');
+		const selectedJobId = designationInput && designationInput.dataset ? (designationInput.dataset.jobId || "") : "";
 
 		const dobRaw = form.querySelector('input[name="date_of_birth"]')?.value || '';
 		const dobParsed = parseDateDDMMYYYY(dobRaw);
@@ -1682,11 +2211,41 @@ class candidatespage {
 			: "";
 		const mergedAdditionalNotes = [existingNotes, previousCompaniesNote].filter(Boolean).join("\n\n");
 
+		const educationRows = [
+			{
+				qualification: "High School",
+				level: "Secondary",
+				school_univ: form.querySelector('input[name="hs_institution"]')?.value || "",
+				year_of_passing: form.querySelector('input[name="hs_graduation_year"]')?.value || "",
+				class_per: form.querySelector('input[name="hs_grade"]')?.value || ""
+			},
+			{
+				qualification: "Intermediate",
+				level: "Higher Secondary",
+				school_univ: form.querySelector('input[name="int_institution"]')?.value || "",
+				year_of_passing: form.querySelector('input[name="int_graduation_year"]')?.value || "",
+				class_per: form.querySelector('input[name="int_grade"]')?.value || ""
+			},
+			{
+				qualification: "Graduation",
+				level: form.querySelector('select[name="grad_field_of_study"]')?.value || "Graduation",
+				school_univ: form.querySelector('input[name="grad_institution"]')?.value || "",
+				year_of_passing: form.querySelector('input[name="grad_graduation_year"]')?.value || "",
+				class_per: form.querySelector('input[name="grad_grade"]')?.value || ""
+			}
+		].filter((row) => row.school_univ || row.year_of_passing || row.class_per);
+
 		const candidateData = {
 			applicant_name: form.querySelector('input[name="applicant_name"]')?.value || '',
 			email_id: form.querySelector('input[name="email_id"]')?.value || '',
 			phone_number: form.querySelector('input[name="phone_number"]')?.value || '',
-			designation: form.querySelector('input[name="designation"]')?.value || '',
+			designation: designationInput?.value || '',
+			job_title: selectedJobId || '',
+			department: form.querySelector('input[name="department"]')?.value || '',
+			custom_address_line_1: form.querySelector('input[name="custom_address_line_1"]')?.value || '',
+			custom_address_line_2: form.querySelector('input[name="custom_address_line_2"]')?.value || '',
+			custom_state: form.querySelector('input[name="custom_state"]')?.value || '',
+			custom_country: form.querySelector('input[name="custom_country"]')?.value || '',
 			min_experience: form.querySelector('input[name="min_experience"]')?.value || null,
 			max_experience: form.querySelector('input[name="max_experience"]')?.value || null,
 			// High School Education
@@ -1721,9 +2280,22 @@ class candidatespage {
 			date_of_birth: dobParsed || '',
 			gender: form.querySelector('select[name="gender"]')?.value || '',
 			additional_notes: mergedAdditionalNotes,
+			custom_employee_education: educationRows.length ? JSON.stringify(educationRows) : "",
 			previous_companies_json: previousCompanies.length ? JSON.stringify(previousCompanies) : "",
 			referral_name: form.querySelector('input[name="referral_name"]')?.value || ''
 		};
+
+		Object.assign(candidateData, this.collectDynamicJobApplicantValues(form));
+		if (candidateData.__manual_languages_text) {
+			candidateData.additional_notes = [
+				candidateData.additional_notes || "",
+				`Languages: ${candidateData.__manual_languages_text}`
+			].filter(Boolean).join("\n\n");
+			delete candidateData.__manual_languages_text;
+		}
+		if (candidateData.source && this.validSourceValues.size && !this.validSourceValues.has(candidateData.source)) {
+			candidateData.source = '';
+		}
 
 		if (!candidateData.applicant_name || !candidateData.email_id) {
 			frappe.msgprint("Name and Email are required");
@@ -1731,12 +2303,34 @@ class candidatespage {
 			return;
 		}
 
-		// Check if resume is uploaded
+		// Upload files if provided
 		const resumeInput = form.querySelector('#resume-upload');
 		const resumeFile = resumeInput?.files[0];
+		const profileImageInput = form.querySelector('#profile-image-upload');
+		const profileImageFile = profileImageInput?.files[0];
+		const aadharInput = form.querySelector('#aadhar-upload');
+		const aadharFile = aadharInput?.files[0];
+		candidateData.custom_aadhar_number = form.querySelector('input[name="custom_aadhar_number"]')?.value || '';
+		candidateData.custom_aadhar_details = candidateData.custom_aadhar_number || "";
 
-		if (resumeFile) {
-			// Upload resume first, then create candidate
+		Promise.all([
+			this.uploadAttachmentFile(resumeFile),
+			this.uploadAttachmentFile(profileImageFile),
+			this.uploadAttachmentFile(aadharFile)
+		]).then(([resumeUrl, profileImageUrl, aadharUrl]) => {
+			if (resumeUrl) candidateData.resume_attachment = resumeUrl;
+			if (profileImageUrl) candidateData.custom_profile_image = profileImageUrl;
+			if (aadharUrl) candidateData.custom_aadhar_attachment = aadharUrl;
+			this.createCandidate(candidateData);
+		}).catch(() => {
+			frappe.msgprint("Some files could not be uploaded. Candidate will be saved with available details.");
+			this.createCandidate(candidateData);
+		});
+	}
+
+	uploadAttachmentFile(file) {
+		return new Promise((resolve, reject) => {
+			if (!file) return resolve("");
 			const reader = new FileReader();
 			reader.onload = (e) => {
 				frappe.call({
@@ -1744,32 +2338,30 @@ class candidatespage {
 					args: {
 						doc: {
 							doctype: "File",
-							file_name: resumeFile.name,
+							file_name: file.name,
 							is_private: 1,
-							content: e.target.result.split(',')[1], // Base64 content
+							content: e.target.result.split(',')[1],
 							decode: true
 						}
 					},
-					callback: (fileResp) => {
-						if (fileResp.message) {
-							candidateData.resume_attachment = fileResp.message.file_url;
-							this.createCandidate(candidateData);
-						}
-					},
-					error: () => {
-						frappe.msgprint("Error uploading resume. Creating candidate without resume.");
-						this.createCandidate(candidateData);
-					}
+					callback: (resp) => resolve(resp?.message?.file_url || ""),
+					error: () => reject(new Error("upload failed"))
 				});
 			};
-			reader.readAsDataURL(resumeFile);
-		} else {
-			// No resume, just create candidate
-			this.createCandidate(candidateData);
-		}
+			reader.onerror = () => reject(new Error("file read failed"));
+			reader.readAsDataURL(file);
+		});
 	}
 
 	createCandidate(candidateData) {
+		if (candidateData && typeof candidateData === "object") {
+			Object.keys(candidateData).forEach((key) => {
+				if (String(key || "").toLowerCase().includes("language")) {
+					delete candidateData[key];
+				}
+			});
+		}
+
 		frappe.call({
 			method: "renewal_module.custom_module.page.candidates.candidates.save_candidate",
 			args: { candidate_data: candidateData },
@@ -1778,7 +2370,23 @@ class candidatespage {
 					frappe.msgprint("Candidate created successfully");
 					this.fetch_list_data({ reset: true });
 					frappe.set_route("candidates");
+					return;
 				}
+
+				const errMsg = r?.message?.message || "Candidate could not be saved";
+				frappe.msgprint({
+					title: "Save Failed",
+					message: errMsg,
+					indicator: "red"
+				});
+			},
+			error: (err) => {
+				const errMsg = err?.message || "Candidate could not be saved";
+				frappe.msgprint({
+					title: "Save Failed",
+					message: errMsg,
+					indicator: "red"
+				});
 			}
 		});
 	}
@@ -2031,108 +2639,6 @@ frappe.candidates_page_template = {
 									</div>
 								</div>
 
-								<!-- Candidate Details Section -->
-								<div class="mb-4">
-									<div class="candidate-details-info">
-										<div class="row mb-3">
-											<div class="col-md-6">
-												<div class="detail-field">
-													<label class="detail-label">Email</label>
-													<p class="detail-value candidate-email">N/A</p>
-												</div>
-											</div>
-											<div class="col-md-6">
-												<div class="detail-field">
-													<label class="detail-label">Phone</label>
-													<p class="detail-value candidate-phone">N/A</p>
-												</div>
-											</div>
-										</div>
-
-										<div class="row mb-3">
-											<div class="col-md-6">
-												<div class="detail-field">
-													<label class="detail-label">Job Title</label>
-													<p class="detail-value candidate-job-title">N/A</p>
-												</div>
-											</div>
-											<div class="col-md-6">
-												<div class="detail-field">
-													<label class="detail-label">Status</label>
-													<p class="detail-value"><span class="candidate-status">Pending</span></p>
-												</div>
-											</div>
-										</div>
-
-										<div class="row mb-3">
-											<div class="col-md-6">
-												<div class="detail-field">
-													<label class="detail-label">Min Experience (Years)</label>
-													<p class="detail-value candidate-min-exp">N/A</p>
-												</div>
-											</div>
-											<div class="col-md-6">
-												<div class="detail-field">
-													<label class="detail-label">Max Experience (Years)</label>
-													<p class="detail-value candidate-max-exp">N/A</p>
-												</div>
-											</div>
-										</div>
-
-										<div class="row mb-3">
-											<div class="col-md-6">
-												<div class="detail-field">
-													<label class="detail-label">Min CTC (LPA)</label>
-													<p class="detail-value candidate-min-ctc">N/A</p>
-												</div>
-											</div>
-											<div class="col-md-6">
-												<div class="detail-field">
-													<label class="detail-label">Max CTC (LPA)</label>
-													<p class="detail-value candidate-max-ctc">N/A</p>
-												</div>
-											</div>
-										</div>
-
-										<div class="row mb-3">
-											<div class="col-md-12">
-												<div class="detail-field">
-													<label class="detail-label">Skills</label>
-													<p class="detail-value candidate-skills">N/A</p>
-												</div>
-											</div>
-										</div>
-
-										<div class="row mb-3">
-											<div class="col-md-12">
-												<div class="detail-field" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px;">
-													<div class="d-flex justify-content-between align-items-center mb-2">
-														<label class="detail-label mb-0">Job vs Candidate Fit</label>
-														<span id="fit-score-value" class="badge bg-primary-subtle text-primary">0%</span>
-													</div>
-													<div class="small text-muted mb-2">Job Posting: <span id="fit-job-name">N/A</span></div>
-													<div class="row">
-														<div class="col-md-6 mb-2">
-															<div class="small fw-semibold">Skills Match</div>
-															<div id="fit-skills-value" class="small text-muted">0/0 matched (0%)</div>
-														</div>
-														<div class="col-md-6 mb-2">
-															<div class="small fw-semibold">Experience Fit</div>
-															<div id="fit-exp-value" class="small text-muted">Not enough data</div>
-														</div>
-													</div>
-													<div class="small fw-semibold mb-1">Matched Skills</div>
-													<div id="fit-matched-skills" class="mb-2"><span class="text-muted">No matched skills</span></div>
-													<div class="small fw-semibold mb-1">Missing Skills</div>
-													<div id="fit-missing-skills" class="mb-2"><span class="text-muted">No missing skills</span></div>
-													<div class="small fw-semibold mb-1">Comparison Workflow</div>
-													<div id="fit-workflow"></div>
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-
 								<!-- Comments Section -->
 								<div class="mb-4">
 									<div class="comment-section mt-3">
@@ -2265,6 +2771,58 @@ frappe.candidates_page_template = {
 												</div>
 											</div>
 										</div>
+
+											<div class="row">
+												<div class="col-12 col-md-6">
+													<div class="mb-3">
+														<label class="form-label" style="font-weight: 600; color: #1e293b; font-size: 14px; margin-bottom: 6px;">Address Line 1</label>
+														<input type="text" name="custom_address_line_1" class="form-control" placeholder="Flat/House No, Street" style="padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: all 0.2s;">
+													</div>
+												</div>
+												<div class="col-12 col-md-6">
+													<div class="mb-3">
+														<label class="form-label" style="font-weight: 600; color: #1e293b; font-size: 14px; margin-bottom: 6px;">Address Line 2</label>
+														<input type="text" name="custom_address_line_2" class="form-control" placeholder="Area, Landmark" style="padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: all 0.2s;">
+													</div>
+												</div>
+											</div>
+
+											<div class="row">
+												<div class="col-12 col-md-6">
+													<div class="mb-3">
+														<label class="form-label" style="font-weight: 600; color: #1e293b; font-size: 14px; margin-bottom: 6px;">State</label>
+														<input type="text" name="custom_state" class="form-control" placeholder="State" style="padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: all 0.2s;">
+													</div>
+												</div>
+												<div class="col-12 col-md-6">
+													<div class="mb-3">
+														<label class="form-label" style="font-weight: 600; color: #1e293b; font-size: 14px; margin-bottom: 6px;">Country</label>
+														<input type="text" name="custom_country" class="form-control" placeholder="Country" style="padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: all 0.2s;">
+													</div>
+												</div>
+											</div>
+
+											<div class="row">
+												<div class="col-12">
+													<div class="mb-3" style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1.5px dashed #cbd5e1;">
+														<label class="form-label" style="font-weight: 600; color: #1e293b; font-size: 14px; margin-bottom: 8px;">
+															<i class="fa fa-user-circle me-2" style="color: #2563eb;"></i>Profile Image
+														</label>
+														<input type="file" name="profile_image" id="profile-image-upload" class="form-control" accept=".png,.jpg,.jpeg,.webp" style="padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: all 0.2s;">
+														<small class="text-muted" style="font-size: 12px; display: block; margin-top: 8px;">
+															<i class="fa fa-info-circle me-1"></i>Upload PNG, JPG, JPEG, or WEBP (Max 5MB)
+														</small>
+														<div id="profile-image-preview" class="mt-2" style="display: none;">
+															<div class="alert alert-success d-flex align-items-center justify-content-between" style="padding: 6px 10px; margin-bottom: 0; border-radius: 6px;">
+																<span><i class="fa fa-check-circle me-2"></i><span id="profile-image-filename"></span></span>
+																<button type="button" class="btn btn-sm btn-link text-danger p-0" id="remove-profile-image" style="text-decoration: none;">
+																	<i class="fa fa-times"></i>
+																</button>
+															</div>
+														</div>
+													</div>
+												</div>
+											</div>
 									</div>
 
 									<!-- Step 2: Professional Details -->
@@ -2278,6 +2836,12 @@ frappe.candidates_page_template = {
 													<input type="text" name="designation" class="form-control" placeholder="e.g., Software Engineer, Marketing Manager" style="padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: all 0.2s;">
 												</div>
 											</div>
+												<div class="col-12 col-md-6">
+													<div class="mb-3">
+														<label class="form-label" style="font-weight: 600; color: #1e293b; font-size: 14px; margin-bottom: 6px;">Department</label>
+														<input type="text" name="department" class="form-control" placeholder="e.g., Engineering, Sales" style="padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: all 0.2s;">
+													</div>
+												</div>
 										</div>
 
 										<div class="row">
@@ -2549,6 +3113,34 @@ frappe.candidates_page_template = {
 											</div>
 										</div>
 
+											<div class="row">
+												<div class="col-12 col-md-6">
+													<div class="mb-3">
+														<label class="form-label" style="font-weight: 600; color: #1e293b; font-size: 14px; margin-bottom: 6px;">Aadhaar Number</label>
+														<input type="text" name="custom_aadhar_number" class="form-control" placeholder="XXXX XXXX XXXX" maxlength="14" style="padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: all 0.2s;">
+													</div>
+												</div>
+												<div class="col-12 col-md-6">
+													<div class="mb-3" style="background: #f8fafc; padding: 14px; border-radius: 8px; border: 1.5px dashed #cbd5e1;">
+														<label class="form-label" style="font-weight: 600; color: #1e293b; font-size: 14px; margin-bottom: 8px;">
+															<i class="fa fa-id-card me-2" style="color: #0ea5e9;"></i>Aadhaar Attachment
+														</label>
+														<input type="file" name="aadhar" id="aadhar-upload" class="form-control" accept=".pdf,.png,.jpg,.jpeg" style="padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: all 0.2s;">
+														<small class="text-muted" style="font-size: 12px; display: block; margin-top: 8px;">
+															<i class="fa fa-info-circle me-1"></i>Upload Aadhaar in PDF, PNG, JPG, or JPEG (Max 5MB)
+														</small>
+														<div id="aadhar-preview" class="mt-2" style="display: none;">
+															<div class="alert alert-success d-flex align-items-center justify-content-between" style="padding: 6px 10px; margin-bottom: 0; border-radius: 6px;">
+																<span><i class="fa fa-check-circle me-2"></i><span id="aadhar-filename"></span></span>
+																<button type="button" class="btn btn-sm btn-link text-danger p-0" id="remove-aadhar" style="text-decoration: none;">
+																	<i class="fa fa-times"></i>
+																</button>
+															</div>
+														</div>
+													</div>
+												</div>
+											</div>
+
 										<div class="row">
 											<div class="col-12">
 												<div class="mb-3">
@@ -2631,13 +3223,6 @@ frappe.candidates_page_template = {
 													<label class="form-label" style="font-weight: 600; color: #1e293b; font-size: 14px; margin-bottom: 8px;">Source of Application</label>
 													<select name="source" class="form-control" style="padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: all 0.2s;">
 														<option value="">Select Source</option>
-														<option value="Job Portal">Job Portal</option>
-														<option value="LinkedIn">LinkedIn</option>
-														<option value="Referral">Referral</option>
-														<option value="Company Website">Company Website</option>
-														<option value="Walk-in">Walk-in</option>
-														<option value="Recruitment Agency">Recruitment Agency</option>
-														<option value="Other">Other</option>
 													</select>
 												</div>
 											</div>

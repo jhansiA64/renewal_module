@@ -67,7 +67,7 @@
                 <div class="user-dropdown" id="userDropdown" role="menu" aria-hidden="true">
 
                     <ul class="user-dropdown-list" role="none">
-                        <li role="none"><a role="menuitem" href="/app/user-profile" class="user-item">
+                        <li role="none"><a role="menuitem" href="/app/user/{{ frappe.session.user }}" class="user-item">
                                 <i class="fa fa-user-circle"></i> My Profile</a>
                         </li>
                         <li role="none"><a role="menuitem" href="javascript:void(0);"
@@ -76,7 +76,8 @@
                         </li>
                         <li role="none"><a role="menuitem" href="javascript:void(0);" class="user-item"
                                 onclick="location.reload()"><i class="fa fa-refresh"></i>
-                                Reload</a></li>
+                                Reload</a>
+                        </li>
                         <li role="none"><a role="menuitem" href="/apps" class="user-item">
                                 <i class="fa fa-cubes"></i> Apps</a>
                         </li>
@@ -109,6 +110,12 @@
                         </a>
                         <ul class="sub-menu">
                             <li class="side-nav-item">
+                                <a href="javascript:void(0)" class="side-nav-link" data-page="home-crm"
+                                    data-href="/app/home-crm">
+                                    <span class="text-truncate" title="Home">Home</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
                                 <a href="javascript:void(0)" class="side-nav-link" data-page="customers"
                                     data-href="/app/customers">
                                     <span class="text-truncate" title="Customers">Customers</span>
@@ -129,19 +136,7 @@
                             <li class="side-nav-item">
                                 <a href="javascript:void(0)" class="side-nav-link" data-page="opportunity-list"
                                     data-href="/app/opportunity-list">
-                                    <span class="text-truncate" title="Opportunity">Opportunity</span>
-                                </a>
-                            </li>
-                            <li class="side-nav-item">
-                                <a href="javascript:void(0)" class="side-nav-link" data-page="opportunity-data"
-                                    data-href="/app/opportunity-data">
-                                    <span class="text-truncate" title="Opportunity Data">Opportunity Data</span>
-                                </a>
-                            </li>
-                            <li class="side-nav-item">
-                                <a href="javascript:void(0)" class="side-nav-link" data-page="quotation-list"
-                                    data-href="/app/quotation-list">
-                                    <span class="text-truncate" title="Quotation">Quotation</span>
+                                    <span class="text-truncate" title="Opportunity List">Opportunity List</span>
                                 </a>
                             </li>
 
@@ -155,23 +150,87 @@
                                 <ul class="sub-menu">
                                     <li class="side-nav-item">
                                         <a href="javascript:void(0)" class="side-nav-link" data-page="custom-reports"
-                                            data-report="non_billing"
                                             data-href="/app/custom-reports?report=non_billing">
                                             <span class="text-truncate" title="Non Billing Customer">Non Billing
                                                 Customer</span>
                                         </a>
                                     </li>
                                     <li class="side-nav-item">
-                                        <a href="javascript:void(0)" class="side-nav-link customer-analysis-link"
-                                            data-page="custom-reports" data-report="customer_analysis"
-                                            data-href="/app/custom-reports?report=customer_analysis">
+                                        <a href="javascript:void(0)" class="side-nav-link customer-analysis-link" data-report="Customers Analysis"
+                                            data-href="/app/query-report/Customers%20Analysis">
                                             <span class="text-truncate" title="Customer Analysis">Customer
                                                 Analysis</span>
                                         </a>
                                     </li>
+                                </ul>
+                            </li>
+
+                        </ul>
+                    </li>
+                    <!-- selling  -->
+                    <li class="side-nav-item menu-parent" data-menu-id="selling-menu">
+                        <a href="#" class="side-nav-link menu-toggle">
+                            <i class="fa fa-chart-line"></i>
+                            <span class="text-truncate" title="Selling">Selling</span>
+                            <i class="fa fa-chevron-down menu-arrow"></i>
+                        </a>
+                        <ul class="sub-menu">
+                            <li class="side-nav-item">
+                                <a href="javascript:void(0)" class="side-nav-link" data-page="quotation-list"
+                                    data-href="/app/quotation-list">
+                                    <span class="text-truncate" title="Quotation List">Quotation List</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="javascript:void(0)" class="side-nav-link" data-page="customer-order-forms"
+                                    data-href="/app/customer-order-forms">
+                                    <span class="text-truncate" title="Customer Order Forms">Customer Order Forms</span>
+                                </a>
+                            </li>
+
+                        </ul>
+                    </li>
+                    <!-- buying -->
+                    <li class="side-nav-item menu-parent" data-menu-id="buying-menu">
+                        <a href="#" class="side-nav-link menu-toggle">
+                            <i class="fa fa-cart-plus"></i>
+                            <span class="text-truncate" title="Buying">Buying</span>
+                            <i class="fa fa-chevron-down menu-arrow"></i>
+                        </a>
+                        <ul class="sub-menu">
+                            <li class="side-nav-item">
+                                <a href="javascript:void(0)" class="side-nav-link" data-page="supplier-quotations"
+                                    data-href="/app/supplier-quotations">
+                                    <span class="text-truncate" title="Supplier Quotations">Supplier Quotations</span>
+                                </a>
+                            </li>
+
+                        </ul>
+                    </li>
+                    <!--Renewals-->
+                    <li class="side-nav-item menu-parent" data-menu-id="renewal-menu">
+                        <a href="#" class="side-nav-link menu-toggle">
+                            <i class="fa fa-refresh"></i>
+                            <span class="text-truncate" title="Renewal">Renewal</span>
+                            <i class="fa fa-chevron-down menu-arrow"></i>
+                        </a>
+                        <ul class="sub-menu">
+                            <li class="side-nav-item">
+                                <a href="javascript:void(0)" class="side-nav-link renewal-list-link" data-page="renewal-list"
+                                    data-href="/app/renewal-list">
+                                    <span class="text-truncate" title="Renewal List">Renewal List</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item menu-parent menu-nested" data-menu-id="-menu"
+                                data-parent-id="renewal-menu">
+                                <a href="#" class="side-nav-link menu-toggle">
+                                    <span class="text-truncate" title="Reports">Reports</span>
+                                    <i class="fa fa-chevron-down menu-arrow"></i>
+                                </a>
+                                <ul class="sub-menu">
                                     <li class="side-nav-item">
                                         <a href="javascript:void(0)" class="side-nav-link renewal-analysis-link"
-                                            data-page="renewal-analysis"
+                                            data-report="Renewal Analysis"
                                             data-href="/app/query-report/Renewal%20Report?company=64+Network+Security+Pvt+Ltd+-+TG&timespan=this+month&based_on=End+Date&group_by=Renewals">
                                             <span class="text-truncate" title="Renewal Analysis">Renewal Analysis</span>
                                         </a>
@@ -181,6 +240,7 @@
 
                         </ul>
                     </li>
+
                     <!-- Support Menu -->
                     <li class="side-nav-item menu-parent" data-menu-id="support-menu">
                         <a href="#" class="side-nav-link menu-toggle">
@@ -225,6 +285,12 @@
                                 </a>
                             </li>
                             <li class="side-nav-item">
+                                <a href="javascript:void(0)" class="side-nav-link" data-page="interview-schedulers"
+                                    data-href="/app/interview-schedulers">
+                                    <span class="text-truncate" title="Interview Schedulers">Interview Schedulers</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
                                 <a href="javascript:void(0)" class="side-nav-link" data-page="candidates"
                                     data-href="/app/candidates">
                                     <span class="text-truncate" title="candidates">Candidates</span>
@@ -249,12 +315,6 @@
                             <i class="fa fa-chevron-down menu-arrow"></i>
                         </a>
                         <ul class="sub-menu">
-                            <li class="side-nav-item">
-                                <a href="javascript:void(0)" class="side-nav-link appointment-link"
-                                    data-page="appointment" data-href="/app/appointment">
-                                    <span class="text-truncate" title="Appointment">Appointment</span>
-                                </a>
-                            </li>
                             <li class="side-nav-item">
                                 <a href="javascript:void(0)" class="side-nav-link" data-page="appointments"
                                     data-href="/app/appointments">
@@ -281,7 +341,6 @@
                             </li>
                         </ul>
                     </li>
-
 
                 </ul>
             </nav>

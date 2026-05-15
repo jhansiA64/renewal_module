@@ -411,10 +411,31 @@ def get_customer_details(name):
             "allocated_percentage": row.allocated_percentage
         })
 
+    gstin_status = {}
+    pan_status = {}
+    if getattr(customer, "gstin", None) and frappe.db.exists("DocType", "GSTIN"):
+        gstin_status = frappe.db.get_value(
+            "GSTIN", customer.gstin, ["status", "last_updated_on"], as_dict=True
+        ) or {}
+
+    if getattr(customer, "pan", None) and frappe.db.exists("DocType", "PAN"):
+        pan_status = frappe.db.get_value(
+            "PAN", customer.pan, ["pan_status", "last_updated_on"], as_dict=True
+        ) or {}
+
     return {
         "customer_name": customer.customer_name,
         "industry": customer.industry,
         "tax_id": customer.tax_id,
+        "gstin": getattr(customer, "gstin", ""),
+        "gst_category": getattr(customer, "gst_category", ""),
+        "pan": getattr(customer, "pan", ""),
+        "tax_category": getattr(customer, "tax_category", ""),
+        "tax_withholding_category": getattr(customer, "tax_withholding_category", ""),
+        "gstin_status": gstin_status.get("status", ""),
+        "gstin_last_updated_on": gstin_status.get("last_updated_on"),
+        "pan_status": pan_status.get("pan_status", ""),
+        "pan_last_updated_on": pan_status.get("last_updated_on"),
         "territory": customer.territory,
         "member_of": customer.member_of,
         "email_id": customer.email_id,
@@ -520,6 +541,201 @@ def update_customer_sales_team(customer_id, sales_team):
         ]
     }
 
+@frappe.whitelist()
+def can_change_account_manager(customer_id):
+    customer_id = str(customer_id or "").strip()
+    if not customer_id:
+        return {"allowed": False, "reason": "missing_customer"}
+
+    if not frappe.db.exists("Customer", customer_id):
+        return {"allowed": False, "reason": "invalid_customer"}
+
+    current_user = frappe.session.user
+    account_manager = frappe.db.get_value("Customer", customer_id, "account_manager") or ""
+
+    is_current_account_manager = current_user == account_manager
+    has_share_permission = frappe.has_permission("Customer", "share", customer_id)
+
+    return {
+        "allowed": bool(is_current_account_manager and has_share_permission),
+        "is_current_account_manager": bool(is_current_account_manager),
+        "has_share_permission": bool(has_share_permission),
+        "account_manager": account_manager,
+        "current_user": current_user,
+    }
+
+def _add_docshare_rw(doctype, name, user_email):
+    if not doctype or not name or not user_email:
+        return False
+
+    try:
+        frappe.share.add_docshare(
+            doctype,
+            name,
+            user=user_email,
+            read=1,
+            write=1,
+            notify=0,
+            flags={"ignore_share_permission": True},
+        )
+        return True
+    except Exception as e:
+        frappe.log_error(
+            title="Customer Share Update Error",
+            message=f"Doctype: {doctype}\nName: {name}\nUser: {user_email}\nError: {str(e)}",
+        )
+        return False
+
+
+def _share_customer_linked_docs(customer_id, user_email):
+    shared_count = 0
+
+    names_by_doctype = {
+        "Customer": [customer_id],
+        "Contact": frappe.db.sql(
+            """
+            SELECT DISTINCT parent
+            FROM `tabDynamic Link`
+            WHERE link_doctype = 'Customer'
+              AND link_name = %s
+              AND parenttype = 'Contact'
+            """,
+            (customer_id,),
+            pluck="parent",
+        )
+        or [],
+        "Address": frappe.db.sql(
+            """
+            SELECT DISTINCT parent
+            FROM `tabDynamic Link`
+            WHERE link_doctype = 'Customer'
+              AND link_name = %s
+              AND parenttype = 'Address'
+            """,
+            (customer_id,),
+            pluck="parent",
+        )
+        or [],
+        "Opportunity": frappe.get_all("Opportunity", filters={"party_name": customer_id}, pluck="name", ignore_permissions=True) or [],
+        "Quotation": frappe.get_all("Quotation", filters={"party_name": customer_id}, pluck="name", ignore_permissions=True) or [],
+        "Customer Order Form": frappe.get_all("Customer Order Form", filters={"customer": customer_id}, pluck="name", ignore_permissions=True) or [],
+        "Sales Order": frappe.get_all("Sales Order", filters={"customer": customer_id}, pluck="name", ignore_permissions=True) or [],
+        "Sales Invoice": frappe.get_all("Sales Invoice", filters={"customer": customer_id}, pluck="name", ignore_permissions=True) or [],
+        "Renewal List": frappe.get_all("Renewal List", filters={"customer_name": customer_id}, pluck="name", ignore_permissions=True) or [],
+        "Issue": frappe.get_all("Issue", filters={"customer": customer_id}, pluck="name", ignore_permissions=True) or [],
+        "Call List": (
+            (frappe.get_all(
+                "Call List",
+                filters={"name1": customer_id},
+                pluck="name",
+                ignore_permissions=True,
+            ) or [])
+            +
+            (frappe.get_all(
+                "Call List",
+                filters={"related_to": "Customer", "name1": customer_id},
+                pluck="name",
+                ignore_permissions=True,
+            ) or [])
+        ),
+        "ORC List": frappe.get_all("ORC List", filters={"customer_name": customer_id}, pluck="name", ignore_permissions=True) or [],
+        #"Payment Entry": frappe.get_all("Payment Entry", filters={"party_type": "Customer", "party_name": customer_id}, pluck="name", ignore_permissions=True) or [],
+    }
+
+    for doctype, names in names_by_doctype.items():
+        unique_names = {str(name).strip() for name in (names or []) if name}
+        for name in unique_names:
+            if _add_docshare_rw(doctype, name, user_email):
+                shared_count += 1
+
+    return shared_count
+
+
+@frappe.whitelist()
+def assign_account_manager_and_share(customer_id, user_email):
+    customer_id = str(customer_id or "").strip()
+    user_email = str(user_email or "").strip()
+
+    if not customer_id:
+        frappe.throw("Customer not specified")
+
+    if not user_email:
+        frappe.throw("User not specified")
+
+    if not frappe.db.exists("Customer", customer_id):
+        frappe.throw(f"Customer {customer_id} does not exist.")
+
+    if not frappe.db.exists("User", user_email):
+        frappe.throw(f"User {user_email} does not exist.")
+
+    customer = frappe.get_doc("Customer", customer_id)
+    customer.check_permission("write")
+
+    employee = frappe.db.get_value(
+        "Employee",
+        {"user_id": user_email},
+        ["name", "employee_name", "cell_number"],
+        as_dict=True,
+    )
+
+    sales_person_value = ""
+    team_name = ""
+    mobile_no = ""
+
+    if employee:
+        sales_person_value = employee.employee_name or ""
+        mobile_no = employee.cell_number or ""
+        sales_person_row = frappe.db.get_value(
+            "Sales Person",
+            {"employee": employee.name},
+            ["name", "parent_sales_person"],
+            as_dict=True,
+        )
+        if sales_person_row and sales_person_row.get("name"):
+            sales_person_value = sales_person_row.get("name")
+        team_name = (sales_person_row or {}).get("parent_sales_person") or ""
+
+    # Ensure Sales Team mobile is filled using Employee cell_number first,
+    # then fallback to User mobile fields if needed.
+    if not mobile_no:
+        mobile_no = (
+            frappe.db.get_value("User", user_email, "mobile_no")
+            or frappe.db.get_value("User", user_email, "phone")
+            or ""
+        )
+
+    customer.account_manager = user_email
+    customer.team_name = team_name
+
+    if sales_person_value:
+        customer.sales_person = sales_person_value
+        customer.set("sales_team", [])
+        customer.append(
+            "sales_team",
+            {
+                "sales_person": sales_person_value,
+                "team_name": team_name,
+                "mobile_no": mobile_no,
+                "email_id": user_email,
+                "allocated_percentage": 100,
+            },
+        )
+
+    customer.flags.ignore_mandatory = True
+    customer.save()
+
+    shared_doc_count = _share_customer_linked_docs(customer_id, user_email)
+    frappe.db.commit()
+
+    return {
+        "account_manager": customer.account_manager,
+        "sales_person": customer.sales_person,
+        "team_name": customer.team_name,
+        "mobile_no": mobile_no,
+        "shared_doc_count": shared_doc_count,
+    }
+
+
 
 @frappe.whitelist()
 def update_customer_settings(customer_id, settings=None):
@@ -568,6 +784,59 @@ def get_customer_permissions():
         "print": frappe.has_permission("Customer", "print")
     }
 
+
+@frappe.whitelist()
+def rename_or_merge_customer(old_name, new_name, merge=0):
+    """Rename or merge a Customer from the custom customers page.
+
+    Core Frappe merge internally deletes the old record after relinking,
+    which requires delete permission. For this custom page we allow the
+    operation for users who can write the source Customer and can access the
+    target Customer, then perform the merge with controlled permission bypass.
+    """
+    from frappe.model.rename_doc import rename_doc as model_rename_doc
+
+    old_name = str(old_name or "").strip()
+    new_name = str(new_name or "").strip()
+    merge = str(merge).lower() in ("1", "true", "yes")
+
+    if not old_name or not new_name:
+        frappe.throw(frappe._("Both current and new customer names are required."))
+
+    if old_name == new_name and not merge:
+        return old_name
+
+    source_doc = frappe.get_doc("Customer", old_name)
+    source_doc.check_permission("write")
+
+    if merge:
+        if old_name == new_name:
+            frappe.throw(frappe._("Please select another existing Customer to merge into."))
+
+        if not frappe.db.exists("Customer", new_name):
+            frappe.throw(
+                frappe._("Customer {0} does not exist.").format(frappe.bold(new_name))
+            )
+
+        target_doc = frappe.get_doc("Customer", new_name)
+        if not (target_doc.has_permission("read") or target_doc.has_permission("write")):
+            frappe.throw(
+                frappe._("You do not have permission to merge into Customer {0}.").format(
+                    frappe.bold(new_name)
+                ),
+                frappe.PermissionError,
+            )
+
+    return model_rename_doc(
+        doctype="Customer",
+        old=old_name,
+        new=new_name,
+        merge=merge,
+        ignore_permissions=merge,
+        show_alert=False,
+    )
+
+
 @frappe.whitelist()
 def get_payment_terms_and_loyalty_options():
     """
@@ -601,6 +870,228 @@ def get_payment_terms_and_loyalty_options():
             "payment_terms": [],
             "loyalty_programs": []
         }
+
+
+@frappe.whitelist()
+def get_customer_tax_options():
+    """Fetch standard Customer tax field options for the custom taxes tab."""
+    try:
+        customer_meta = frappe.get_meta("Customer")
+        gst_category_field = customer_meta.get_field("gst_category")
+        gst_categories = []
+        if gst_category_field and getattr(gst_category_field, "options", None):
+            gst_categories = [
+                row.strip()
+                for row in (gst_category_field.options or "").splitlines()
+                if row and row.strip()
+            ]
+
+        tax_categories = []
+        tax_withholding_categories = []
+
+        if frappe.db.exists("DocType", "Tax Category"):
+            tax_categories = frappe.get_all(
+                "Tax Category",
+                fields=["name"],
+                ignore_permissions=True,
+                order_by="name asc",
+            )
+
+        if frappe.db.exists("DocType", "Tax Withholding Category"):
+            tax_withholding_categories = frappe.get_all(
+                "Tax Withholding Category",
+                fields=["name"],
+                ignore_permissions=True,
+                order_by="name asc",
+            )
+
+        return {
+            "gst_categories": gst_categories,
+            "tax_categories": [row.name for row in tax_categories],
+            "tax_withholding_categories": [row.name for row in tax_withholding_categories],
+        }
+    except Exception as e:
+        frappe.log_error(str(e), "get_customer_tax_options")
+        return {
+            "gst_categories": [],
+            "tax_categories": [],
+            "tax_withholding_categories": [],
+        }
+
+
+def _get_tax_category_for_territory(territory):
+    territory = str(territory or "").strip()
+    if not territory:
+        return ""
+
+    if territory == "Telangana":
+        return "In-State - TG"
+    if territory == "Tamil Nadu":
+        return "In-State - TN"
+
+    return "Out-State - TG"
+
+
+def _get_matching_territory(state_name):
+    state_name = str(state_name or "").strip()
+    if not state_name or not frappe.db.exists("DocType", "Territory"):
+        return ""
+
+    if frappe.db.exists("Territory", state_name):
+        return state_name
+
+    try:
+        return frappe.db.get_value("Territory", {"territory_name": state_name}, "name") or ""
+    except Exception:
+        return ""
+
+
+@frappe.whitelist()
+def get_gstin_autofill_details(gstin=None, current_territory=None, current_gst_category=None, country="India"):
+    normalized_gstin = str(gstin or "").strip().upper()
+    territory = str(current_territory or "").strip()
+    gst_category = str(current_gst_category or "").strip()
+
+    if not normalized_gstin:
+        return {
+            "gstin": "",
+            "pan": "",
+            "gst_category": gst_category or ("Overseas" if country and country != "India" else "Unregistered"),
+            "territory": territory,
+            "tax_category": _get_tax_category_for_territory(territory),
+            "gstin_status": "",
+            "gstin_last_updated_on": None,
+        }
+
+    if len(normalized_gstin) < 15:
+        return {
+            "gstin": normalized_gstin,
+            "pan": "",
+            "gst_category": gst_category,
+            "territory": territory,
+            "tax_category": _get_tax_category_for_territory(territory),
+            "gstin_status": "",
+            "gstin_last_updated_on": None,
+        }
+
+    state_name = ""
+    gstin_status = ""
+    gstin_last_updated_on = None
+
+    try:
+        from india_compliance.gst_india.utils import get_state, guess_gst_category
+        from india_compliance.gst_india.utils.gstin_info import _get_gstin_info
+
+        gstin_info = _get_gstin_info(normalized_gstin, throw_error=False) or {}
+        gst_category = gstin_info.get("gst_category") or guess_gst_category(
+            normalized_gstin, country, gst_category
+        )
+        gstin_status = gstin_info.get("status") or ""
+        state_name = get_state(normalized_gstin[:2]) or ""
+    except Exception:
+        try:
+            from india_compliance.gst_india.utils import get_state, guess_gst_category
+
+            gst_category = gst_category or guess_gst_category(normalized_gstin, country)
+            state_name = get_state(normalized_gstin[:2]) or ""
+        except Exception:
+            gst_category = gst_category or "Registered Regular"
+
+    if frappe.db.exists("DocType", "GSTIN"):
+        gst_status_doc = frappe.db.get_value(
+            "GSTIN", normalized_gstin, ["status", "last_updated_on"], as_dict=True
+        ) or {}
+        gstin_status = gst_status_doc.get("status") or gstin_status
+        gstin_last_updated_on = gst_status_doc.get("last_updated_on")
+
+    territory = _get_matching_territory(state_name) or state_name or territory
+    pan = normalized_gstin[2:12] if len(normalized_gstin) >= 12 else ""
+
+    return {
+        "gstin": normalized_gstin,
+        "pan": pan,
+        "gst_category": gst_category,
+        "territory": territory,
+        "tax_category": _get_tax_category_for_territory(territory),
+        "gstin_status": gstin_status,
+        "gstin_last_updated_on": gstin_last_updated_on,
+    }
+
+
+@frappe.whitelist()
+def update_customer_tax_fields(customer_id, fields=None):
+    if not customer_id:
+        frappe.throw("Customer not specified")
+
+    if isinstance(fields, str):
+        fields = json.loads(fields or "{}")
+
+    if not isinstance(fields, dict):
+        fields = {}
+
+    if not frappe.has_permission("Customer", "read", customer_id):
+        frappe.throw("You do not have permission to access this customer")
+
+    meta = frappe.get_meta("Customer")
+    allowed_fields = [
+        "gstin",
+        "gst_category",
+        "pan",
+        "tax_id",
+        "tax_category",
+        "tax_withholding_category",
+        "territory",
+    ]
+
+    if "gstin" in fields:
+        autofill = get_gstin_autofill_details(
+            gstin=fields.get("gstin"),
+            current_territory=fields.get("territory"),
+            current_gst_category=fields.get("gst_category"),
+        ) or {}
+        for auto_field in ("gstin", "pan", "gst_category", "territory", "tax_category"):
+            if autofill.get(auto_field) and not str(fields.get(auto_field) or "").strip():
+                fields[auto_field] = autofill.get(auto_field)
+
+    if "territory" in fields and "tax_category" not in fields:
+        fields["tax_category"] = _get_tax_category_for_territory(fields.get("territory"))
+
+    for field in allowed_fields:
+        if field in fields and meta.has_field(field):
+            frappe.db.set_value("Customer", customer_id, field, fields.get(field) or "")
+
+    if meta.has_field("tax_id") and "gstin" in fields and "tax_id" not in fields:
+        frappe.db.set_value("Customer", customer_id, "tax_id", fields.get("gstin") or "")
+
+    frappe.db.commit()
+
+    customer = frappe.get_doc("Customer", customer_id)
+
+    gstin_status = {}
+    pan_status = {}
+    if getattr(customer, "gstin", None) and frappe.db.exists("DocType", "GSTIN"):
+        gstin_status = frappe.db.get_value(
+            "GSTIN", customer.gstin, ["status", "last_updated_on"], as_dict=True
+        ) or {}
+
+    if getattr(customer, "pan", None) and frappe.db.exists("DocType", "PAN"):
+        pan_status = frappe.db.get_value(
+            "PAN", customer.pan, ["pan_status", "last_updated_on"], as_dict=True
+        ) or {}
+
+    return {
+        "gstin": getattr(customer, "gstin", ""),
+        "gst_category": getattr(customer, "gst_category", ""),
+        "pan": getattr(customer, "pan", ""),
+        "tax_id": getattr(customer, "tax_id", ""),
+        "tax_category": getattr(customer, "tax_category", ""),
+        "tax_withholding_category": getattr(customer, "tax_withholding_category", ""),
+        "territory": getattr(customer, "territory", ""),
+        "gstin_status": gstin_status.get("status", ""),
+        "gstin_last_updated_on": gstin_status.get("last_updated_on"),
+        "pan_status": pan_status.get("pan_status", ""),
+        "pan_last_updated_on": pan_status.get("last_updated_on"),
+    }
 
 
 @frappe.whitelist()
@@ -1296,7 +1787,161 @@ def get_customer_stats(customer_id):
             "currency": "INR",
             "error": str(e)
         }
-		
+
+
+@frappe.whitelist()
+def get_customer_fiscal_year_financials(customer_id):
+    """Return fiscal-year-wise Billing / Payment / Balance (Unpaid) for a customer.
+
+    Balance (Unpaid) is computed from GL Entry to match the accounting basis
+    used by get_dashboard_info for top customer stats.
+    """
+    try:
+        customer_id = str(customer_id or "").strip()
+        if not customer_id:
+            return {"rows": [], "currency": frappe.defaults.get_global_default("currency") or "INR"}
+
+        if not frappe.has_permission("Customer", "read", customer_id):
+            frappe.throw(frappe._("Not permitted"), frappe.PermissionError)
+
+        if not frappe.has_permission("Sales Invoice", "read"):
+            return {"rows": [], "currency": frappe.defaults.get_global_default("currency") or "INR"}
+
+        currency = frappe.defaults.get_global_default("currency") or "INR"
+        customer_currency = frappe.db.get_value("Customer", customer_id, "default_currency")
+        if customer_currency:
+            currency = customer_currency
+
+        fiscal_year_rows = frappe.db.sql(
+            """
+            SELECT
+                fy.name AS fiscal_year,
+                fy.year_start_date,
+                fy.year_end_date
+            FROM `tabFiscal Year` fy
+            ORDER BY fy.year_start_date DESC
+            """,
+            as_dict=True,
+        )
+
+        invoice_rows = frappe.db.sql(
+            """
+            SELECT
+                fy.name AS fiscal_year,
+                SUM(IFNULL(si.grand_total, 0)) AS billing_amount,
+                SUM(IFNULL(si.outstanding_amount, 0)) AS outstanding_amount
+            FROM `tabFiscal Year` fy
+            LEFT JOIN `tabSales Invoice` si
+                ON si.customer = %(customer)s
+               AND si.docstatus = 1
+               AND si.posting_date BETWEEN fy.year_start_date AND fy.year_end_date
+            GROUP BY fy.name
+            """,
+            {"customer": customer_id},
+            as_dict=True,
+        )
+
+        payment_rows = frappe.db.sql(
+            """
+            SELECT
+                fy.name AS fiscal_year,
+                SUM(
+                    CASE
+                        WHEN pe.name IS NOT NULL THEN IFNULL(per.allocated_amount, 0)
+                        ELSE 0
+                    END
+                ) AS payment_amount
+            FROM `tabFiscal Year` fy
+            LEFT JOIN `tabSales Invoice` si
+                ON si.customer = %(customer)s
+               AND si.docstatus = 1
+               AND si.posting_date BETWEEN fy.year_start_date AND fy.year_end_date
+            LEFT JOIN `tabPayment Entry Reference` per
+                ON per.reference_doctype = 'Sales Invoice'
+               AND per.reference_name = si.name
+            LEFT JOIN `tabPayment Entry` pe
+                ON pe.name = per.parent
+               AND pe.docstatus = 1
+               AND pe.party_type = 'Customer'
+               AND pe.party = %(customer)s
+            GROUP BY fy.name
+            """,
+            {"customer": customer_id},
+            as_dict=True,
+        )
+
+        gl_rows = frappe.db.sql(
+            """
+            SELECT
+                fy.name AS fiscal_year,
+                SUM(IFNULL(gl.debit_in_account_currency, 0))
+                    - SUM(IFNULL(gl.credit_in_account_currency, 0)) AS gl_balance
+            FROM `tabFiscal Year` fy
+            LEFT JOIN `tabGL Entry` gl
+                ON gl.party_type = 'Customer'
+               AND gl.party = %(customer)s
+               AND gl.is_cancelled = 0
+               AND gl.posting_date BETWEEN fy.year_start_date AND fy.year_end_date
+            GROUP BY fy.name
+            """,
+            {"customer": customer_id},
+            as_dict=True,
+        )
+
+        invoice_map = {
+            row.get("fiscal_year"): {
+                "billing_amount": flt(row.get("billing_amount") or 0, 2),
+                "outstanding_amount": flt(row.get("outstanding_amount") or 0, 2),
+            }
+            for row in (invoice_rows or [])
+        }
+
+        payment_map = {
+            row.get("fiscal_year"): flt(row.get("payment_amount") or 0, 2)
+            for row in (payment_rows or [])
+        }
+
+        gl_map = {
+            row.get("fiscal_year"): flt(row.get("gl_balance") or 0, 2)
+            for row in (gl_rows or [])
+        }
+
+        formatted = []
+        for row in (fiscal_year_rows or []):
+            fiscal_year = row.get("fiscal_year")
+            inv = invoice_map.get(fiscal_year, {})
+            billing = flt(inv.get("billing_amount") or 0, 2)
+            outstanding = flt(gl_map.get(fiscal_year) or 0, 2)
+            payment = flt(payment_map.get(fiscal_year) or 0, 2)
+
+            formatted.append(
+                {
+                    "fiscal_year": fiscal_year,
+                    "year_start_date": row.get("year_start_date"),
+                    "year_end_date": row.get("year_end_date"),
+                    "billing_amount": billing,
+                    "payment_amount": payment,
+                    "outstanding_amount": outstanding,
+                    "unpaid_amount": outstanding,
+                }
+            )
+
+        return {"rows": formatted, "currency": currency}
+
+    except frappe.PermissionError:
+        raise
+    except Exception as e:
+        frappe.log_error(
+            f"Error fetching fiscal financials for {customer_id}: {str(e)}",
+            "Customer Fiscal Financials Error",
+        )
+        return {
+            "rows": [],
+            "currency": frappe.defaults.get_global_default("currency") or "INR",
+            "error": str(e),
+        }
+
+
 
 
 # @frappe.whitelist()
@@ -1743,3 +2388,108 @@ def get_sales_by_brand(customer_id, fiscal_year=None):
             "Sales by Brand Error",
         )
         return []
+
+
+@frappe.whitelist()
+def get_renewal_summary(customer_id):
+    """
+    Fetch renewal summary for dashboard showing:
+    - All status counts (Active, New Opp, Renewed, Expired, etc.)
+    - Expiring soon count (30 days)
+    - All renewals with details
+    """
+    try:
+        from datetime import datetime, timedelta
+        from frappe.utils import getdate
+        
+        today = getdate()
+        thirty_days_ahead = today + timedelta(days=30)
+        
+        # All status types from Renewal List doctype
+        all_statuses = [
+            "New Opp", "Active", "Draft", "Awaiting Response", "Cofed", 
+            "Duplicate", "Renewed", "Upgraded", "Void", "Lost", 
+            "Cancelled", "Competitor Sales", "Auto Created", 
+            "Out Of Business", "Product Changed"
+        ]
+        
+        # Get all renewals for this customer
+        all_renewals = frappe.db.get_list(
+            "Renewal List",
+            filters={"customer_name": customer_id},
+            fields=['name', 'product_name', 'total_quantity', 'start_date', 'end_date', 'status'],
+            order_by="end_date ASC"
+        )
+        
+        # Group renewals by status
+        status_counts = {status: 0 for status in all_statuses}
+        status_renewals = {status: [] for status in all_statuses}
+        
+        for renewal in all_renewals:
+            status = renewal.status or "Unknown"
+            if status in status_counts:
+                status_counts[status] += 1
+                status_renewals[status].append({
+                    'renewal_id': renewal.name,
+                    'product_name': renewal.product_name,
+                    'quantity': renewal.total_quantity,
+                    'start_date': str(renewal.start_date) if renewal.start_date else '',
+                    'end_date': str(renewal.end_date) if renewal.end_date else '',
+                    'status': status
+                })
+        
+        # Calculate expiring soon (from Active renewals only)
+        active_renewals = status_renewals.get("Active", [])
+        expiring_soon = [r for r in active_renewals if r.get('end_date') and getdate(r['end_date']) <= thirty_days_ahead]
+        
+        # Build all renewals list with computed status
+        all_renewals_list = []
+        for renewal in all_renewals:
+            end_date = getdate(renewal.end_date) if renewal.end_date else None
+            days_left = None
+            
+            if renewal.status == "Active" and end_date:
+                days_left = (end_date - today).days
+            
+            computed_status = renewal.status
+            if renewal.status == "Active" and end_date:
+                if days_left <= 0:
+                    computed_status = "expired"
+                elif days_left <= 30:
+                    computed_status = "expiring"
+            
+            all_renewals_list.append({
+                'renewal_id': renewal.name,
+                'product_name': renewal.product_name,
+                'quantity': renewal.total_quantity,
+                'start_date': str(renewal.start_date) if renewal.start_date else '',
+                'end_date': str(renewal.end_date) if renewal.end_date else '',
+                'status': renewal.status,
+                'computed_status': computed_status,
+                'days_left': days_left
+            })
+        
+        return {
+            'status_counts': status_counts,
+            'expiring_soon_count': len(expiring_soon),
+            'total_count': len(all_renewals),
+            'all_renewals': all_renewals_list,
+            'active_renewals': active_renewals,
+            'new_opp_renewals': status_renewals.get("New Opp", []),
+            'renewed_renewals': status_renewals.get("Renewed", [])
+        }
+        
+    except Exception as e:
+        frappe.log_error(
+            f"Error fetching renewal summary for {customer_id}: {str(e)}",
+            "Renewal Summary Error"
+        )
+        return {
+            'status_counts': {},
+            'expiring_soon_count': 0,
+            'total_count': 0,
+            'all_renewals': [],
+            'active_renewals': [],
+            'new_opp_renewals': [],
+            'renewed_renewals': []
+        }

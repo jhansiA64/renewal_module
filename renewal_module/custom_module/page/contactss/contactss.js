@@ -79,7 +79,7 @@ class contactsPage {
 			return this.show_list();
 		}
 
-		if (route.length === 2 && route[1] === "new-contacts") {
+		if (route.length === 2 && route[1] === "new") {
 			return this.show_new();
 		}
 
@@ -129,7 +129,9 @@ class contactsPage {
 		$(".new-contacts").removeClass("d-none");
 		this.setPageTitle("New Contacts");
 		this.setActiveSidebar();
+		this._newContactCurrentStep = 1;
 		this.bind_contact_form_events();
+		this.gotoNewContactWizardStep(1);
 	}
 
 	setPageTitle(title) {
@@ -179,6 +181,8 @@ class contactsPage {
 				return resolve();
 			}
 			this._fetch_in_progress = true;
+			const requestId = (this._fetch_seq || 0) + 1;
+			this._fetch_seq = requestId;
 			try {
 				if (reset) {
 					this.all_contacts = [];
@@ -199,8 +203,16 @@ class contactsPage {
 				console.log("%c[debug]-> active_filters:", "color: blue;", this.active_filters);
 				const normalizedFilters = (saved_filters || []).map(f => {
 					if (Array.isArray(f)) {
-						const arr = f.length >= 5 ? f.slice(1, 4) : f.slice(0, 3);
-						const [field, operatorRaw, valueRaw] = arr;
+						let field = "";
+						let operatorRaw = "=";
+						let valueRaw = "";
+
+						// FilterGroup commonly returns [doctype, field, operator, value, ...]
+						if (f.length >= 4) {
+							[, field, operatorRaw, valueRaw] = f;
+						} else if (f.length === 3) {
+							[field, operatorRaw, valueRaw] = f;
+						}
 						const operator = (operatorRaw || "=").toLowerCase();
 						let value = valueRaw;
 						if (operator === "between" && typeof value === "string" && value.includes(",")) {
@@ -249,6 +261,9 @@ class contactsPage {
 					},
 					callback: (r) => {
 						try {
+							if (requestId !== this._fetch_seq) {
+								return resolve();
+							}
 							if (!r || !r.message) {
 								console.warn("[loadcontacts]empty response");
 								if (reset) {
@@ -291,11 +306,15 @@ class contactsPage {
 							reject(err);
 						}
 						finally {
-							this._fetch_in_progress = false;
+							if (requestId === this._fetch_seq) {
+								this._fetch_in_progress = false;
+							}
 						}
 					},
 					error: (err) => {
-						this._fetch_in_progress = false;
+						if (requestId === this._fetch_seq) {
+							this._fetch_in_progress = false;
+						}
 						console.error("contacts fetch_list_data error", err);
 						reject(err);
 					}
@@ -641,20 +660,20 @@ class contactsPage {
 			footer.find('.clear-filters').off("click").on("click", () => {
 				if (filter_group) filter_group.clear_filters();
 				me.saved_filters = [];
-				//me.clearBasicFilterUI();
-				//me._fetch_in_process = false;
-				me.fetch_list_data({ reset: true, saved_filters: [] });
-				update_filter_button_count($btn, 0);
 				updateUrlWithFilters([]);
+				update_filter_button_count($btn, 0);
+				me._fetch_in_progress = false;
+				me.fetch_list_data({ reset: true, saved_filters: [] });
 				closePopover($btn, "clear-filters");
 			});
 
 			footer.find('.apply-filters').off("click").on("click", () => {
 				if (filter_group) {
 					me.saved_filters = filter_group.get_filters();
-					me.fetch_list_data({ reset: true, saved_filters: me.saved_filters });
-					update_filter_button_count($btn, me.saved_filters.length);
 					updateUrlWithFilters(me.saved_filters);
+					update_filter_button_count($btn, me.saved_filters.length);
+					me._fetch_in_progress = false;
+					me.fetch_list_data({ reset: true, saved_filters: me.saved_filters });
 				}
 				closePopover($btn, "apply-filters");
 			});
@@ -1580,6 +1599,246 @@ class contactsPage {
 		}
 	}
 
+	bindContactRenameButton(contact_id) {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const nameText = wrapper?.querySelector("#contact-name-text");
+		if (!nameText) return;
+
+		const meta = frappe.get_meta("Contact") || {};
+		const allowRename = Object.prototype.hasOwnProperty.call(meta, "allow_rename")
+			? !!meta.allow_rename
+			: true;
+		const hasWrite = frappe.model?.can_write
+			? frappe.model.can_write("Contact")
+			: frappe.perm.has_perm("Contact", 0, "write");
+		const canRename = allowRename && hasWrite;
+
+		nameText.dataset.contactId = String(contact_id || this.current_contact_id || "").trim();
+		nameText.style.cursor = canRename ? "pointer" : "default";
+		nameText.title = canRename
+			? __("Click to rename contact")
+			: __("You do not have permission to rename this contact");
+
+		nameText.onclick = (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+
+			if (!canRename) {
+				frappe.msgprint(__("You do not have permission to rename this Contact."));
+				return;
+			}
+
+			const targetContact = nameText.dataset.contactId || contact_id || this.current_contact_id;
+			this.openContactRenamePopup(targetContact);
+		};
+	}
+
+	handleContactRenameResult(oldName, newName, isMerge = false) {
+		const updatedName = String(newName || oldName || "").trim();
+		if (!updatedName) return;
+
+		if (locals.Contact && oldName && oldName !== updatedName && locals.Contact[oldName]) {
+			delete locals.Contact[oldName];
+		}
+
+		this.current_contact_id = updatedName;
+		this.setPageTitle(`Contacts/${updatedName}`);
+		frappe.show_alert({
+			message: isMerge
+				? __("Contact merged into {0}", [updatedName])
+				: __("Contact renamed to {0}", [updatedName]),
+			indicator: "green",
+		});
+
+		if (frappe.get_route()[0] === "contactss" && frappe.get_route()[1] === updatedName) {
+			this.bindContactRenameButton(updatedName);
+			this.load_contact_details(updatedName);
+		} else {
+			frappe.set_route("contactss", updatedName);
+		}
+	}
+
+	openContactRenamePopup(contact_id) {
+		const currentName = String(contact_id || this.current_contact_id || "").trim();
+		if (!currentName) {
+			frappe.msgprint(__("Contact name is missing."));
+			return;
+		}
+
+		const canMerge = frappe.model?.can_write
+			? frappe.model.can_write("Contact")
+			: frappe.perm.has_perm("Contact", 0, "write");
+		const mergeWarning = __("This cannot be undone");
+
+		const dialog = new frappe.ui.Dialog({
+			title: __("Rename {0}", [currentName]),
+			fields: [
+				{
+					label: __("Current Name"),
+					fieldname: "old_name_display",
+					fieldtype: "Data",
+					default: currentName,
+					read_only: 1,
+				},
+				{
+					label: __("New Name"),
+					fieldname: "new_name",
+					fieldtype: "Data",
+					reqd: 1,
+					default: currentName,
+				},
+				{
+					label: __("Merge with existing") + " <b>(" + mergeWarning + ")</b>",
+					fieldname: "merge",
+					fieldtype: "Check",
+					default: 0,
+					read_only: canMerge ? 0 : 1,
+					description: canMerge
+						? __("Choose this only when merging into an existing Contact.")
+						: __("You need Contact write access to use merge."),
+				},
+			],
+		});
+
+		const forceHideDialog = () => {
+			try {
+				dialog.hide();
+			} catch (e) {
+				console.warn("Unable to hide rename dialog via dialog.hide()", e);
+			}
+
+			const $wrapper = dialog.$wrapper || $(dialog.wrapper);
+			if ($wrapper && $wrapper.length) {
+				if (typeof $wrapper.modal === "function") {
+					$wrapper.modal("hide");
+				}
+				$wrapper.removeClass("show").hide();
+			}
+
+			$(".modal-backdrop").remove();
+			$("body").removeClass("modal-open");
+		};
+
+		const showRenameError = (error, attemptedMerge = false) => {
+			let serverMessage = "";
+			const rawMessages = error?._server_messages;
+
+			if (rawMessages) {
+				try {
+					const parsedMessages = JSON.parse(rawMessages);
+					serverMessage = (parsedMessages || [])
+						.map((msg) => {
+							try {
+								const parsed = JSON.parse(msg);
+								return parsed.message || parsed;
+							} catch (e) {
+								return msg;
+							}
+						})
+						.filter(Boolean)
+						.join("<br>");
+				} catch (e) {
+					serverMessage = "";
+				}
+			}
+
+			const fallbackMessage = attemptedMerge
+				? __("You do not have permission to merge these contact records.")
+				: error?.message || __("Unable to rename contact.");
+
+			frappe.msgprint({
+				title: attemptedMerge ? __("Merge not allowed") : __("Rename failed"),
+				indicator: "red",
+				message: serverMessage || fallbackMessage,
+			});
+		};
+
+		const executeRename = (newName, merge = false) => {
+			dialog.disable_primary_action();
+
+			return frappe.call({
+				method: "renewal_module.custom_module.page.contactss.contactss.rename_or_merge_contact",
+				freeze: true,
+				freeze_message: merge ? __("Merging contact...") : __("Updating related fields..."),
+				args: {
+					old_name: currentName,
+					new_name: newName,
+					merge: merge ? 1 : 0,
+				},
+			})
+				.then((r) => {
+					if (r.exc) return;
+					forceHideDialog();
+					this.handleContactRenameResult(currentName, r.message || newName, merge);
+				})
+				.catch((error) => {
+					dialog.enable_primary_action();
+					showRenameError(error, merge);
+				});
+		};
+
+		dialog.set_primary_action(__("Rename"), () => {
+			const values = dialog.get_values();
+			const newName = String(values?.new_name || "").trim();
+			const shouldMerge = !!values?.merge;
+
+			if (!newName) return;
+
+			if (!shouldMerge && newName === currentName) {
+				frappe.show_alert({
+					indicator: "info",
+					message: __("Unchanged"),
+				});
+				return;
+			}
+
+			if (shouldMerge && newName === currentName) {
+				frappe.msgprint(__("Please select another existing Contact to merge into."));
+				return;
+			}
+
+			if (shouldMerge && !canMerge) {
+				showRenameError(null, true);
+				return;
+			}
+
+			if (shouldMerge) {
+				const confirmMessage = `${__("Are you sure you want to merge {0} with {1}?", [
+					currentName.bold(),
+					newName.bold(),
+				])}<br><b>${mergeWarning}</b>`;
+
+				frappe.confirm(confirmMessage, () => executeRename(newName, true));
+				return;
+			}
+
+			executeRename(newName, false);
+		});
+
+		dialog.show();
+		setTimeout(() => {
+			const $wrapper = dialog.$wrapper || $(dialog.wrapper);
+			const closeBtn = dialog.get_close_btn();
+			if (closeBtn && closeBtn.length) {
+				closeBtn.off("click.contactRenameDialog").on("click.contactRenameDialog", function (e) {
+					e.preventDefault();
+					e.stopImmediatePropagation();
+					forceHideDialog();
+				});
+			}
+
+			if ($wrapper && $wrapper.length) {
+				$wrapper
+					.off("click.contactRenameDialogDismiss", ".btn-modal-close, .modal-header .close")
+					.on("click.contactRenameDialogDismiss", ".btn-modal-close, .modal-header .close", function (e) {
+						e.preventDefault();
+						e.stopImmediatePropagation();
+						forceHideDialog();
+					});
+			}
+		}, 50);
+	}
+
 	openContactEditDialog({
 		contactId,
 		title = __("Edit Contact"),
@@ -1678,6 +1937,104 @@ class contactsPage {
 		});
 	}
 
+	getContactStatusBadgeClass(status) {
+		const normalizedStatus = String(status || "").trim().toLowerCase();
+		if (normalizedStatus === "open") return "bg-success";
+		if (normalizedStatus === "replied") return "bg-info";
+		return "bg-secondary";
+	}
+
+	updateContactStatusBadge(status) {
+		const badge = this.page?.wrapper?.[0]?.querySelector("#contact-status-badge")
+			|| this.page?.wrapper?.querySelector?.("#contact-status-badge")
+			|| document.querySelector("#contact-status-badge");
+		if (!badge) return;
+
+		const resolvedStatus = String(status || "Passive").trim() || "Passive";
+		badge.textContent = resolvedStatus;
+		badge.title = __("Click to change status");
+		badge.className = `badge ${this.getContactStatusBadgeClass(resolvedStatus)} rounded-pill px-3 py-1 fw-medium shadow-sm contact-status-badge`;
+		badge.style.cursor = "pointer";
+	}
+
+	bindContactStatusBadge(contactId, currentStatus = "Passive") {
+		const canWrite = frappe.model?.can_write
+			? frappe.model.can_write("Contact")
+			: frappe.perm.has_perm("Contact", 0, "write");
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const badge = wrapper?.querySelector("#contact-status-badge");
+		if (!badge) return;
+
+		this.updateContactStatusBadge(currentStatus);
+		if (!canWrite) {
+			badge.style.cursor = "default";
+			badge.title = __("You do not have permission to change this contact status");
+		}
+
+		$(wrapper)
+			.off("click.contactStatus", "#contact-status-badge")
+			.on("click.contactStatus", "#contact-status-badge", () => {
+				if (!canWrite) {
+					frappe.msgprint(__("You do not have permission to change this Contact status."));
+					return;
+				}
+
+				frappe.model.with_doctype("Contact", () => {
+					const statusField = frappe.meta.get_docfield("Contact", "status");
+					const statusOptions = String(statusField?.options || "Passive\nOpen\nReplied")
+						.split("\n")
+						.map(value => String(value || "").trim())
+						.filter(Boolean);
+
+					const dialog = new frappe.ui.Dialog({
+						title: __("Change Contact Status"),
+						fields: [
+							{
+								fieldtype: "Select",
+								fieldname: "status",
+								label: __("Status"),
+								options: statusOptions.join("\n"),
+								default: currentStatus || statusOptions[0] || "Passive",
+								reqd: 1,
+							}
+						],
+						primary_action_label: __("Change Status"),
+						primary_action: (values) => {
+							const nextStatus = String(values?.status || "").trim();
+							if (!nextStatus) return;
+
+							dialog.hide();
+							frappe.call({
+								method: "frappe.client.set_value",
+								args: {
+									doctype: "Contact",
+									name: contactId,
+									fieldname: "status",
+									value: nextStatus,
+								},
+								callback: (r) => {
+									if (r.exc) return;
+									this.updateContactStatusBadge(nextStatus);
+									frappe.show_alert({
+										message: __("Contact status updated to {0}", [nextStatus]),
+										indicator: "green"
+									});
+								},
+							});
+						}
+					});
+					dialog.show();
+					setTimeout(() => {
+						const closeBtn = dialog.get_close_btn();
+						if (!closeBtn || !closeBtn.length) return;
+						closeBtn.off("click.dialog").on("click.dialog", function () {
+							dialog.hide();
+						});
+					}, 50);
+				});
+			});
+	}
+
 	/***details view */
 
 	load_contact_details(contact_name) {
@@ -1713,6 +2070,7 @@ class contactsPage {
 				}
 
 				const contact = r.message;
+				const resolvedContactStatus = String(contact.status || "Passive").trim() || "Passive";
 				console.log("Loaded contact details:", contact);
 				$(me.page.wrapper)
 					.off("click.contact-main-edit")
@@ -1742,13 +2100,11 @@ class contactsPage {
 							<div class="profile-avatar mb-3 mx-auto d-flex align-items-center justify-content-center bg-dark text-white rounded-circle fs-3 fw-bold shadow-sm" style="width: 72px; height: 72px;">
 								${contact.first_name ? contact.first_name.charAt(0).toUpperCase() : (contact.name ? contact.name.charAt(0).toUpperCase() : 'C')}
 							</div>
-							<h5 class="fw-semibold mb-1 text-dark fs-5">${frappe.utils.escape_html(contact.full_name || contact.name)}</h5>
+							<h5 id="contact-name-text" class="fw-semibold mb-1 text-dark fs-5" style="cursor: default;">${frappe.utils.escape_html(contact.full_name || contact.name)}</h5>
 							${contact.company_name ? `<p class="text-primary fw-medium mb-2"><i class="fa fa-building-o mr-1"></i>${frappe.utils.escape_html(contact.company_name)}</p>` : ''}
-							${contact.status ? `
-								<div class="mt-2">
-									<span class="badge ${contact.status === 'Open' ? 'bg-success' : 'bg-secondary'} rounded-pill px-3 py-1 fw-medium shadow-sm">${frappe.utils.escape_html(contact.status)}</span>
-								</div>
-							` : ''}
+							<div class="mt-2">
+								<span id="contact-status-badge" class="badge ${me.getContactStatusBadgeClass(resolvedContactStatus)} rounded-pill px-3 py-1 fw-medium shadow-sm contact-status-badge" title="${frappe.utils.escape_html(__("Click to change status"))}" style="cursor:pointer;">${frappe.utils.escape_html(resolvedContactStatus)}</span>
+							</div>
 						</div>
 						<div class="d-flex flex-column gap-1">
 							${contact.email_id ? `
@@ -1829,10 +2185,13 @@ class contactsPage {
 						</div>
 					</div>
 					`;
+					me.bindContactRenameButton(contact.name || contact_name);
 				}
 
 				// detailsWrapper removed from template - no longer needed
 
+
+				me.bindContactStatusBadge(contact.name || contact_name, resolvedContactStatus);
 
 				const phones = Array.isArray(contact.phone_nos) ? contact.phone_nos : [];
 
@@ -2849,6 +3208,16 @@ class contactsPage {
 				return Array.from(map.values());
 			};
 
+			const getCurrentUserEmailSignature = async () => {
+				try {
+					const response = await frappe.db.get_value("User", frappe.session.user, "email_signature");
+					return String(response?.message?.email_signature || "").trim();
+				} catch (err) {
+					console.warn("Unable to fetch current user email signature", err);
+					return "";
+				}
+			};
+
 			const normalizeOptionValue = (option) => {
 				if (!option) return null;
 				if (typeof option === "string") return option;
@@ -2880,6 +3249,10 @@ class contactsPage {
 
 			// Merge all options and deduplicate
 			email_options = normalizeEmails([...email_options, ...contact_emails]);
+			const userEmailSignature = await getCurrentUserEmailSignature();
+			const defaultMessageContent = userEmailSignature
+				? `${"<p><br></p>".repeat(5)}${userEmailSignature}`
+				: "";
 
 			// Create email dialog with proper formatting
 			const email_dialog = new frappe.ui.Dialog({
@@ -2928,7 +3301,8 @@ class contactsPage {
 						label: __("Message"),
 						fieldname: "content",
 						fieldtype: "TextEditor",
-						reqd: 1
+						reqd: 1,
+						default: defaultMessageContent,
 					},
 					{
 						fieldtype: "Section Break",
@@ -3111,9 +3485,63 @@ class contactsPage {
 
 
 	/**new contact Form */
+	gotoNewContactWizardStep(step) {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const $scope = $(wrapper);
+		const totalSteps = 3;
+		this._newContactCurrentStep = step;
+
+		$scope.find(".new-contact-wizard-step").each(function () {
+			const currentStep = parseInt($(this).data("step"), 10);
+			$(this).removeClass("is-active is-done");
+			if (currentStep < step) $(this).addClass("is-done");
+			else if (currentStep === step) $(this).addClass("is-active");
+		});
+
+		$scope.find(".new-contact-wizard-connector").each(function (idx) {
+			$(this).toggleClass("is-done", idx + 1 < step);
+		});
+
+		$scope.find(".new-contact-wizard-panel").each(function () {
+			const panelStep = parseInt($(this).data("panel"), 10);
+			$(this).toggleClass("d-none", panelStep !== step);
+		});
+
+		$scope.find("#new-contact-back").toggleClass("d-none", step === 1);
+		$scope.find("#new-contact-next").toggleClass("d-none", step === totalSteps);
+		$scope.find("#new-contact-save").toggleClass("d-none", step !== totalSteps);
+	}
+
+	validateNewContactWizardStep(step, ctx = {}) {
+		if (step === 1) {
+			const firstName = String(ctx.firstnameControl?.get_value?.() || "").trim();
+			const lastName = String(ctx.lastnameControl?.get_value?.() || "").trim();
+			if (!firstName || !lastName) {
+				frappe.show_alert({ message: __("Please fill First Name and Last Name before proceeding."), indicator: "red" }, 4);
+				return false;
+			}
+		}
+
+		if (step === 2) {
+			const contactEmails = ctx.me?.getcontactlist ? ctx.me.getcontactlist() : [];
+			const contactPhones = ctx.me?.getphonelist ? ctx.me.getphonelist() : [];
+			if (!contactEmails.length) {
+				frappe.show_alert({ message: __("Please add at least one email address before proceeding."), indicator: "red" }, 4);
+				return false;
+			}
+			if (!contactPhones.length) {
+				frappe.show_alert({ message: __("Please add at least one phone number before proceeding."), indicator: "red" }, 4);
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	bind_contact_form_events() {
 		const me = this;
 		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const $scope = $(wrapper);
 		const contactForm = wrapper.querySelector('#new-contacts-form');
 		if (!contactForm) return;
 
@@ -3140,7 +3568,7 @@ class contactsPage {
 
 		let designationControl = frappe.ui.form.make_control({
 			parent: document.getElementById('designation-field'),
-			df: { fieldtype: 'Data', label: 'Designation', fieldname: 'designation' },
+			df: { fieldtype: 'Data', label: 'Designation', fieldname: 'designation', reqd: 1 },
 			render_input: true
 		});
 		designationControl.refresh();
@@ -3561,7 +3989,53 @@ class contactsPage {
 			renderReferenceLink();
 		}
 
+		const applyLinkedCustomerReference = () => {
+			const params = new URLSearchParams(window.location.search || "");
+			const routeOptions = frappe.get_route_options?.() || frappe.route_options || {};
+			let storedContext = {};
+			try {
+				storedContext = JSON.parse(localStorage.getItem("renewal_module_new_link_context") || "{}");
+			} catch (e) {
+				storedContext = {};
+			}
 
+			const linkDoctype = String(
+				routeOptions.link_doctype ||
+				params.get("link_doctype") ||
+				storedContext.link_doctype ||
+				""
+			).trim();
+			const linkName = String(
+				routeOptions.link_name ||
+				params.get("link_name") ||
+				routeOptions.customer ||
+				params.get("customer") ||
+				params.get("name") ||
+				storedContext.link_name ||
+				storedContext.customer ||
+				""
+			).trim();
+			const linkTitle = String(
+				routeOptions.link_title ||
+				params.get("link_title") ||
+				routeOptions.customer_name ||
+				params.get("customer_name") ||
+				storedContext.link_title ||
+				storedContext.customer_name ||
+				linkName
+			).trim();
+
+			if (linkDoctype === "Customer" && linkName && typeof me.setreflinklist === "function") {
+				me.setreflinklist([
+					{ link_doctype: "Customer", link_name: linkName, link_title: linkTitle || linkName }
+				]);
+				try {
+					localStorage.removeItem("renewal_module_new_link_context");
+				} catch (e) {
+					console.warn("Unable to clear linked customer context", e);
+				}
+			}
+		};
 
 
 
@@ -3569,12 +4043,63 @@ class contactsPage {
 			setupContactPersonSection(me);
 			setupContactPhoneSection(me);
 			setuprefrencelink(me);
+			applyLinkedCustomerReference();
 		});
 		setupContactPersonSection(me);
 		setupContactPhoneSection(me);
 		setuprefrencelink(me);
+		applyLinkedCustomerReference();
 
-		contactForm.addEventListener('submit', function (e) {
+		$scope
+			.off("click", "#new-contact-cancel")
+			.on("click", "#new-contact-cancel", function (e) {
+				e.preventDefault();
+				frappe.set_route("contactss");
+			});
+
+		$scope
+			.off("click", "#new-contact-back")
+			.on("click", "#new-contact-back", function (e) {
+				e.preventDefault();
+				const current = me._newContactCurrentStep || 1;
+				if (current > 1) me.gotoNewContactWizardStep(current - 1);
+			});
+
+		$scope
+			.off("click", "#new-contact-next")
+			.on("click", "#new-contact-next", function (e) {
+				e.preventDefault();
+				const current = me._newContactCurrentStep || 1;
+				const isValid = me.validateNewContactWizardStep(current, {
+					me,
+					firstnameControl,
+					lastnameControl
+				});
+				if (!isValid) return;
+				me.gotoNewContactWizardStep(current + 1);
+			});
+
+		$scope
+			.off("click", ".new-contact-wizard-step")
+			.on("click", ".new-contact-wizard-step", function (e) {
+				e.preventDefault();
+				const targetStep = parseInt($(this).data("step"), 10);
+				if (!Number.isFinite(targetStep) || targetStep < 1) return;
+
+				const current = me._newContactCurrentStep || 1;
+				if (targetStep > current) {
+					const isValid = me.validateNewContactWizardStep(current, {
+						me,
+						firstnameControl,
+						lastnameControl
+					});
+					if (!isValid) return;
+				}
+
+				me.gotoNewContactWizardStep(Math.min(Math.max(targetStep, 1), 3));
+			});
+
+		$(contactForm).off('submit.newContact').on('submit.newContact', function (e) {
 			e.preventDefault();
 			const first_name = firstnameControl.get_value();
 			const middle_name = middlenameControl.get_value();
@@ -3748,7 +4273,7 @@ frappe.contacts_page_template = {
 										</button>
 									</div>
 										
-									<a id="new-contacts-btn" href="/app/contactss/new-contacts" class="btn btn-sm btn-primary mr-2">
+									<a id="new-contacts-btn" href="/app/contactss/new" class="btn btn-sm btn-primary mr-2">
 										<i class="fa fa-plus me-1"></i> New Contacts
 									</a>
 									<div class="dropdown d-none" id="actions-dropdown">
@@ -3926,113 +4451,97 @@ frappe.contacts_page_template = {
 				</div>
 				
 				<div class="row mt-3">
-					<div class="card w-100" style="min-height:80vh;">
+					<div class="card w-100" style="background-color:transparent;border:none;">
 						<div class="card-body p-2" style="padding:5px;">
-							<h5 class="mb-1">New Contacts</h5>
 							<form id="new-contacts-form">
-								<div class="row">
-									<div class="col-12 col-md-6">
-										<div class="mb-1">
-											<div id="first-name-field"></div>
-										</div>
+								<div class="new-contact-wrap">
+									<div class="new-contact-wizard-bar">
+										<button type="button" class="new-contact-wizard-step is-active" data-step="1">
+											<div class="new-contact-wizard-circle">1</div>
+											<div class="new-contact-wizard-label">Basic Info</div>
+										</button>
+										<div class="new-contact-wizard-connector"></div>
+										<button type="button" class="new-contact-wizard-step" data-step="2">
+											<div class="new-contact-wizard-circle">2</div>
+											<div class="new-contact-wizard-label">Email &amp; Phone</div>
+										</button>
+										<div class="new-contact-wizard-connector"></div>
+										<button type="button" class="new-contact-wizard-step" data-step="3">
+											<div class="new-contact-wizard-circle">3</div>
+											<div class="new-contact-wizard-label">Reference</div>
+										</button>
 									</div>
-								</div>
 
-								<div class="row">
-									<div class="col-6">
-										<div class="mb-1">
-											<div id="last-name-field"></div>
+									<div class="new-contact-wizard-panel" data-panel="1">
+										<div class="new-contact-card">
+											<div class="new-contact-card-title">Basic Information</div>
+											<div class="new-contact-form">
+												<div class="new-contact-row one-col">
+													<div class="new-contact-field"><div id="first-name-field"></div></div>
+												</div>
+												<div class="new-contact-row two-col">
+													<div class="new-contact-field"><div id="last-name-field"></div></div>
+													<div class="new-contact-field"><div id="middle-name-field"></div></div>
+												</div>
+												<div class="new-contact-row two-col">
+													<div class="new-contact-field"><div id="gender-field"></div></div>
+													<div class="new-contact-field"><div id="salutation-field"></div></div>
+												</div>
+												<div class="new-contact-row two-col">
+													<div class="new-contact-field"><div id="department-field"></div></div>
+													<div class="new-contact-field"><div id="designation-field"></div></div>
+												</div>
+											</div>
 										</div>
 									</div>
-									<div class="col-6">
-										<div class="mb-1">
-											<div id="middle-name-field"></div>
-										</div>
-									</div>
-								</div>
 
-								<div class="row mb-1">
-									<div class="col-12 col-md-6">
-										<label class="control-label">
-											Email <span style="color:#eb9091">*</span>
-											<i id="add-contact-person" class="fa fa-plus text-primary ml-1" style="cursor:pointer;" title="Add Contact"></i>
-										</label>
-										<div id="contact-email-container" class="ps-2"></div>
-									</div>
-									<div class="col-12 col-md-6">
-										<label class="control-label">
-											Phone <span style="color:#eb9091">*</span>
-											<i id="add-contact-phone" class="fa fa-plus text-primary ml-1" style="cursor:pointer;" title="Add Phone"></i>
-										</label>
-										<div id="contact-phone-container" class="ps-2"></div>
-									</div>
-								</div>	
-
-								<div class="row mb-1">
-									<div class="col-6">
-										<div class="mb-1">
-											<div id="gender-field"></div>
+									<div class="new-contact-wizard-panel d-none" data-panel="2">
+										<div class="new-contact-card">
+											<div class="new-contact-card-title">Email &amp; Phone</div>
+											<div class="new-contact-form">
+												<div class="new-contact-row two-col">
+													<div class="new-contact-list-block">
+														<label class="control-label">Email <span style="color:#eb9091">*</span> <i id="add-contact-person" class="fa fa-plus text-primary ml-1" style="cursor:pointer;" title="Add Contact"></i></label>
+														<div id="contact-email-container" class="ps-2"></div>
+													</div>
+													<div class="new-contact-list-block">
+														<label class="control-label">Phone <span style="color:#eb9091">*</span> <i id="add-contact-phone" class="fa fa-plus text-primary ml-1" style="cursor:pointer;" title="Add Phone"></i></label>
+														<div id="contact-phone-container" class="ps-2"></div>
+													</div>
+												</div>
+												<div class="new-contact-row two-col">
+													<div class="new-contact-field"><div id="address-field"></div></div>
+													<div class="new-contact-field"><div id="linked-in-field"></div></div>
+												</div>
+											</div>
 										</div>
 									</div>
-									<div class="col-6">
-										<div class="mb-1">
-											<div id="salutation-field"></div>
+
+									<div class="new-contact-wizard-panel d-none" data-panel="3">
+										<div class="new-contact-card">
+											<div class="new-contact-card-title">Reference &amp; Flags</div>
+											<div class="new-contact-form">
+												<div class="new-contact-row one-col">
+													<div class="new-contact-list-block">
+														<label class="control-label">Links <i id="add-reference-link" class="fa fa-plus text-primary ml-1" style="cursor:pointer;" title="Add Link"></i></label>
+														<div id="reference-link-container" class="ps-2"></div>
+													</div>
+												</div>
+												<div class="new-contact-row two-col">
+													<div class="new-contact-field"><div id="is-primary-contact-field" class="form-check"></div></div>
+													<div class="new-contact-field"><div id="is-billing-contact-field" class="form-check"></div></div>
+												</div>
+											</div>
 										</div>
 									</div>
-								</div>
 
-								<div class="row mb-1">
-									<div class="col-6">
-										<div class="mb-1">
-											<div id="department-field"></div>
+									<div class="new-contact-wizard-footer">
+										<button class="btn btn-default" id="new-contact-cancel" type="button">Cancel</button>
+										<div class="new-contact-wizard-nav">
+											<button class="btn btn-default d-none" id="new-contact-back" type="button">&#8592; Back</button>
+											<button class="btn btn-primary1" id="new-contact-next" type="button">Next</button>
+											<button type="submit" class="btn btn-primary d-none" id="new-contact-save">Save Contact</button>
 										</div>
-									</div>
-									<div class="col-6">
-										<div class="mb-1">
-											<div id="designation-field"></div>
-										</div>
-									</div>
-								</div>
-
-								<div class="row mb-1">
-									<div class="col-6">
-										<div class="mb-1">
-											<div id="address-field"></div>
-										</div>
-									</div>
-									<div class="col-6">	
-										<div class="mb-1">
-											<div id="linked-in-field"></div>
-										</div>
-									</div>
-								</div>
-
-
-								<div class="row mb-1">
-									<h6 class="mb-2">Reference</h6>
-									<div class="col-12">
-										<label class="control-label">
-											Links <span style="color:#eb9091">*</span>
-											<i id="add-reference-link" class="fa fa-plus text-primary ml-1" style="cursor:pointer;" title="Add Link"></i>
-										</label>
-										<div id="reference-link-container" class="ps-2"></div>
-									</div>
-								</div>
-
-								<div class="row mb-1">
-									<div class="col-6">
-										<div id="is-primary-contact-field" class="form-check">
-										</div>
-									</div>	
-									<div class="col-6">
-										<div id="is-billing-contact-field" class="form-check">
-										</div>	
-									</div>
-								</div>	
-
-								<div class="row">
-									<div class="col-12 text-end">
-										<button type="submit" class="btn btn-primary">Save Issue</button>
 									</div>
 								</div>
 							</form>

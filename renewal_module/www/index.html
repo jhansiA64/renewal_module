@@ -44,7 +44,7 @@
 
     <!-- Spinner Start -->
     <div id="spinner"
-        class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
+        class="bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
         <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
             <span class="sr-only">Loading...</span>
         </div>
@@ -64,30 +64,35 @@
                     </div>
                 </div>
                 {% set event_list = frappe.get_all("Event",filters={'status':
-                'Open','event_category':'Event'},fields=['name','subject','starts_on','ends_on'],order_by='starts_on asc') %}
+                'Open','event_category':'Event'},fields=['name','subject','starts_on','ends_on'],order_by='starts_on
+                asc') %}
                 {% set today = frappe.utils.now_datetime() %}
 
                 <div class="col-lg-10 text-center text-lg-end">
                     <div class="d-flex align-items-center justify-content-end">
-                        <marquee style="color: #ffffff;">
+                        <marquee style="color:white">
+                            {% for event in event_list if event_list and event.starts_on %}
 
-                            {% for event in event_list if event_list %}
-                            {% set start_datetime = event.starts_on %}
+                            {% set start_datetime = frappe.utils.get_datetime(event.starts_on) %}
+
                             {% set start_date = start_datetime.strftime("%d-%m-%Y") %}
-                            {% set start_time = start_datetime.time() %}
-                            {% set end_datetime = event.starts_on %}
-                            {% set end_date = end_datetime.strftime("%d-%m-%Y") %}
 
-                            {% if start_datetime >= today %}
-                            <a href="events.html" style="color: #ffffff;"><i
-                                    class="fas fa-shield-alt text-primary me-2"></i>
-                                {{event.subject }} starts on {{ start_date }} at {{start_time}} and ends on
-                                {{end_date}}.</a>
-                            &nbsp;
-                            <!-- {{event.name}} -->
+                            {% set start_time = start_datetime.strftime("%H:%M") %}
+
+                            {% if event.ends_on %}
+                            {% set end_datetime = frappe.utils.get_datetime(event.ends_on) %}
+                            {% set end_date = end_datetime.strftime("%d-%m-%Y") %}
+                            {% else %}
+                            {% set end_date = start_date %}
                             {% endif %}
 
+                            {% if start_datetime >= frappe.utils.get_datetime(today) %}
+                            <i class="fas fa-shield-alt text-primary me-2"></i>
+                            {{event.subject }} starts on {{ start_date }} at {{start_time}} and ends on {{end_date}}.
+                            &nbsp;
+                            {% endif %}
                             {% endfor %}
+
                         </marquee>
                     </div>
 
@@ -106,7 +111,7 @@
         </div>
         <div class="container px-0">
             <nav class="navbar navbar-expand-lg navbar-dark bg-white py-1 px-3">
-                <a href="index.html" class="navbar-brand p-0">
+                <a href="/index" class="navbar-brand p-0">
 
                     <img src="img/logo.png">
                     <!-- <img src="img/logo.png" alt="Logo"> -->
@@ -129,19 +134,15 @@
                 </button>
                 <div class="collapse navbar-collapse" id="navbarCollapse">
                     <div class="navbar-nav ms-auto py-0">
-                        <a href="index.html" class="nav-item nav-link active">Home</a>
-                        <a href="aboutus.html" class="nav-item nav-link">About</a>
-                        <a href="solutions.html" class="nav-item nav-link">Solutions</a>
-                        <a href="blog1.html" class="nav-item nav-link">Blog</a>
-                        <a href="career.html" class="nav-item nav-link">Career</a>
-                        <a href="events.html" class="nav-item nav-link">Events</a>
-                        <a href="contact.html" class="nav-item nav-link">Contact</a>
+                        <a href="/index" class="nav-item nav-link active">Home</a>
+                        <a href="/aboutus" class="nav-item nav-link">About</a>
+                        <a href="/solutions" class="nav-item nav-link">Solutions</a>
+                        <a href="/blog1" class="nav-item nav-link">Blog</a>
+                        <a href="/career" class="nav-item nav-link">Career</a>
+                        <a href="/events" class="nav-item nav-link">Events</a>
+                        <a href="/contact" class="nav-item nav-link">Contact</a>
                         <a href="/login" class="nav-item nav-link">Login</a>
                     </div>
-                    <!-- <div class="d-flex align-items-center flex-nowrap pt-xl-0">
-                           
-                            <a href="#" class="btn btn-primary rounded-pill text-white py-2 px-4 ms-2 flex-wrap flex-sm-shrink-0">16 Years of Excellence</a>
-                        </div> -->
                 </div>
 
                 <div class="navbar-logo">
@@ -152,9 +153,6 @@
                     {% set company_age = frappe.utils.date_diff(today, established_date)//365 %}
                     <div class="text-block">
                         <span class=" text-block" data-toggle="counter-up">{{ company_age }}</span>
-                        <!-- <h4 class="text-block fs-1 mb-0" style="font-weight: 600; font-size: 25px;">+</h4> -->
-                        <!-- {{ company_age }} -->
-
                     </div>
                 </div>
 
@@ -210,36 +208,6 @@
             </div>
         </div>
         {% endfor %}
-        <!-- <div class="header-carousel-item mx-auto">
-                <div class="header-carousel-item-img-2">
-                    <img src="img/carousel-2.jpg" class="img-fluid w-100" alt="Image">
-                </div>
-                <div class="carousel-caption">
-                    <div class="carousel-caption-inner text-center p-3">
-                        <h1 class="display-1 text-capitalize text-white mb-4">Introducing FortiAI – The Generative AI Security Assistant</h1>
-                        <p class="mb-5 fs-5">Turbocharge your SecOps efficiency and incident response.
-
-
-                        </p>
-                        <a class="btn btn-primary rounded-pill py-2 px-5 mb-4 me-4" href="#">Learn more</a>
-                       
-                    </div>
-                </div>
-            </div>
-            <div class="header-carousel-item">
-                <div class="header-carousel-item-img-3">
-                    <img src="img/carousel-3.jpg" class="img-fluid w-100" alt="Image">
-                </div>
-                <div class="carousel-caption">
-                    <div class="carousel-caption-inner text-center p-3">
-                        <h1 class="display-1 text-capitalize text-white mb-4">Microsoft 365 has you covered</h1>
-                        <p class="mb-5 fs-5">Everyone gets cloud storage and essential Microsoft 365 apps on the web, free of charge
-                        </p>
-                        <a class="btn btn-primary rounded-pill py-2 px-5 mb-4 me-4" href="#">Get in touch</a>
-                        
-                    </div>
-                </div>
-            </div> -->
     </div>
     <!-- Carousel End -->
 
@@ -348,73 +316,11 @@
                                 <div class="service-content-inner">
                                     <h6>{{ solution.name }}</h6>
 
-                                    <a class="btn btn-light rounded-pill rm" href="solutions.html">Read More</a>
+                                    <a class="btn btn-light rounded-pill rm" href="/solutions">Read More</a>
                                 </div>
                             </div>
                         </div>
                         {% endfor %}
-                        <!-- <div class="service-item bg-light rounded">
-                            <div class="service-img">
-                                <img src="img/icons/epp.jpg" class="img-fluid w-100 rounded-top" alt="">
-                            </div>
-                            <div class="service-content text-center p-4">
-                                <div class="service-content-inner">
-                                    <h6>EPP, EDR & MDR
-
-</h6>
-                                  
-                                    <a class="btn btn-light rounded-pill py-1 px-5" href="solutions.html">Read More</a>
-                                </div>
-                            </div>
-                        </div>
-                            <div class="service-item bg-light rounded">
-                            <div class="service-img">
-                                <img src="img/icons/cloud.jpg" class="img-fluid w-100 rounded-top" alt="">
-                            </div>
-                            <div class="service-content text-center p-4">
-                                <div class="service-content-inner">
-                                    <h6>Data Centre & Cloud Solutions
-
-
-</h6>
-                                  
-                                    <a class="btn btn-light rounded-pill py-1 px-5" href="solutions.html">Read More</a>
-                                </div>
-                            </div>
-                        </div>
-                            <div class="service-item bg-light rounded">
-                            <div class="service-img">
-                                <img src="img/icons/email.jpg" class="img-fluid w-100 rounded-top" alt="">
-                            </div>
-                            <div class="service-content text-center p-4">
-                                <div class="service-content-inner">
-                                    <h6>Hosted Email Messaging Solution
-
-
-
-</h6>
-                                  
-                                    <a class="btn btn-light rounded-pill py-1 px-5" href="solutions.html">Read More</a>
-                                </div>
-                            </div>
-                        </div>
-                            <div class="service-item bg-light rounded">
-                            <div class="service-img">
-                                <img src="img/icons/iam.jpg" class="img-fluid w-100 rounded-top" alt="">
-                            </div>
-                            <div class="service-content text-center p-4">
-                                <div class="service-content-inner">
-                                    <h6>Identity and Access Management (IAM)
-
-
-
-
-</h6>
-                                  
-                                    <a class="btn btn-light rounded-pill py-1 px-5" href="solutions.html">Read More</a>
-                                </div>
-                            </div>
-                        </div> -->
                     </div>
                 </div>
             </div>
@@ -451,97 +357,14 @@
 
 
     <!-- Blog Start -->
-    <div class="container-fluid blog pb-5">
+    <!--<div class="container-fluid blog pb-5">
         <div class="container pb-5">
             <div class="text-center mx-auto pb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 800px;">
                 <h4 class="text-primary">Our Blogs</h4>
                 <h1 class="display-4">Latest Articles & News from the Blogs</h1>
             </div>
-            {% from "frappe/utils/data.py" import formatdate, format_time %}
-            {% set blogs =frappe.get_all("Blog Post",filters={'published': 1},fields=['name', 'title','meta_title',
-            'blogger','blog_category',
-            'meta_description','meta_image','content','blog_intro','published_on'],order_by='published_on asc') %}
-
-            <div class="row g-4 justify-content-center">
-                {% for blog in blogs %}
-                {%if blog.meta_title %}
-                {% set blogger_name = blog.blogger %}
-                {% set blogger =frappe.get_all("Blogger",filters={'name': blogger_name},fields=['name', 'full_name']) %}
-                {% set blog_category =frappe.get_all("Blog Category",filters={'name':
-                blog.blog_category},fields=['name', 'title']) %}
-
-                <div class="col-md-6 col-lg-6 col-xl-4 wow fadeInUp" data-wow-delay="0.1s">
-                    <div class="blog-item bg-light rounded p-4" style="background-image: url(img/bg.png);">
-                        <div class="mb-4">
-                            <h4 class="text-primary mb-2">{{ blog.title }}</h4>
-                            <div class="d-flex justify-content-between">
-                                <p class="mb-0"><span class="text-dark fw-bold">On</span> {{
-                                    blog.published_on.strftime("%d %b, %Y") }} </p>
-                                <p class="mb-0"><span class="text-dark fw-bold">By</span> {{ blogger[0].name}}</p>
-                            </div>
-                        </div>
-                        <div class="project-img">
-                            <img src={{blog.meta_image}} class="img-fluid w-100 rounded" alt="Image">
-                            <!-- <div class="blog-plus-icon">
-                                            <a href="img/blog-1.jpg" data-lightbox="blog-1" class="btn btn-primary btn-md-square rounded-pill"><i class="fas fa-plus fa-1x"></i></a>
-                                        </div> -->
-                        </div>
-                        <div class="my-4">
-                            <h5 class="text-primary mb-2">{{ blog_category[0].title}}</h5>
-                            <a href="/blog_inner?blog={{blog.name}}" class="h4"
-                                style="font-size: 14px;font-family: 'Roboto', sans-serif;">{{blog.meta_description}}</a>
-                        </div>
-                        <a class="btn btn-primary rounded-pill py-2 px-4" href="/blog_inner?blog={{blog.name}}">Explore
-                            More</a>
-                    </div>
-                </div>
-                {% endif %}
-                {% endfor %}
-                <!-- <div class="col-md-6 col-lg-6 col-xl-4 wow fadeInUp" data-wow-delay="0.3s">
-                        <div class="blog-item bg-light rounded p-4" style="background-image: url(img/bg.png);">
-                            <div class="mb-4">
-                                <h4 class="text-primary mb-2">Business</h4>
-                                <div class="d-flex justify-content-between">
-                                    <p class="mb-0"><span class="text-dark fw-bold">On</span> Mar 14, 2024</p>
-                                    <p class="mb-0"><span class="text-dark fw-bold">By</span> Mark D. Brock</p>
-                                </div>
-                            </div>
-                            <div class="project-img">
-                                <img src="img/blog-2.jpg" class="img-fluid w-100 rounded" style="height: 10px;" alt="Image">
-                                <div class="blog-plus-icon">
-                                    <a href="img/blog-2.jpg" data-lightbox="blog-2" class="btn btn-primary btn-md-square rounded-pill"><i class="fas fa-plus fa-1x"></i></a>
-                                </div>
-                            </div>
-                            <div class="my-4">
-                                <a href="#" class="h4">Dimensional Fund Advisors Interview with Director</a>
-                            </div>
-                            <a class="btn btn-primary rounded-pill py-2 px-4" href="#">Explore More</a>
-                        </div>
-                    </div>
-                    <div class="col-md-6 col-lg-6 col-xl-4 wow fadeInUp" data-wow-delay="0.5s">
-                        <div class="blog-item bg-light rounded p-4" style="background-image: url(img/bg.png);">
-                            <div class="mb-4">
-                                <h4 class="text-primary mb-2">Consulting</h4>
-                                <div class="d-flex justify-content-between">
-                                    <p class="mb-0"><span class="text-dark fw-bold">On</span> Mar 14, 2024</p>
-                                    <p class="mb-0"><span class="text-dark fw-bold">By</span> Mark D. Brock</p>
-                                </div>
-                            </div>
-                            <div class="project-img">
-                                <img src="img/blog-3.jpg" class="img-fluid w-100 rounded" alt="Image">
-                                <div class="blog-plus-icon">
-                                    <a href="img/blog-3.jpg" data-lightbox="blog-3" class="btn btn-primary btn-md-square rounded-pill"><i class="fas fa-plus fa-1x"></i></a>
-                                </div>
-                            </div>
-                            <div class="my-4">
-                                <a href="#" class="h4">Interested in Giving Back this year? Here are some tips</a>
-                            </div>
-                            <a class="btn btn-primary rounded-pill py-2 px-4" href="#">Explore More</a>
-                        </div>
-                    </div>  -->
-            </div>
         </div>
-    </div>
+    </div>-->
     <!-- Blog End -->
 
 
@@ -551,7 +374,7 @@
 
 
     <!-- Testimonial Start -->
-    <div class="container-fluid testimonial bg-light py-5">
+    <!--<div class="container-fluid testimonial bg-light py-5">
         <div class="container py-5">
             <div class="row g-4 align-items-center">
                 <div class="col-xl-4 wow fadeInLeft" data-wow-delay="0.1s">
@@ -592,7 +415,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div>-->
     <!-- Testimonial End -->
 
 
@@ -607,7 +430,7 @@
                 <div class="col-md-6 col-lg-6 col-xl-6">
                     <div class="footer-item d-flex flex-column">
                         <div class="footer-item">
-                            <a href="index.html" class="navbar-brand p-0">
+                            <a href="/" class="navbar-brand p-0">
                                 <img src="img/logow.png">
                                 <!-- <img src="img/logo.png" alt="Logo"> -->
                             </a>
@@ -621,11 +444,11 @@
                     <div class="footer-item d-flex flex-column">
                         <h4 class="text-white mb-4">Explore</h4>
 
-                        <a href="aboutus.html"><i class="fas fa-angle-right me-2"></i> About Us</a>
-                        <a href="#"><i class="fas fa-angle-right me-2"></i> Solutions</a>
+                        <a href="/aboutus"><i class="fas fa-angle-right me-2"></i> About Us</a>
+                        <a href="/solutions"><i class="fas fa-angle-right me-2"></i> Solutions</a>
 
-                        <a href="#"><i class="fas fa-angle-right me-2"></i> Blog</a>
-                        <a href="#"><i class="fas fa-angle-right me-2"></i> Contact Us</a>
+                        <a href="/blog1"><i class="fas fa-angle-right me-2"></i> Blog</a>
+                        <a href="/contact"><i class="fas fa-angle-right me-2"></i> Contact Us</a>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-6 col-xl-3">

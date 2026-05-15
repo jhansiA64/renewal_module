@@ -4,13 +4,26 @@
  "docstatus": 0,
  "doctype": "Page",
  "idx": 0,
- "modified": "2026-02-25 12:03:20.019617",
+ "modified": "2026-04-16 17:47:48.488814",
  "modified_by": "Administrator",
  "module": "Custom Module",
  "name": "opportunity-data",
  "owner": "Administrator",
  "page_name": "opportunity-data",
- "roles": [],
+ "roles": [
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Tech Sales"
+  }
+ ],
  "script": null,
  "standard": "Yes",
  "style": null,

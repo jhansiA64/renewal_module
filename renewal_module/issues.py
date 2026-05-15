@@ -109,23 +109,12 @@ def check_ticket_availability(customer=None, item=None, issue_name=None):
         return {"status": "error", "message": "Server error while checking SLA tickets."}
 
 
+# import frappe
 
-
-
-
-
-
-
-
-
-
-
-import frappe
-
-def custom_homepage(bootinfo):
-    roles = frappe.get_roles()
-    # Change role name to your technical team role
-    if "Technical Support" in roles:
-        bootinfo["home_page"] = "/app/support-dashboard"
+# def custom_homepage(bootinfo):
+#     roles = frappe.get_roles()
+#     # Change role name to your technical team role
+#     if "Technical Support" in roles:
+#         bootinfo["home_page"] = "/app/support-dashboard"
 
 

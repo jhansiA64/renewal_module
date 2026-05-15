@@ -1,4 +1,3 @@
-
 <!-- <nav class="navbar navbar-warning navbar-expand-lg" style="background-color: #E0F7FA;color:#fcba03">
 	<div class="container">
 		<a class="navbar-brand" href="{{ url_prefix }}{{ home_page or '/' }}">
@@ -37,44 +36,52 @@
 
 
 
-  <!-- Topbar Start -->
-  <div class="container-fluid topbar px-0 d-none d-lg-block">
+<!-- Topbar Start -->
+<div class="container-fluid topbar px-0 d-none d-lg-block">
 	<div class="container px-0">
 		<div class="row gx-0 align-items-center" style="height: 45px;">
 			<div class="col-lg-2 text-center text-lg-start mb-lg-0">
 				<div class="d-flex flex-wrap">
-					<a href="#" style="color: #ffffff;" class="text-muted me-4"><i class="fas fa-calendar-alt text-primary me-2"></i>Upcomming Events</a>
-					
+					<a href="#" style="color: #ffffff;" class="text-muted me-4"><i
+							class="fas fa-calendar-alt text-primary me-2"></i>Upcomming Events</a>
+
 				</div>
 			</div>
-			{% set event_list = frappe.get_all("Event",filters={'status': 'Open','event_category':'Event'},fields=['name','subject','starts_on','ends_on'],order_by='starts_on asc') %}
+			{% set event_list = frappe.get_all("Event",filters={'status':
+			'Open','event_category':'Event'},fields=['name','subject','starts_on','ends_on'],order_by='starts_on asc')
+			%}
 			{% set today = frappe.utils.now_datetime() %}
-			
+
 			<div class="col-lg-10 text-center text-lg-end">
 				<div class="d-flex align-items-center justify-content-end">
-					<marquee style="color: #ffffff;">
-				 
-				{% for event in event_list if event_list %}
-					{% set start_datetime = event.starts_on %}
-					{% set start_date = start_datetime.strftime("%d-%m-%Y")  %}
-					{% set start_time = start_datetime.time() %}
-					{% set end_datetime = event.starts_on %}
-					{% set end_date = end_datetime.strftime("%d-%m-%Y")  %}
-					
-					{% if start_datetime >= today %}                            
-					<a href="events.html" style="color: #ffffff;"><i class="fas fa-shield-alt text-primary me-2" ></i>
-						{{event.subject }} starts on {{ start_date }} at {{start_time}}  and ends on {{end_date}}.</a>
-						 &nbsp;
-											<!-- {{event.name}} -->
-					{% endif %}                        
-					
-				{% endfor %}
-			</marquee>
-		</div>
+					<marquee style="color:white">
+						{% for event in event_list if event_list and event.starts_on %}
 
-				
+						{% set start_datetime = frappe.utils.get_datetime(event.starts_on) %}
+
+						{% set start_date = start_datetime.strftime("%d-%m-%Y") %}
+
+						{% set start_time = start_datetime.strftime("%H:%M") %}
+
+						{% if event.ends_on %}
+						{% set end_datetime = frappe.utils.get_datetime(event.ends_on) %}
+						{% set end_date = end_datetime.strftime("%d-%m-%Y") %}
+						{% else %}
+						{% set end_date = start_date %}
+						{% endif %}
+
+						{% if start_datetime >= frappe.utils.get_datetime(today) %}
+						<i class="fas fa-shield-alt text-primary me-2"></i>
+						{{event.subject }} starts on {{ start_date }} at {{start_time}} and ends on {{end_date}}. &nbsp;
+						{% endif %}
+						{% endfor %}
+
+					</marquee>
+				</div>
+
+
 			</div>
-			
+
 		</div>
 	</div>
 </div>
@@ -87,7 +94,7 @@
 	</div>
 	<div class="container px-0">
 		<nav class="navbar navbar-expand-lg navbar-dark bg-white py-3 px-4">
-			<a href="index.html" class="navbar-brand p-0">
+			<a href="/" class="navbar-brand p-0">
 				<img src="img/logo.png">
 				<!-- <img src="img/logo.png" alt="Logo"> -->
 			</a>
@@ -96,22 +103,25 @@
 			</button>
 			<div class="collapse navbar-collapse" id="navbarCollapse">
 				<div class="navbar-nav ms-auto py-0">
-					<a href="index.html" class="nav-item nav-link active">Home</a>
-					<a href="aboutus.html" class="nav-item nav-link">About</a>
-					<a href="solutions.html" class="nav-item nav-link">Solutions</a>
-					<a href="blog1.html" class="nav-item nav-link">Blog</a>
-					<a href="career.html" class="nav-item nav-link">Career</a>
-					<a href="events.html" class="nav-item nav-link">Events</a>
-					
-					<a href="contact.html" class="nav-item nav-link">Contact</a>
+					<a href="/index" class="nav-item nav-link active">Home</a>
+					<a href="/aboutus" class="nav-item nav-link">About</a>
+					<a href="/solutions" class="nav-item nav-link">Solutions</a>
+					<a href="/blog1" class="nav-item nav-link">Blog</a>
+					<a href="/career" class="nav-item nav-link">Career</a>
+					<a href="/events" class="nav-item nav-link">Events</a>
+
+					<a href="/contact" class="nav-item nav-link">Contact</a>
 					<a href="/login" class="nav-item nav-link">Login</a>
-			  </div>
+				</div>
 				<div class="d-flex align-items-center flex-nowrap pt-xl-0">
-				   
-					<a href="#" class="btn btn-primary rounded-pill text-white py-2 px-4 ms-2 flex-wrap flex-sm-shrink-0">16 Years of Excellence</a>
+
+					<a href="#"
+						class="btn btn-primary rounded-pill text-white py-2 px-4 ms-2 flex-wrap flex-sm-shrink-0">16
+						Years of Excellence</a>
 				</div>
 			</div>
 		</nav>
 	</div>
 </div>
 <!-- Navbar & Hero End -->
+

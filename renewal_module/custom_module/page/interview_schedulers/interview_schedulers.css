@@ -1,0 +1,740 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap");
+
+/* ===================================================================
+   Interview Schedulers — Design System (mirrors Job Requisition)
+   =================================================================== */
+
+:root {
+    --jrq-primary: #1a56db;
+    --jrq-primary-dark: #1046b8;
+    --jrq-primary-light: #ebf0ff;
+    --jrq-primary-glow: rgba(26, 86, 219, 0.18);
+    --jrq-teal: #0e9f6e;
+    --jrq-teal-light: #e4f5ef;
+    --jrq-amber: #d97706;
+    --jrq-amber-light: #fef3c7;
+    --jrq-red: #e02424;
+    --jrq-red-light: #fde8e8;
+    --jrq-purple: #7e3af2;
+    --jrq-purple-light: #edebfe;
+    --jrq-slate: #64748b;
+    --jrq-text: #111827;
+    --jrq-text-muted: #6b7280;
+    --jrq-text-light: #9ca3af;
+    --jrq-bg: #f3f6fb;
+    --jrq-surface: #ffffff;
+    --jrq-border: #e5e7eb;
+    --jrq-border-strong: #d1d5db;
+    --jrq-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --jrq-shadow: 0 4px 16px rgba(17, 24, 39, 0.07), 0 1px 3px rgba(17, 24, 39, 0.04);
+    --jrq-shadow-lg: 0 12px 32px rgba(17, 24, 39, 0.10), 0 3px 8px rgba(17, 24, 39, 0.06);
+    --jrq-radius-sm: 6px;
+    --jrq-radius: 10px;
+    --jrq-radius-lg: 14px;
+    --jrq-radius-xl: 18px;
+    --jrq-radius-full: 999px;
+    --jrq-font: "Inter", "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+    --jrq-font-title: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+    --jrq-transition: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ===================================================================
+   PAGE LAYOUT OVERRIDES
+   =================================================================== */
+
+[data-route^="interview-schedulers"] .sticky-top,
+[data-route^="interview-schedulers"] .page-head {
+    display: none !important;
+}
+
+[data-route^="interview-schedulers"] .layout-main {
+    background: transparent;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+[data-route^="interview-schedulers"] .layout-main-section-wrapper {
+    padding: 0 !important;
+}
+
+[data-route^="interview-schedulers"] .body-sidebar-container {
+    display: none !important;
+    width: 0 !important;
+}
+
+[data-route^="interview-schedulers"] .m-0 {
+    margin: 5px !important;
+}
+
+/* ===================================================================
+   WRAPPER
+   =================================================================== */
+
+.jrq-wrapper {
+    font-family: var(--jrq-font);
+    color: var(--jrq-text);
+    min-height: 100%;
+    width: 100%;
+    max-width: 100%;
+    animation: jrqFadeIn 0.22s ease;
+}
+
+@keyframes jrqFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===================================================================
+   BUTTONS
+   =================================================================== */
+
+.jrq-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: var(--jrq-radius-sm);
+    font-family: var(--jrq-font);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    line-height: 1;
+    transition: background var(--jrq-transition), box-shadow var(--jrq-transition), transform var(--jrq-transition), border-color var(--jrq-transition), color var(--jrq-transition);
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+.jrq-btn:active { transform: scale(0.97); }
+
+.jrq-btn-primary {
+    background: linear-gradient(135deg, var(--jrq-primary), var(--jrq-primary-dark));
+    color: #fff !important;
+    border-color: var(--jrq-primary-dark);
+    box-shadow: 0 2px 8px var(--jrq-primary-glow);
+}
+.jrq-btn-primary:hover {
+    background: linear-gradient(135deg, #1e63f0, var(--jrq-primary));
+    box-shadow: 0 4px 14px var(--jrq-primary-glow);
+    color: #fff !important;
+}
+
+.jrq-btn-outline {
+    background: var(--jrq-surface);
+    color: var(--jrq-primary);
+    border-color: var(--jrq-primary);
+}
+.jrq-btn-outline:hover {
+    background: var(--jrq-primary-light);
+    color: var(--jrq-primary-dark);
+}
+
+.jrq-btn-ghost {
+    background: transparent;
+    color: var(--jrq-text-muted);
+    border-color: var(--jrq-border-strong);
+}
+.jrq-btn-ghost:hover {
+    background: var(--jrq-border);
+    color: var(--jrq-text);
+    border-color: var(--jrq-border-strong);
+}
+
+.jrq-btn-danger {
+    background: var(--jrq-red-light);
+    color: var(--jrq-red);
+    border-color: #fca5a5;
+}
+.jrq-btn-danger:hover {
+    background: var(--jrq-red);
+    color: #fff;
+    border-color: var(--jrq-red);
+}
+
+/* ===================================================================
+   STATUS PILLS
+   =================================================================== */
+
+.jrq-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 10px;
+    border-radius: var(--jrq-radius-full);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    line-height: 1.6;
+    white-space: nowrap;
+}
+
+.pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 700;
+    line-height: 1.6;
+    white-space: nowrap;
+}
+
+.pill-success, .jrq-pill.pill-success {
+    background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0;
+}
+.pill-danger, .jrq-pill.pill-danger {
+    background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca;
+}
+.pill-warning, .jrq-pill.pill-warning {
+    background: #fef9c3; color: #92400e; border: 1px solid #fde68a;
+}
+.pill-info, .jrq-pill.pill-info {
+    background: var(--jrq-primary-light); color: var(--jrq-primary); border: 1px solid #bfdbfe;
+}
+
+.jrq-pill-sm { font-size: 10.5px; padding: 2px 8px; }
+
+/* ===================================================================
+   LIST VIEW — TOOLBAR / CONTROLS
+   =================================================================== */
+
+[data-route^="interview-schedulers"] .controls-wrapper {
+    padding: 4px 0;
+}
+
+[data-route^="interview-schedulers"] .controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+[data-route^="interview-schedulers"] .left-controls,
+[data-route^="interview-schedulers"] .right-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+[data-route^="interview-schedulers"] .left-controls .control-select,
+[data-route^="interview-schedulers"] .left-controls .control-input {
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #fff;
+    color: #000;
+    font-size: 12px;
+    min-height: auto;
+    transition: all 0.2s ease;
+}
+
+[data-route^="interview-schedulers"] .left-controls .control-select {
+    width: 150px;
+    flex: 0 0 150px;
+    padding: 4px 32px 4px 10px;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%239ca3af' d='M7 10l5-5 5 5H7zm0 4h10l-5 5-5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+}
+
+[data-route^="interview-schedulers"] .left-controls .control-input {
+    width: 180px;
+    flex: 0 0 180px;
+    padding: 4px 10px;
+}
+
+[data-route^="interview-schedulers"] .left-controls .control-select.placeholder {
+    color: #9ca3af !important;
+}
+
+[data-route^="interview-schedulers"] .left-controls .control-select:focus,
+[data-route^="interview-schedulers"] .left-controls .control-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+[data-route^="interview-schedulers"] .filter-actions .btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #fff;
+}
+
+[data-route^="interview-schedulers"] .filter-actions .button-label,
+[data-route^="interview-schedulers"] #new-interview-btn {
+    font-size: 12px;
+}
+
+[data-route^="interview-schedulers"] .btn-primary1 {
+    background: linear-gradient(130deg, var(--jrq-primary-dark), var(--jrq-primary));
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: #fff !important;
+    border-radius: var(--jrq-radius);
+    font-weight: 700;
+    box-shadow: 0 8px 20px var(--jrq-primary-glow);
+}
+
+[data-route^="interview-schedulers"] .btn-default1 {
+    color: #383838;
+}
+
+/* ===================================================================
+   TABLE
+   =================================================================== */
+
+[data-route^="interview-schedulers"] .table-container {
+    position: relative;
+    max-height: 70vh;
+    min-height: 70vh;
+    overflow: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+}
+
+[data-route^="interview-schedulers"] .jobs-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+[data-route^="interview-schedulers"] .jobs-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #fff;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    font-size: 12px;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+[data-route^="interview-schedulers"] .jobs-table tbody td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+    vertical-align: middle;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    font-size: 12px;
+    color: #111827;
+}
+
+[data-route^="interview-schedulers"] .jobs-table tbody tr:hover td {
+    background: #f8fafc;
+}
+
+[data-route^="interview-schedulers"] .jobs-table th:first-child,
+[data-route^="interview-schedulers"] .jobs-table td:first-child {
+    width: 40px;
+    min-width: 40px;
+    max-width: 40px;
+    text-align: center;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+[data-route^="interview-schedulers"] .ids {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+[data-route^="interview-schedulers"] .ids:hover {
+    text-decoration: underline;
+}
+
+[data-route^="interview-schedulers"] .pagination-info {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+/* ===================================================================
+   EMPTY STATE
+   =================================================================== */
+
+.jrq-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 56px 24px;
+    gap: 10px;
+}
+
+.jrq-empty-sm { padding: 24px; }
+
+.jrq-empty-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--jrq-radius-full);
+    background: var(--jrq-primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--jrq-primary);
+    margin-bottom: 4px;
+}
+
+.jrq-empty-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--jrq-text);
+}
+
+.jrq-empty-sub {
+    font-size: 13px;
+    color: var(--jrq-text-muted);
+}
+
+/* ===================================================================
+   DETAIL VIEW
+   =================================================================== */
+
+.jrq-detail-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    animation: jrqFadeIn 0.22s ease;
+}
+
+.jrq-detail-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    background: var(--jrq-primary-dark);
+    border-radius: var(--jrq-radius-xl);
+    padding: 22px 24px;
+    box-shadow: var(--jrq-shadow-lg);
+}
+
+.jrq-detail-id {
+    font-family: var(--jrq-font-title);
+    font-size: 18px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.3px;
+    margin-bottom: 8px;
+}
+
+.jrq-detail-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-left: -5px;
+}
+
+.jrq-detail-badge {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: var(--jrq-radius-full);
+    padding: 3px 10px;
+    margin-right: 1px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.jrq-detail-badge-soft { background: rgba(255,255,255,0.12); }
+
+.jrq-detail-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.jrq-detail-header .jrq-btn-ghost {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border-color: rgba(255,255,255,0.3);
+}
+.jrq-detail-header .jrq-btn-ghost:hover {
+    background: rgba(255,255,255,0.28);
+    color: #fff;
+}
+.jrq-detail-header .jrq-btn-outline {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border-color: rgba(255,255,255,0.5);
+}
+.jrq-detail-header .jrq-btn-outline:hover {
+    background: #fff;
+    color: var(--jrq-primary);
+}
+.jrq-detail-header .jrq-btn-danger {
+    background: rgba(224,36,36,0.18);
+    border-color: rgba(255,255,255,0.3);
+    color: #fecaca;
+}
+.jrq-detail-header .jrq-btn-danger:hover {
+    background: var(--jrq-red);
+    color: #fff;
+    border-color: var(--jrq-red);
+}
+
+/* Stat cards */
+.jrq-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 900px) { .jrq-stat-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 550px) { .jrq-stat-grid { grid-template-columns: 1fr; } }
+
+.jrq-stat-card {
+    background: var(--jrq-surface);
+    border: 1px solid var(--jrq-border);
+    border-radius: var(--jrq-radius-lg);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: var(--jrq-shadow-sm);
+    transition: box-shadow var(--jrq-transition), transform var(--jrq-transition);
+}
+.jrq-stat-card:hover { box-shadow: var(--jrq-shadow); transform: translateY(-1px); }
+
+.jrq-stat-body {
+    display: flex;
+    flex-direction: column;
+}
+
+.jrq-stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--jrq-text-muted);
+    margin-bottom: 3px;
+}
+
+.jrq-stat-value {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--jrq-text);
+}
+
+/* Detail content cards */
+.jrq-detail-card {
+    background: var(--jrq-surface);
+    border: 1px solid var(--jrq-border);
+    border-radius: var(--jrq-radius-lg);
+    box-shadow: var(--jrq-shadow-sm);
+    overflow: hidden;
+}
+
+.jrq-detail-section-title {
+    font-family: var(--jrq-font-title);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--jrq-text);
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--jrq-border);
+    background: #f8fafc;
+}
+
+/* Fields grid */
+.jrq-fields-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    padding: 8px 0;
+}
+
+@media (max-width: 768px) { .jrq-fields-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .jrq-fields-grid { grid-template-columns: 1fr; } }
+
+.jrq-field-item {
+    padding: 12px 18px;
+}
+
+.jrq-field-full {
+    grid-column: 1 / -1;
+}
+
+.jrq-field-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--jrq-text-light);
+    margin-bottom: 5px;
+}
+
+.jrq-field-value {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--jrq-text);
+}
+
+.jrq-field-text {
+    white-space: pre-wrap;
+    line-height: 1.6;
+    color: #374151;
+}
+
+/* ===================================================================
+   FORM VIEW
+   =================================================================== */
+
+.jrq-form-card {
+    background: var(--jrq-surface);
+    border: 1px solid var(--jrq-border);
+    border-radius: var(--jrq-radius-xl);
+    box-shadow: var(--jrq-shadow-lg);
+    overflow: hidden;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    animation: jrqFadeIn 0.22s ease;
+}
+
+.interview-form-view {
+    width: 100%;
+    max-width: 100%;
+}
+
+.jrq-form {
+    padding: 24px;
+}
+
+.jrq-form-section-label {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--jrq-primary);
+    border-bottom: 2px solid var(--jrq-primary-light);
+    padding-bottom: 6px;
+    margin-bottom: 16px;
+    margin-top: 24px;
+}
+
+.jrq-form-section-label:first-child { margin-top: 0; }
+
+.jrq-form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 4px;
+}
+
+@media (max-width: 768px) { .jrq-form-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .jrq-form-grid { grid-template-columns: 1fr; } }
+
+.jrq-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.jrq-form-group-full {
+    grid-column: 1 / -1;
+    margin-top: 4px;
+}
+
+.jrq-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #374151;
+}
+
+.jrq-req { color: var(--jrq-red); }
+
+.jrq-field {
+    height: 38px;
+    padding: 0 12px;
+    border: 1px solid var(--jrq-border-strong);
+    border-radius: var(--jrq-radius-sm);
+    background: #f9fafb;
+    color: var(--jrq-text);
+    font-family: var(--jrq-font);
+    font-size: 12px;
+    transition: border-color var(--jrq-transition), box-shadow var(--jrq-transition), background var(--jrq-transition);
+    outline: none;
+    width: 100%;
+}
+
+.jrq-field:hover  { border-color: #9ca3af; background: var(--jrq-surface); }
+.jrq-field:focus  {
+    border-color: var(--jrq-primary);
+    background: var(--jrq-surface);
+    box-shadow: 0 0 0 3px var(--jrq-primary-glow);
+}
+
+.jrq-field::placeholder { color: var(--jrq-text-light); }
+
+.jrq-select-field {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-color: #f9fafb;
+    padding-right: 32px;
+    cursor: pointer;
+}
+
+.jrq-select-field:hover  { background-color: var(--jrq-surface); }
+.jrq-select-field:focus  { background-color: var(--jrq-surface); }
+
+.jrq-textarea {
+    height: auto !important;
+    padding: 10px 12px;
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.6;
+}
+
+.jrq-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--jrq-border);
+}
+
+.jrq-form-actions .jrq-btn {
+    padding: 9px 20px;
+    font-size: 12px;
+}
+
+/* ===================================================================
+   RESPONSIVE
+   =================================================================== */
+
+@media (max-width: 767px) {
+    [data-route^="interview-schedulers"] .controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    [data-route^="interview-schedulers"] .left-controls,
+    [data-route^="interview-schedulers"] .right-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    [data-route^="interview-schedulers"] .left-controls .control-select,
+    [data-route^="interview-schedulers"] .left-controls .control-input,
+    [data-route^="interview-schedulers"] #new-interview-btn,
+    [data-route^="interview-schedulers"] .filter-actions {
+        width: 100%;
+        max-width: 100%;
+        flex: 1 1 100%;
+    }
+}

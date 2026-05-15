@@ -9,9 +9,8 @@
  "filters": [],
  "idx": 0,
  "is_standard": "Yes",
- "letter_head": "quotation-footer",
- "letterhead": null,
- "modified": "2026-01-24 12:25:46.907893",
+ "letter_head": null,
+ "modified": "2026-04-16 12:57:33.646889",
  "modified_by": "Administrator",
  "module": "Custom Module",
  "name": "Customers Analysis",
@@ -20,6 +19,25 @@
  "ref_doctype": "Customer",
  "report_name": "Customers Analysis",
  "report_type": "Script Report",
- "roles": [],
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "HR Manager"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Geetha - Sales Manager"
+  },
+  {
+   "role": "Customer"
+  },
+  {
+   "role": "Sales User"
+  }
+ ],
  "timeout": 0
 }

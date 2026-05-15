@@ -87,8 +87,8 @@ class customersPage {
 		if (route.length === 1) {
 			this.show_list();
 		}
-		// ticket/new-tickets
-		if (route.length === 2 && route[1] === "new-customers") {
+		// customers/new
+		if (route.length === 2 && route[1] === "new") {
 			return this.show_new();
 		}
 		else if (route.length === 2) {
@@ -136,20 +136,15 @@ class customersPage {
 		this.setPageTitle(`Customers/${customer_id}`);
 		this.setActiveSidebar();
 		this.current_customer_id = customer_id;
+		this.bindCustomerRenameButton(customer_id);
 		this.bindProfileTabs();
+		this.bindOthersTabs();
 		this.bindServicesToggle();
 		this.bindStatsSection(customer_id);
+		this.loadRenewalDashboard(customer_id);
 		this.loadRecentActivities(customer_id);
 		this.bindConnectionItems(customer_id);
-		// Only show Sales Analytics if user has read permission on Sales Invoice
-		if (frappe.perm.has_perm('Sales Invoice', 0, 'read')) {
-			this.initSalesFiscalYearFilter(customer_id);
-		} else {
-			// Hide the Sales Analytics section
-			const _w = this.page.wrapper[0] || this.page.wrapper;
-			const salesAnalyticsSection = _w.querySelector('[data-tab-panel="connections"] .mt-4');
-			if (salesAnalyticsSection) salesAnalyticsSection.style.display = 'none';
-		}
+		this.toggleSalesAnalyticsSection(customer_id);
 		this.load_customer_details(customer_id);
 	}
 
@@ -162,7 +157,9 @@ class customersPage {
 		$(".new-customers").removeClass("d-none");
 		this.setPageTitle("New Customers");
 		this.setActiveSidebar();
+		this._newCustomerCurrentStep = 1;
 		this.bind_customer_form_events();
+		this.gotoNewCustomerWizardStep(1);
 
 	}
 
@@ -210,15 +207,18 @@ class customersPage {
 	bindActionDropdown() {
 		$(document).off("click.msgclose");
 
-		$(document).on("click.msgclose", ".btn-modal-close", function (e) {
-			e.preventDefault();
-			e.stopPropagation();
+		$(document).on(
+			"click.msgclose",
+			".msgprint-dialog .btn-modal-close, .msgprint-dialog .modal-header .close",
+			function (e) {
+				e.preventDefault();
+				e.stopPropagation();
 
-			// Proper way to close msgprint
-			if (frappe.msg_dialog && frappe.msg_dialog.hide) {
-				frappe.msg_dialog.hide();
+				if (frappe.msg_dialog && frappe.msg_dialog.hide) {
+					frappe.msg_dialog.hide();
+				}
 			}
-		});
+		);
 	}
 
 	async loadcustomer({ reset = false, saved_filters = [], override_filters = {} } = {}) {
@@ -227,7 +227,7 @@ class customersPage {
 			if (!this.page_length) this.page_length = 20;
 			if (this._fetch_in_process) {
 				console.warn("[fetch_list_data] fetch already in progress — skipping");
-				return resolve;
+				return resolve();
 			}
 
 			this._fetch_in_process = true
@@ -267,8 +267,15 @@ class customersPage {
 
 				const normalizedFilters = (saved_filters || []).map(f => {
 					if (Array.isArray(f)) {
-						const arr = f.length >= 5 ? f.slice(1, 4) : f.slice(0, 3);
-						const [field, operatorRaw, valueRaw] = arr;
+						let field = "";
+						let operatorRaw = "=";
+						let valueRaw = "";
+
+						if (f.length >= 4) {
+							[, field, operatorRaw, valueRaw] = f;
+						} else if (f.length === 3) {
+							[field, operatorRaw, valueRaw] = f;
+						}
 						const operator = (operatorRaw || "=").toLowerCase();
 						let value = valueRaw;
 						if (operator === "between" && typeof value === "string" && value.includes(",")) {
@@ -500,7 +507,7 @@ class customersPage {
 				const checked = table.querySelectorAll('tbody input[type="checkbox"]:checked').length;
 				const selectAll = table.querySelector('#customercheckAll');
 				if (selectAll) selectAll.checked = (all > 0 && all === checked);
-				// update the action/new-ticket visibility
+				// update the action/new-customer visibility
 				this.updateActionBarState(table, newCustomersBtn, actionsDropdownEl);
 			}
 		}
@@ -976,18 +983,19 @@ class customersPage {
 				me.saved_filters = [];
 				// me.clearBasicFilterUI();
 				me._fetch_in_process = false;
-				me.loadcustomer({ reset: true, saved_filters: [] });
 				update_filter_button_count($btn, 0);
 				updateUrlWithFilters([]);
+				me.loadcustomer({ reset: true, saved_filters: [] });
 				closePopover($btn, "clear-filters");
 			});
 
 			footer.find('.apply-filters').off("click").on("click", () => {
 				if (filter_group) {
 					me.saved_filters = filter_group.get_filters();
-					me.loadcustomer({ reset: true, saved_filters: me.saved_filters });
-					update_filter_button_count($btn, me.saved_filters.length);
+					me._fetch_in_process = false;
 					updateUrlWithFilters(me.saved_filters);
+					update_filter_button_count($btn, me.saved_filters.length);
+					me.loadcustomer({ reset: true, saved_filters: me.saved_filters });
 				}
 				closePopover($btn, "apply-filters");
 			});
@@ -1941,8 +1949,8 @@ class customersPage {
 
 	bindProfileTabs() {
 		const wrapper = this.page.wrapper[0] || this.page.wrapper;
-		const tabs = Array.from(wrapper.querySelectorAll(".tabs .tab-link"));
-		const panels = Array.from(wrapper.querySelectorAll("[data-tab-panel]"));
+		const tabs = Array.from(wrapper.querySelectorAll(".profile-main-tabs > .tab-link"));
+		const panels = Array.from(wrapper.querySelectorAll(".profile-main-tab-panels > [data-tab-panel]"));
 
 		if (!tabs.length || !panels.length) return;
 
@@ -1975,6 +1983,46 @@ class customersPage {
 
 		const defaultTab = tabs.find((tab) => tab.classList.contains("active"))?.dataset.tab || tabs[0].dataset.tab;
 		showTab(defaultTab);
+	}
+
+	bindOthersTabs() {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const othersPanel = wrapper.querySelector('[data-tab-panel="others"]');
+		if (!othersPanel) return;
+
+		const tabs = Array.from(othersPanel.querySelectorAll(".others-tabs .tab-link"));
+		const panels = Array.from(othersPanel.querySelectorAll(".others-tab-panels > [data-tab-panel]"));
+		if (!tabs.length || !panels.length) return;
+
+		const showSubTab = (tabName) => {
+			tabs.forEach((tab) => {
+				const isActive = tab.dataset.tab === tabName;
+				tab.classList.toggle("active", isActive);
+			});
+
+			panels.forEach((panel) => {
+				const isMatch = panel.dataset.tabPanel === tabName;
+				panel.classList.toggle("d-none", !isMatch);
+			});
+		};
+
+		tabs.forEach((tab) => {
+			if (tab.dataset.bound === "1") return;
+			tab.dataset.bound = "1";
+			tab.addEventListener("click", (e) => {
+				e.preventDefault();
+				showSubTab(tab.dataset.tab);
+			});
+			tab.addEventListener("keydown", (e) => {
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					showSubTab(tab.dataset.tab);
+				}
+			});
+		});
+
+		const defaultSubTab = tabs.find((tab) => tab.classList.contains("active"))?.dataset.tab || tabs[0].dataset.tab;
+		showSubTab(defaultSubTab);
 	}
 
 
@@ -2044,34 +2092,31 @@ class customersPage {
 
 		// Fetch and display stats
 		this.loadCustomerStats(customer_id);
+		this.loadFiscalYearFinancials(customer_id);
 
 		// Bind collapse/expand functionality
 		const statsHeader = statsSection.querySelector(".stats-header");
 		const statsContent = statsSection.querySelector(".stats-content");
 		const toggleIcon = statsSection.querySelector(".toggle-icon");
 
-		// 🔹 Set default state: COLLAPSED
+		// 🔹 Set default state: EXPANDED
 		if (statsContent && toggleIcon) {
-			statsContent.classList.add("d-none");
-			toggleIcon.classList.remove("fa-chevron-up");
-			toggleIcon.classList.add("fa-chevron-down");
-			// Set initial rotation state (0 degrees for down)
-			toggleIcon.style.transform = "rotate(0deg)";
-			toggleIcon.dataset.rotated = "0";
+			statsContent.classList.remove("d-none");
+			toggleIcon.classList.remove("fa-chevron-down");
+			toggleIcon.classList.add("fa-chevron-up");
+			toggleIcon.style.transform = "rotate(180deg)";
+			toggleIcon.dataset.rotated = "180";
+			toggleIcon.style.cursor = "pointer";
+			toggleIcon.setAttribute("role", "button");
+			toggleIcon.setAttribute("tabindex", "0");
 		}
 
-		if (statsSection && statsContent && toggleIcon) {
+		if (statsHeader && statsContent && toggleIcon) {
 			// Prevent double binding
-			if (statsSection.dataset.bound === "1") return;
-			statsSection.dataset.bound = "1";
+			if (statsHeader.dataset.bound === "1") return;
+			statsHeader.dataset.bound = "1";
 
-			// Make entire stats-section clickable, not just the header
-			statsSection.style.cursor = "pointer";
-
-			statsSection.addEventListener("click", (e) => {
-				// Don't trigger if clicking on actual links or buttons
-				if (e.target.closest("a, button")) return;
-
+			const toggleStats = () => {
 				const isCollapsed = statsContent.classList.contains("d-none");
 
 				if (isCollapsed) {
@@ -2090,6 +2135,25 @@ class customersPage {
 					// Force rotation update (0 degrees - pointing down)
 					toggleIcon.style.transform = "rotate(0deg)";
 					toggleIcon.dataset.rotated = "0";
+				}
+			};
+
+			toggleIcon.addEventListener("click", (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				toggleStats();
+			});
+
+			statsHeader.style.cursor = "pointer";
+			statsHeader.addEventListener("click", (e) => {
+				if (e.target.closest("a, button")) return;
+				toggleStats();
+			});
+
+			toggleIcon.addEventListener("keydown", (e) => {
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					toggleStats();
 				}
 			});
 		}
@@ -2149,6 +2213,153 @@ class customersPage {
 		});
 	}
 
+	loadFiscalYearFinancials(customer_id) {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const filter = wrapper.querySelector(".fiscal-year-select");
+		const container = wrapper.querySelector(".fiscal-financials-body");
+		const ALL_FY_VALUE = "__all__";
+		if (!container) return;
+
+		container.innerHTML = '<div class="text-center py-3 text-muted"><i class="fa fa-spinner fa-spin"></i> Loading fiscal year summary...</div>';
+
+		frappe.call({
+			method: "renewal_module.custom_module.page.customers.customers.get_customer_fiscal_year_financials",
+			args: {
+				customer_id: customer_id
+			},
+			callback: (r) => {
+				const payload = r && r.message ? r.message : {};
+				const rows = Array.isArray(payload.rows) ? payload.rows : [];
+				const currency = payload.currency || frappe.defaults.get_default("currency") || "INR";
+
+				if (!rows.length) {
+					if (filter) {
+						filter.innerHTML = '<option value="">No Fiscal Year</option>';
+						filter.disabled = true;
+					}
+					container.innerHTML = '<div class="text-center py-3 text-muted"><i class="fa fa-inbox"></i> No fiscal year financial data found.</div>';
+					return;
+				}
+
+				this.fiscalFinancialsState = {
+					rows,
+					currency,
+					selectedFiscalYear: rows[0]?.fiscal_year || ALL_FY_VALUE,
+					allValue: ALL_FY_VALUE,
+				};
+
+				if (frappe?.datetime?.get_today) {
+					const today = frappe.datetime.get_today();
+					const todayDate = new Date(today);
+					const currentFY = rows.find((row) => {
+						if (!row?.year_start_date || !row?.year_end_date) return false;
+						const start = new Date(row.year_start_date);
+						const end = new Date(row.year_end_date);
+						return todayDate >= start && todayDate <= end;
+					});
+					if (currentFY?.fiscal_year) {
+						this.fiscalFinancialsState.selectedFiscalYear = currentFY.fiscal_year;
+					}
+				}
+
+				if (filter) {
+					const options = rows.map((row) => {
+						const fy = this.escapeHtml(row.fiscal_year || "");
+						return `<option value="${fy}">${fy}</option>`;
+					}).join("");
+
+					filter.innerHTML = `<option value="${ALL_FY_VALUE}">All</option>${options}`;
+					filter.disabled = false;
+					filter.value = this.fiscalFinancialsState.selectedFiscalYear;
+
+					if (filter.dataset.bound !== "1") {
+						filter.dataset.bound = "1";
+						filter.addEventListener("change", (e) => {
+							if (!this.fiscalFinancialsState) return;
+							this.fiscalFinancialsState.selectedFiscalYear = e.target.value || ALL_FY_VALUE;
+							this.renderFiscalYearFinancialModel();
+						});
+					}
+				}
+
+				this.renderFiscalYearFinancialModel();
+			},
+			error: (err) => {
+				console.error("Error loading fiscal year financial summary:", err);
+				if (filter) {
+					filter.innerHTML = '<option value="">Error</option>';
+					filter.disabled = true;
+				}
+				container.innerHTML = '<div class="text-center py-3 text-danger"><i class="fa fa-exclamation-triangle"></i> Failed to load fiscal year summary.</div>';
+			}
+		});
+	}
+
+	renderFiscalYearFinancialModel() {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const container = wrapper.querySelector(".fiscal-financials-body");
+		const state = this.fiscalFinancialsState || {};
+		const rows = Array.isArray(state.rows) ? state.rows : [];
+		const allValue = state.allValue || "__all__";
+		if (!container || !rows.length) return;
+
+		const isAllSelected = state.selectedFiscalYear === allValue;
+		const selected = isAllSelected
+			? {
+				fiscal_year: "All Fiscal Years",
+				year_start_date: rows
+					.map((row) => row.year_start_date)
+					.filter(Boolean)
+					.sort()[0] || null,
+				year_end_date: rows
+					.map((row) => row.year_end_date)
+					.filter(Boolean)
+					.sort()
+					.slice(-1)[0] || null,
+				billing_amount: rows.reduce((acc, row) => acc + (parseFloat(row.billing_amount || 0) || 0), 0),
+				payment_amount: rows.reduce((acc, row) => acc + (parseFloat(row.payment_amount || 0) || 0), 0),
+				outstanding_amount: rows.reduce((acc, row) => acc + (parseFloat((row.unpaid_amount ?? row.outstanding_amount) || 0) || 0), 0),
+				unpaid_amount: rows.reduce((acc, row) => acc + (parseFloat((row.unpaid_amount ?? row.outstanding_amount) || 0) || 0), 0),
+			}
+			: rows.find((row) => row.fiscal_year === state.selectedFiscalYear) || rows[0];
+		if (!selected) return;
+
+		const symbol = this.getCurrencySymbol(state.currency || "INR");
+		const billingNum = parseFloat(selected.billing_amount || 0) || 0;
+		const paymentNum = parseFloat(selected.payment_amount || 0) || 0;
+		const outstandingNum = parseFloat((selected.unpaid_amount ?? selected.outstanding_amount) || 0) || 0;
+
+		const billing = this.formatCurrency(billingNum);
+		const payment = this.formatCurrency(paymentNum);
+		const outstanding = this.formatCurrency(outstandingNum);
+		const fyLabel = this.escapeHtml(selected.fiscal_year || "-");
+
+		const formatDate = (dateVal) => {
+			if (!dateVal) return "-";
+			if (frappe?.datetime?.str_to_user) return frappe.datetime.str_to_user(String(dateVal));
+			return this.escapeHtml(String(dateVal));
+		};
+
+		container.innerHTML = `
+			<!--<div class="fy-model-title">Selected FY: ${fyLabel}</div>-->
+			<div class="fy-model-grid">
+				<div class="fy-model-cell billing">
+					<span class="label">Billing</span>
+					<span class="value">${symbol}${billing}</span>
+				</div>
+				<div class="fy-model-cell payment">
+					<span class="label">Payment</span>
+					<span class="value">${symbol}${payment}</span>
+				</div>
+				<div class="fy-model-cell outstanding">
+					<span class="label">Balance (Unpaid)</span>
+					<span class="value">${symbol}${outstanding}</span>
+				</div>
+				
+			</div>
+		`;
+	}
+
 	getCurrencySymbol(currency) {
 		const symbols = {
 			"INR": "₹",
@@ -2168,6 +2379,415 @@ class customersPage {
 			minimumFractionDigits: 2,
 			maximumFractionDigits: 2
 		});
+	}
+
+	loadRenewalDashboard(customer_id) {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const renewalSection = wrapper.querySelector(".renewal-dashboard-section");
+		if (!renewalSection) return;
+
+		// Bind toggle functionality
+		this.bindRenewalDashboardToggle(renewalSection);
+
+		// Fetch renewal summary data
+		frappe.call({
+			method: "renewal_module.custom_module.page.customers.customers.get_renewal_summary",
+			args: {
+				customer_id: customer_id
+			},
+			callback: (r) => {
+				if (r.message) {
+					this.renderRenewalDashboard(renewalSection, r.message, customer_id);
+				}
+			},
+			error: (err) => {
+				console.error("Error loading renewal dashboard:", err);
+				const container = wrapper.querySelector("#renewal-summary-container");
+				if (container) {
+					container.innerHTML = '<div class="renewal-empty-state"><i class="fa fa-exclamation-triangle"></i><p>Unable to load renewal data</p></div>';
+				}
+			}
+		});
+	}
+
+	bindRenewalDashboardToggle(section) {
+		if (section.dataset.bound === "1") return;
+		section.dataset.bound = "1";
+
+		const header = section.querySelector(".renewal-dashboard-header");
+		const content = section.querySelector(".renewal-dashboard-content");
+		const toggleIcon = section.querySelector(".renewal-dashboard-header .toggle-icon");
+
+		if (!header || !content || !toggleIcon) return;
+
+		// Set default state: EXPANDED
+		content.classList.remove("d-none");
+		toggleIcon.classList.add("fa-chevron-up");
+		toggleIcon.classList.remove("fa-chevron-down");
+
+		const toggle = () => {
+			const isCollapsed = content.classList.contains("d-none");
+
+			if (isCollapsed) {
+				content.classList.remove("d-none");
+				toggleIcon.classList.add("fa-chevron-up");
+				toggleIcon.classList.remove("fa-chevron-down");
+				toggleIcon.style.transform = "rotate(0deg)";
+			} else {
+				content.classList.add("d-none");
+				toggleIcon.classList.remove("fa-chevron-up");
+				toggleIcon.classList.add("fa-chevron-down");
+				toggleIcon.style.transform = "rotate(180deg)";
+			}
+		};
+
+		header.style.cursor = "pointer";
+		header.addEventListener("click", (e) => {
+			e.preventDefault();
+			toggle();
+		});
+
+		toggleIcon.addEventListener("click", (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			toggle();
+		});
+
+		toggleIcon.addEventListener("keydown", (e) => {
+			if (e.key === "Enter" || e.key === " ") {
+				e.preventDefault();
+				toggle();
+			}
+		});
+	}
+
+	renderRenewalDashboard(section, data, customer_id) {
+		// Get status counts from new data structure
+		const statusCounts = data.status_counts || {};
+		const expiringSoonCount = data.expiring_soon_count || 0;
+		const totalCount = data.total_count || 0;
+		
+		// Update metric counts at the top
+		section.querySelector(".active-renewals-count").textContent = statusCounts["Active"] || 0;
+		section.querySelector(".expiring-soon-count").textContent = expiringSoonCount;
+		section.querySelector(".new-opp-count").textContent = statusCounts["New Opp"] || 0;
+
+		// Get the content container
+		const content = section.querySelector(".renewal-dashboard-content");
+		if (!content) return;
+
+		// Get all renewals from new data structure
+		const allRenewalsData = data.all_renewals || [];
+		
+		// Status configuration with colors and labels
+		const statusConfig = {
+			"New Opp": { label: "New Opportunity", color: "#3498db", bg: "#d1ecf1" },
+			"Active": { label: "Active", color: "#27ae60", bg: "#d4edda" },
+			"Draft": { label: "Draft", color: "#6c757d", bg: "#e9ecef" },
+			"Awaiting Response": { label: "Awaiting Response", color: "#f39c12", bg: "#fef3cd" },
+			"Cofed": { label: "Cofed", color: "#9b59b6", bg: "#e8daef" },
+			"Duplicate": { label: "Duplicate", color: "#95a5a6", bg: "#f5f5f5" },
+			"Renewed": { label: "Renewed", color: "#16a085", bg: "#d0ece8" },
+			"Upgraded": { label: "Upgraded", color: "#8e44ad", bg: "#e8daef" },
+			"Void": { label: "Void", color: "#7f8c8d", bg: "#d5d8dc" },
+			"Lost": { label: "Lost", color: "#c0392b", bg: "#fadbd8" },
+			"Cancelled": { label: "Cancelled", color: "#e74c3c", bg: "#fadbd8" },
+			"Competitor Sales": { label: "Competitor Sales", color: "#d35400", bg: "#fdebd0" },
+			"Auto Created": { label: "Auto Created", color: "#1abc9c", bg: "#d4efdf" },
+			"Out Of Business": { label: "Out Of Business", color: "#34495e", bg: "#d5d8dc" },
+			"Product Changed": { label: "Product Changed", color: "#e67e22", bg: "#fdebd0" }
+		};
+		
+		// Process all renewals with computed status
+		let allRenewals = allRenewalsData.map(r => {
+			const config = statusConfig[r.status] || { label: r.status, color: "#6c757d", bg: "#e9ecef" };
+			let displayStatus = r.status;
+			let statusColor = config.color;
+			
+			// Override for computed expiring/expired status
+			if (r.computed_status === "expiring") {
+				displayStatus = "Expiring Soon";
+				statusColor = "#f39c12";
+			} else if (r.computed_status === "expired") {
+				displayStatus = "Expired";
+				statusColor = "#e74c3c";
+			}
+			
+			return {
+				...r,
+				status_label: displayStatus,
+				status_color: statusColor,
+				days_left: r.days_left
+			};
+		});
+
+		// Sort: Expiring first, then Active, then by status
+		allRenewals.sort((a, b) => {
+			if (a.computed_status === 'expiring' && b.computed_status !== 'expiring') return -1;
+			if (b.computed_status === 'expiring' && a.computed_status !== 'expiring') return 1;
+			if (a.status === 'Active' && b.status !== 'Active') return -1;
+			if (b.status === 'Active' && a.status !== 'Active') return 1;
+			if (a.status === 'New Opp' && b.status !== 'New Opp') return -1;
+			if (b.status === 'New Opp' && a.status !== 'New Opp') return 1;
+			return 0;
+		});
+
+		// Calculate filter counts
+		const expiringRenewals = allRenewals.filter(r => r.computed_status === 'expiring');
+		const activeOnlyRenewals = allRenewals.filter(r => r.status === 'Active' && r.computed_status !== 'expiring');
+		const newOppRenewals = allRenewals.filter(r => r.status === 'New Opp');
+		const renewedRenewals = allRenewals.filter(r => r.status === 'Renewed');
+		const otherRenewals = allRenewals.filter(r => !['Active', 'New Opp', 'Renewed'].includes(r.status) && r.computed_status !== 'expiring');
+		
+		// Build status cards HTML for all statuses with count > 0
+		let statusCardsHtml = '';
+		const activeStatuses = Object.entries(statusCounts)
+			.filter(([status, count]) => count > 0)
+			.sort((a, b) => b[1] - a[1]); // Sort by count descending
+		
+		// Create status filter buttons
+		let filterTabsHtml = `
+			<button class="renewal-filter-btn active" data-filter="all" style="padding: 6px 14px; border: 1px solid #e9ecef; background: #667eea; color: white; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: 500;">
+				All (${totalCount})
+			</button>
+			<button class="renewal-filter-btn" data-filter="expiring" style="padding: 6px 14px; border: 1px solid #e9ecef; background: white; color: #856404; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: 500;">
+				Expiring Soon (${expiringRenewals.length})
+			</button>
+			<button class="renewal-filter-btn" data-filter="Active" style="padding: 6px 14px; border: 1px solid #e9ecef; background: white; color: #155724; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: 500;">
+				Active (${statusCounts["Active"] || 0})
+			</button>
+			<button class="renewal-filter-btn" data-filter="New Opp" style="padding: 6px 14px; border: 1px solid #e9ecef; background: white; color: #0c5460; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: 500;">
+				New Opp (${statusCounts["New Opp"] || 0})
+			</button>
+			<button class="renewal-filter-btn" data-filter="Renewed" style="padding: 6px 14px; border: 1px solid #e9ecef; background: white; color: #16a085; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: 500;">
+				Renewed (${statusCounts["Renewed"] || 0})
+			</button>
+			<button class="renewal-filter-btn" data-filter="others" style="padding: 6px 14px; border: 1px solid #e9ecef; background: white; color: #6c757d; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: 500;">
+				Others (${otherRenewals.length})
+			</button>
+		`;
+		
+		// Build the HTML
+		let renewalsHtml = '';
+		
+		if (totalCount === 0) {
+			renewalsHtml = `
+				<div class="renewal-empty-state" style="text-align: center; padding: 30px; color: #6c757d;">
+					<i class="fa fa-inbox" style="font-size: 48px; margin-bottom: 10px;"></i>
+					<p style="font-size: 16px;">No renewals found for this customer</p>
+				</div>
+			`;
+		} else {
+			// Build a compact table view for all renewals
+			renewalsHtml = `
+				<div class="renewal-summary-header hidden" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 10px 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
+					<div style="display: flex; align-items: center; gap: 10px;">
+						<i class="fa fa-list" style="font-size: 18px;"></i>
+						<span style="font-weight: 600; font-size: 15px;">All Renewals (${totalCount})</span>
+					</div>
+					
+				</div>
+				
+				<!-- Filter tabs -->
+				<div class="renewal-filter-tabs" style="display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap;">
+					${filterTabsHtml}
+				</div>
+				
+				<!-- Renewal table shell -->
+				<div class="renewal-table-shell">
+					<div class="renewal-table-header">
+						<div><i class="fa fa-cube"></i> Product</div>
+						<div><i class="fa fa-tag"></i> Status</div>
+						<div><i class="fa fa-calendar-plus-o"></i> Start</div>
+						<div><i class="fa fa-calendar-check-o"></i> End</div>
+						<div><i class="fa fa-hourglass-half"></i> Days Left</div>
+					</div>
+					
+					<div class="renewal-list-container">
+						${allRenewals.map(r => this.getRenewalTableRowHtml(r, customer_id)).join('')}
+					</div>
+				</div>
+			`;
+		}
+
+		// View all link
+		let viewAllHtml = '';
+		if (totalCount > 0) {
+			viewAllHtml = `
+				<div class="renewal-view-all" style="text-align: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid #e9ecef;">
+					<a href="/app/renewal-list?customer=${encodeURIComponent(customer_id)}" 
+					   target="_blank"
+					   style="color: #667eea; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; padding: 8px 16px; border: 1px solid #667eea; border-radius: 6px;">
+						<i class="fa fa-external-link"></i> View All Renewals in List
+					</a>
+				</div>
+			`;
+		}
+
+		// Build status cards for key statuses
+		const keyStatuses = [
+			{ key: "Active", label: "Active Renewals", icon: "fa-check-circle", color: "#27ae60", bg: "#d4edda" },
+			{ key: "New Opp", label: "New Opportunities", icon: "fa-lightbulb-o", color: "#3498db", bg: "#d1ecf1" },
+			{ key: "Renewed", label: "Renewed", icon: "fa-refresh", color: "#16a085", bg: "#d0ece8" },
+			{ key: "Others", label: "Others", icon: "fa-ellipsis-h", color: "#6c757d", bg: "#f1f3f5" },
+			{ key: "Expired", label: "Expired", icon: "fa-calendar-times-o", color: "#e74c3c", bg: "#fadbd8" }
+		];
+		
+		let metricsCardsHtml = '';
+		keyStatuses.forEach(ks => {
+			const count = ks.key === "Expired" ? expiringRenewals.filter(r => r.computed_status === 'expired').length : ks.key === "Others" ? otherRenewals.length : statusCounts[ks.key] || 0;
+			if (count > 0 || ["Active", "New Opp", "Renewed", "Others"].includes(ks.key)) {
+				metricsCardsHtml += `
+					<div class="renewal-metric-card" style="background: linear-gradient(135deg, ${ks.bg} 0%, ${ks.bg}100%); padding: 15px; border-radius: 10px; border-left: 4px solid ${ks.color};">
+						<div class="metric-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+							<i class="fa ${ks.icon}" style="color: ${ks.color}; font-size: 18px;"></i>
+							<span class="metric-label" style="font-weight: 600; color: ${ks.color};">${ks.label}</span>
+						</div>
+						<div class="metric-value" style="font-size: 28px; font-weight: 700; color: ${ks.color};">${count}</div>
+					</div>
+				`;
+			}
+		});
+		
+		// Add expiring soon card
+		metricsCardsHtml += `
+			<div class="renewal-metric-card" style="background: linear-gradient(135deg, #fef3cd 0%, #fff3cd 100%); padding: 15px; border-radius: 10px; border-left: 4px solid #f39c12;">
+				<div class="metric-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+					<i class="fa fa-calendar" style="color: #f39c12; font-size: 18px;"></i>
+					<span class="metric-label" style="font-weight: 600; color: #856404;">Expiring Soon</span>
+				</div>
+				<div class="metric-value" style="font-size: 28px; font-weight: 700; color: #856404;">${expiringSoonCount}</div>
+			</div>
+		`;
+
+		// Update the content
+		content.innerHTML = `
+			<div class="renewal-metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px;">
+				${metricsCardsHtml}
+			</div>
+			<div class="renewal-detailed-list">
+				${renewalsHtml}
+				${viewAllHtml}
+			</div>
+		`;
+
+		// Add click handlers for filter tabs
+		this.bindRenewalFilterEvents(content, allRenewals, customer_id);
+		
+		// Add click handlers for renewal items
+		content.querySelectorAll(".renewal-table-row").forEach(row => {
+			row.addEventListener("click", (e) => {
+				if (e.target.closest(".renewal-action-btn")) return;
+				const renewalId = row.dataset.renewalId;
+				if (renewalId) {
+					frappe.route_options = { customer: customer_id };
+					frappe.set_route("Form", "Renewal List", renewalId);
+				}
+			});
+			row.style.cursor = "pointer";
+		});
+	}
+
+	// Helper method for table row HTML
+	getRenewalTableRowHtml(renewal, customer_id) {
+		const daysLeftText = renewal.days_left !== null 
+			? (renewal.days_left <= 0 ? 'Expired' : `${renewal.days_left}`)
+			: '-';
+		
+		const daysLeftClass = renewal.days_left !== null
+			? (renewal.days_left <= 0 ? 'text-danger' : renewal.days_left <= 30 ? 'text-warning' : 'text-success')
+			: '';
+		
+		const startDate = renewal.start_date ? this.formatDate(renewal.start_date) : '-';
+		const endDate = renewal.end_date ? this.formatDate(renewal.end_date) : '-';
+		const statusText = renewal.status_label || renewal.status || '-';
+		
+		return `
+			<div class="renewal-table-row" data-renewal-id="${renewal.renewal_id}" 
+				 style="display: grid; grid-template-columns: minmax(220px, 2.2fr) minmax(140px, 1.1fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(110px, 0.9fr); gap: 10px; padding: 12px; border-bottom: 1px solid #f0f0f0; align-items: center; transition: background 0.2s;"
+				 onmouseover="this.style.background='#f8f9fa';"
+				 onmouseout="this.style.background='white';">
+				<div class="renewal-product-cell" title="${this.escapeHtml(renewal.product_name || 'N/A')}">${this.escapeHtml(renewal.product_name || 'N/A')}</div>
+				<div style="display: flex; align-items: center;">
+					<span class="badge" style="background: ${renewal.status_color}; color: white; font-size: 10px; padding: 2px 8px; border-radius: 999px; min-width: 58px; text-align: center;">${this.escapeHtml(statusText)}</span>
+				</div>
+				<div style="font-size: 12px; color: #6c757d;">${startDate}</div>
+				<div style="font-size: 12px; color: #6c757d;">${endDate}</div>
+				<div style="font-size: 13px; font-weight: 600; color: ${renewal.days_left !== null ? (renewal.days_left <= 0 ? '#e74c3c' : renewal.days_left <= 30 ? '#f39c12' : '#27ae60') : '#6c757d'};">
+					${daysLeftText} ${renewal.days_left !== null && renewal.days_left > 0 ? 'days' : ''}
+				</div>
+			</div>
+		`;
+	}
+
+	// Bind filter tab events
+	bindRenewalFilterEvents(content, allRenewals, customer_id) {
+		const filterBtns = content.querySelectorAll(".renewal-filter-btn");
+		const listContainer = content.querySelector(".renewal-list-container");
+		if (!listContainer) return;
+		const tableShell = content.querySelector(".renewal-table-shell");
+		if (tableShell) {
+			tableShell.classList.add("renewal-table-scroll");
+		}
+		
+		filterBtns.forEach(btn => {
+			btn.addEventListener("click", () => {
+				// Update active state
+				filterBtns.forEach(b => {
+					b.classList.remove("active");
+					b.style.background = "white";
+					b.style.color = "#495057";
+				});
+				btn.classList.add("active");
+				btn.style.background = "#667eea";
+				btn.style.color = "white";
+				
+				// Filter renewals
+				const filter = btn.dataset.filter;
+				let filteredRenewals = allRenewals;
+				
+				if (filter === 'expiring') {
+					filteredRenewals = allRenewals.filter(r => r.computed_status === 'expiring');
+				} else if (filter === 'Active') {
+					filteredRenewals = allRenewals.filter(r => r.status === 'Active' && r.computed_status !== 'expiring');
+				} else if (filter === 'New Opp') {
+					filteredRenewals = allRenewals.filter(r => r.status === 'New Opp');
+				} else if (filter === 'Renewed') {
+					filteredRenewals = allRenewals.filter(r => r.status === 'Renewed');
+				} else if (filter === 'others') {
+					filteredRenewals = allRenewals.filter(r => !['Active', 'New Opp', 'Renewed'].includes(r.status) && r.computed_status !== 'expiring');
+				} else if (filter === 'all') {
+					filteredRenewals = allRenewals;
+				} else {
+					// Filter by other status values
+					filteredRenewals = allRenewals.filter(r => r.status === filter);
+				}
+				
+				// Re-render list
+				listContainer.innerHTML = filteredRenewals.map(r => this.getRenewalTableRowHtml(r, customer_id)).join('');
+				
+				// Add click handlers to new rows
+				listContainer.querySelectorAll(".renewal-table-row").forEach(row => {
+					row.addEventListener("click", (e) => {
+						const renewalId = row.dataset.renewalId;
+						if (renewalId) {
+							frappe.route_options = { customer: customer_id };
+							frappe.set_route("Form", "Renewal List", renewalId);
+						}
+					});
+					row.style.cursor = "pointer";
+				});
+			});
+		});
+	}
+
+	formatDate(dateString) {
+		if (!dateString) return "N/A";
+		if (frappe?.datetime?.str_to_user) {
+			return frappe.datetime.str_to_user(dateString);
+		}
+		const date = new Date(dateString);
+		return date.toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
 	}
 
 	loadRecentActivities(customer_id) {
@@ -2300,8 +2920,17 @@ class customersPage {
 
 			// Determine the correct URL for the doctype
 			let doctypeUrl = doctype.toLowerCase().replace(/ /g, '-');
+			if (doctype === "Opportunity") {
+				doctypeUrl = "opportunity-list";
+			}
+			if (doctype === "Quotation") {
+				doctypeUrl = "quotation-list";
+			}
+			if (doctype === "Call List") {
+				doctypeUrl = "cal-lists";
+			}
 			if (doctype === "Issue") {
-				doctypeUrl = "ticket";
+				doctypeUrl = "ticketss";
 			}
 
 			const activityItemHTML = `
@@ -2311,7 +2940,7 @@ class customersPage {
 					</div>
 					<div class="activity-content" style="flex: 1;">
 						<div class="activity-header">
-							<a href="/app/${doctypeUrl}/${activity.name}" target="_blank" class="activity-title">
+							<a href="/app/${doctypeUrl}/${activity.name}" class="activity-title">
 								${doctype} - ${activity.name}
 							</a>
 							${activity.status ? `<span class="activity-status" style="background-color: ${statusColor};">${activity.status}</span>` : ''}
@@ -2379,26 +3008,7 @@ class customersPage {
 		const connectionSection = wrapper.querySelector(".connection-section");
 		if (!connectionSection) return;
 
-		const canReadDoctype = (doctype) => {
-			if (!doctype) return false;
-
-			if (frappe.model && typeof frappe.model.can_read === "function") {
-				const val = frappe.model.can_read(doctype);
-				if (typeof val === "boolean") return val;
-			}
-
-			const permRows = frappe.perm?.get_perm?.(doctype) || [];
-			if (Array.isArray(permRows) && permRows.length) {
-				return permRows.some((p) => !!p?.read);
-			}
-
-			const canReadList = frappe.boot?.user?.can_read;
-			if (Array.isArray(canReadList)) {
-				return canReadList.includes(doctype);
-			}
-
-			return true;
-		};
+		const canReadDoctype = (doctype) => this.canReadDoctype(doctype);
 
 		// Store connection data for managing state
 		this.connectionState = this.connectionState || {};
@@ -2422,7 +3032,6 @@ class customersPage {
 
 			// Fetch and display count for this data type
 			this.fetchConnectionCount(dataType, customer_id, (count) => {
-				// Update count badge in the new structure
 				let countBadge = badge.querySelector(".connection-badge-count");
 				if (countBadge) {
 					countBadge.textContent = count;
@@ -2434,6 +3043,88 @@ class customersPage {
 			// Prevent double binding
 			if (badge.dataset.connectionBound === "1") return;
 			badge.dataset.connectionBound = "1";
+
+			// Add + icon if not present
+			if (!item.querySelector('.connection-add-btn')) {
+				const addBtn = document.createElement('button');
+				addBtn.className = 'btn btn-xs btn-link connection-add-btn';
+				addBtn.title = 'Add New ' + dataType;
+				addBtn.innerHTML = '<i class="fa fa-plus"></i>';
+				addBtn.style.marginLeft = '6px';
+				badge.appendChild(addBtn);
+
+				addBtn.addEventListener('click', (e) => {
+					e.stopPropagation();
+					// Use customRoute if available
+					// if (dataType === "Opportunity" && customer_id) {
+					// 	const customerName = String(customer_id || "").trim();
+					// 	frappe.route_options = {
+					// 		opportunity_from: "Customer",
+					// 		party_name: customerName,
+					// 		customer_name: customerName
+					// 	};
+					// 	frappe.new_doc("Opportunity");
+
+					// 	// Some custom Opportunity scripts run on refresh and can override early defaults.
+					// 	// Re-apply a few times until the new form is fully ready.
+					// 	let attempts = 0;
+					// 	const maxAttempts = 30;
+					// 	const intervalId = setInterval(() => {
+					// 		attempts += 1;
+					// 		const frm = cur_frm;
+					// 		if (!frm || frm.doc?.doctype !== "Opportunity" || !frm.doc?.__islocal) {
+					// 			if (attempts >= maxAttempts) clearInterval(intervalId);
+					// 			return;
+					// 		}
+
+					// 		frm.set_value("opportunity_from", "Customer");
+					// 		frm.set_value("party_name", customerName);
+					// 		frm.set_value("customer_name", customerName);
+					// 		frm.trigger("party_name");
+
+					// 		if (String(frm.doc.party_name || "").trim() === customerName) {
+					// 			clearInterval(intervalId);
+					// 		} else if (attempts >= maxAttempts) {
+					// 			clearInterval(intervalId);
+					// 		}
+					// 	}, 200);
+					// 	return;
+					// }
+					const filterConfig = {
+						"Opportunity": { customRoute: "opportunity-list" },
+						"Quotation": { customRoute: "quotation-list" },
+						// "Opportunity": { customRoute: "opportunity" },
+						// "Quotation": { customRoute: "quotation" },
+						"Customer Order Form": { customRoute: "customer-order-forms" },
+						"Sales Order": { customRoute: "sales-order" },
+						"Sales Invoice": { customRoute: "sales-invoice" },
+						"Renewal List": { customRoute: "renewal-list" },
+						"Issue": { customRoute: "ticketss" },
+						"Call List": { customRoute: "call-lists" },
+						"Payment Entry": { customRoute: "payment-entry" }
+					};
+					const config = filterConfig[dataType];
+					if (config && config.customRoute) {
+						let url = `/app/${config.customRoute}/new`;
+						// Pass customer context to supported new forms
+						if (["Issue", "Opportunity", "Quotation", "Call List", "Sales Order", "Sales Invoice", "Customer Order Form", "Renewal List"].includes(dataType) && customer_id) {
+						//if (["Issue", "Quotation", "Call List", "Sales Order", "Sales Invoice", "Customer Order Form", "Renewal List"].includes(dataType) && customer_id) {
+							const encodedCustomer = encodeURIComponent(customer_id);
+							const params = [
+								`customer=${encodedCustomer}`,
+								`customer_name=${encodedCustomer}`,
+								`party_name=${encodedCustomer}`,
+								`name1=${encodedCustomer}`
+							];
+							url += `?${params.join("&")}`;
+						}
+						//window.open(url, '_blank');
+						window.location.assign(url);
+					} else {
+						frappe.msgprint(`No custom route configured for ${dataType}`);
+					}
+				});
+			}
 
 			// Add click handler to show connection details inline
 			badge.addEventListener("click", () => {
@@ -2452,6 +3143,60 @@ class customersPage {
 		const fiscalYear = this.getSelectedSalesFiscalYear();
 		this.loadItemGroupChart(customer_id, fiscalYear);
 		this.loadBrandChart(customer_id, fiscalYear);
+	}
+
+	canReadDoctype(doctype) {
+		if (!doctype) return false;
+
+		if ((frappe?.user_roles || []).includes("Administrator")) return true;
+
+		if (frappe.model && typeof frappe.model.can_read === "function") {
+			const val = frappe.model.can_read(doctype);
+			if (typeof val === "boolean") return val;
+		}
+
+		const permRows = frappe.perm?.get_perm?.(doctype) || [];
+		if (Array.isArray(permRows) && permRows.length) {
+			return permRows.some((p) => !!p?.read);
+		}
+
+		const canReadList = frappe.boot?.user?.can_read;
+		if (Array.isArray(canReadList)) {
+			return canReadList.includes(doctype);
+		}
+
+		if (frappe.perm?.has_perm) {
+			return Boolean(
+				frappe.perm.has_perm(doctype, 0, "read") ||
+				frappe.perm.has_perm(doctype, "read")
+			);
+		}
+
+		return false;
+	}
+
+	hasSalesInvoiceReadPermission() {
+		return this.canReadDoctype("Sales Invoice");
+	}
+
+	toggleSalesAnalyticsSection(customer_id, retries = 4) {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const salesAnalyticsSection = wrapper.querySelector('[data-tab-panel="connections"] .mt-4');
+		if (!salesAnalyticsSection) return;
+
+		const hasRead = this.hasSalesInvoiceReadPermission();
+		salesAnalyticsSection.style.display = hasRead ? "" : "none";
+
+		if (hasRead) {
+			this.initSalesFiscalYearFilter(customer_id);
+			return;
+		}
+
+		if (retries > 0) {
+			setTimeout(() => {
+				this.toggleSalesAnalyticsSection(customer_id, retries - 1);
+			}, 120);
+		}
 	}
 
 	getSelectedSalesFiscalYear() {
@@ -2642,10 +3387,10 @@ class customersPage {
 						? `<div class="text-muted fs-sm">${this.escapeHtml(row.team_name)}</div>`
 						: "";
 					const emailLine = row.email_id
-						? `<div class="text-muted fs-sm"><i class="fa fa-envelope me-1"></i>${this.escapeHtml(row.email_id)}</div>`
+						? `<div class="text-muted fs-sm"><i class="fa fa-envelope mr-1"></i>${this.escapeHtml(row.email_id)}</div>`
 						: "";
 					const mobileLine = row.mobile_no
-						? `<div class="text-muted fs-sm"><i class="fa fa-phone me-1"></i>${this.escapeHtml(row.mobile_no)}</div>`
+						? `<div class="text-muted fs-sm"><i class="fa fa-phone mr-1"></i>${this.escapeHtml(row.mobile_no)}</div>`
 						: "";
 					const allocatedValue = Number(row.allocated_percentage);
 					const allocatedLine = Number.isFinite(allocatedValue)
@@ -2684,16 +3429,7 @@ class customersPage {
 				</button>
 			</div>
 			${cardsHtml}
-			<div class="row">
-				<div class="col-12 col-md-6">
-					<span class="fw-semibold">Sales Person</span>
-					<p>${salesPersonLabel}</p>
-				</div>
-				<div class="col-12 col-md-6">
-					<span class="fw-semibold">Reports To</span>
-					<p>${reportToLabel}</p>
-				</div>
-			</div>
+			
 		`;
 
 		this.bindSalesTeamEvents(customerId);
@@ -2973,6 +3709,427 @@ class customersPage {
 				console.error("Settings update failed", err);
 				if (statusEl) statusEl.textContent = "Failed to save";
 				frappe.msgprint("Failed to update settings.");
+			}
+		});
+	}
+
+	renderTaxesTab(customerId, customerData = null) {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const panel = wrapper?.querySelector('[data-tab-panel="taxes"]');
+		const container = panel?.querySelector("#customer-taxes");
+		if (!container) return;
+
+		const customerInfo = customerData || this.current_customer_details || {};
+		container.innerHTML = `
+			<div class="taxes-form">
+				<div class="row">
+					<div class="col-12 col-md-6 mb-3">
+						<div id="customer-gstin"></div>
+						<div id="customer-gstin-status" class="mt-1"></div>
+					</div>
+					<div class="col-12 col-md-6 mb-3">
+						<div id="customer-gst-category"></div>
+					</div>
+					<div class="col-12 col-md-6 mb-3">
+						<div id="customer-pan"></div>
+						<div id="customer-pan-status" class="mt-1"></div>
+					</div>
+					<div class="col-12 col-md-6 mb-3">
+						<div id="customer-tax-territory"></div>
+					</div>
+					<div class="col-12 col-md-6 mb-3">
+						<div id="customer-tax-category"></div>
+					</div>
+				</div>
+				<div class="d-flex align-items-center gap-2 mt-2">
+					<button class="btn btn-sm btn-primary1 taxes-save-btn d-none">Save</button>
+					<span class="text-muted fs-sm taxes-save-status"></span>
+				</div>
+			</div>
+		`;
+
+		const getStatusMarkup = (status, updatedOn, fallbackStatus = __("Not Available")) => {
+			return this.getTaxStatusMarkup(status, updatedOn, fallbackStatus);
+		};
+
+		frappe.call({
+			method: "renewal_module.custom_module.page.customers.customers.get_customer_tax_options",
+			callback: (r) => {
+				const options = r.message || {
+					gst_categories: [],
+					tax_categories: []
+				};
+
+				const gstinControl = frappe.ui.form.make_control({
+					parent: document.getElementById("customer-gstin"),
+					df: {
+						fieldtype: "Data",
+						label: "GSTIN / UIN",
+						fieldname: "gstin"
+					},
+					render_input: true
+				});
+				gstinControl.refresh();
+				gstinControl.set_value(customerInfo.gstin || customerInfo.tax_id || "");
+
+				const gstCategoryControl = frappe.ui.form.make_control({
+					parent: document.getElementById("customer-gst-category"),
+					df: {
+						fieldtype: "Select",
+						label: "GST Category",
+						fieldname: "gst_category",
+						reqd: 1,
+						options: (options.gst_categories || []).join("\n")
+					},
+					render_input: true
+				});
+				gstCategoryControl.refresh();
+				gstCategoryControl.set_value(customerInfo.gst_category || "");
+
+				const panControl = frappe.ui.form.make_control({
+					parent: document.getElementById("customer-pan"),
+					df: {
+						fieldtype: "Data",
+						label: "PAN",
+						fieldname: "pan"
+					},
+					render_input: true
+				});
+				panControl.refresh();
+				panControl.set_value(customerInfo.pan || "");
+
+				const territoryControl = frappe.ui.form.make_control({
+					parent: document.getElementById("customer-tax-territory"),
+					df: {
+						fieldtype: "Link",
+						options: "Territory",
+						label: "Territory",
+						fieldname: "territory"
+					},
+					render_input: true
+				});
+				territoryControl.refresh();
+				territoryControl.set_value(customerInfo.territory || "");
+
+				const taxCategoryControl = frappe.ui.form.make_control({
+					parent: document.getElementById("customer-tax-category"),
+					df: {
+						fieldtype: "Autocomplete",
+						label: "Tax Category",
+						fieldname: "tax_category",
+						options: options.tax_categories || []
+					},
+					render_input: true
+				});
+				taxCategoryControl.refresh();
+				taxCategoryControl.set_value(customerInfo.tax_category || "");
+
+				const gstinStatusTarget = container.querySelector("#customer-gstin-status");
+				if (gstinStatusTarget) {
+					gstinStatusTarget.innerHTML = getStatusMarkup(
+						customerInfo.gstin_status,
+						customerInfo.gstin_last_updated_on,
+						__("Not Available")
+					);
+				}
+
+				const panStatusTarget = container.querySelector("#customer-pan-status");
+				if (panStatusTarget) {
+					const derivedPanStatus = customerInfo.pan_status
+						|| (/^[A-Z]{5}[0-9]{4}[A-Z]$/i.test(String(customerInfo.pan || "").trim()) ? __("Valid") : __("Not Available"));
+					panStatusTarget.innerHTML = getStatusMarkup(
+						derivedPanStatus,
+						customerInfo.pan_last_updated_on,
+						__("Not Available")
+					);
+				}
+
+				this.taxes_controls = {
+					gstin: gstinControl,
+					gst_category: gstCategoryControl,
+					pan: panControl,
+					territory: territoryControl,
+					tax_category: taxCategoryControl
+				};
+
+				this.taxes_initial_values = this.getCustomerTaxValues();
+
+				const saveBtn = panel.querySelector(".taxes-save-btn");
+				const statusEl = panel.querySelector(".taxes-save-status");
+
+				const updateSaveVisibility = () => {
+					const current = this.getCustomerTaxValues();
+					const hasChange = Object.keys(current).some(
+						(key) => current[key] !== this.taxes_initial_values[key]
+					);
+					if (saveBtn) saveBtn.classList.toggle("d-none", !hasChange);
+					if (!hasChange && statusEl) statusEl.textContent = "";
+				};
+
+				const bindControlEvents = (control, namespace) => {
+					if (!control || !control.$input) return;
+					control.$input
+						.off(`change.${namespace} blur.${namespace} input.${namespace} keyup.${namespace} awesomplete-selectcomplete.${namespace}`)
+						.on(`change.${namespace} blur.${namespace} input.${namespace} keyup.${namespace} awesomplete-selectcomplete.${namespace}`, () => {
+							setTimeout(updateSaveVisibility, 0);
+						});
+				};
+
+				bindControlEvents(gstinControl, "gstin");
+				bindControlEvents(gstCategoryControl, "gst-category");
+				bindControlEvents(panControl, "pan");
+				bindControlEvents(territoryControl, "tax-territory");
+				bindControlEvents(taxCategoryControl, "tax-category");
+
+				if (territoryControl?.$input) {
+					territoryControl.$input
+						.off("change.tax-territory-sync")
+						.on("change.tax-territory-sync", () => {
+							this.syncTaxCategoryWithTerritory(territoryControl, taxCategoryControl);
+							setTimeout(updateSaveVisibility, 0);
+						});
+				}
+
+				if (gstinControl?.$input) {
+					gstinControl.$input
+						.off("change.gstin-autofill blur.gstin-autofill")
+						.on("change.gstin-autofill blur.gstin-autofill", () => {
+							this.autoFillTaxFieldsFromGSTIN({
+								gstinControl,
+								panControl,
+								gstCategoryControl,
+								territoryControl,
+								taxCategoryControl,
+								statusTarget: gstinStatusTarget,
+								onComplete: () => setTimeout(updateSaveVisibility, 0)
+							});
+						});
+				}
+
+				if (territoryControl?.get_value()) {
+					this.syncTaxCategoryWithTerritory(territoryControl, taxCategoryControl);
+				}
+
+				if (saveBtn) {
+					saveBtn.addEventListener("click", (e) => {
+						e.preventDefault();
+						if (statusEl) statusEl.textContent = "Saving...";
+						this.saveCustomerTaxFields(customerId, this.getCustomerTaxValues(), statusEl, saveBtn);
+					});
+				}
+
+				setTimeout(() => {
+					this.taxes_initial_values = this.getCustomerTaxValues();
+					updateSaveVisibility();
+				}, 0);
+			}
+		});
+	}
+
+	getTaxCategoryForTerritory(territory) {
+		const normalizedTerritory = String(territory || "").trim();
+		if (!normalizedTerritory) return "";
+		if (normalizedTerritory === "Telangana") return "In-State - TG";
+		if (normalizedTerritory === "Tamil Nadu") return "In-State - TN";
+		return "Out-State - TG";
+	}
+
+	syncTaxCategoryWithTerritory(territoryControl, taxCategoryControl) {
+		if (!territoryControl || !taxCategoryControl) return;
+		const nextTaxCategory = this.getTaxCategoryForTerritory(territoryControl.get_value());
+		if (nextTaxCategory && taxCategoryControl.get_value() !== nextTaxCategory) {
+			taxCategoryControl.set_value(nextTaxCategory);
+		}
+	}
+
+	autoFillTaxFieldsFromGSTIN({
+		gstinControl,
+		panControl,
+		gstCategoryControl,
+		territoryControl = null,
+		taxCategoryControl = null,
+		statusTarget = null,
+		onComplete = null
+	} = {}) {
+		const normalizedGstin = String(gstinControl?.get_value?.() || "").trim().toUpperCase();
+		if (!normalizedGstin) {
+			if (panControl) panControl.set_value("");
+			if (gstCategoryControl && !gstCategoryControl.get_value()) {
+				gstCategoryControl.set_value("Unregistered");
+			}
+			if (typeof onComplete === "function") onComplete(null);
+			return;
+		}
+
+		if (normalizedGstin.length < 15) {
+			if (typeof onComplete === "function") onComplete(null);
+			return;
+		}
+
+		frappe.call({
+			method: "renewal_module.custom_module.page.customers.customers.get_gstin_autofill_details",
+			args: {
+				gstin: normalizedGstin,
+				current_territory: territoryControl?.get_value?.() || "",
+				current_gst_category: gstCategoryControl?.get_value?.() || ""
+			},
+			callback: (r) => {
+				const details = r?.message || {};
+
+				if (details.gstin && gstinControl?.get_value?.() !== details.gstin) {
+					gstinControl.set_value(details.gstin);
+				}
+				if (panControl && Object.prototype.hasOwnProperty.call(details, "pan")) {
+					panControl.set_value(details.pan || "");
+				}
+				if (gstCategoryControl && Object.prototype.hasOwnProperty.call(details, "gst_category")) {
+					gstCategoryControl.set_value(details.gst_category || "");
+				}
+				if (territoryControl && details.territory) {
+					territoryControl.set_value(details.territory || "");
+				}
+				if (taxCategoryControl) {
+					if (details.tax_category) {
+						taxCategoryControl.set_value(details.tax_category || "");
+					} else {
+						this.syncTaxCategoryWithTerritory(territoryControl, taxCategoryControl);
+					}
+				}
+				if (statusTarget) {
+					statusTarget.innerHTML = this.getTaxStatusMarkup(
+						details.gstin_status,
+						details.gstin_last_updated_on,
+						__("Not Available")
+					);
+				}
+				if (typeof onComplete === "function") onComplete(details);
+			},
+			error: () => {
+				if (typeof onComplete === "function") onComplete(null);
+			}
+		});
+	}
+
+	getTaxStatusMarkup(status, updatedOn, fallbackStatus = __("Not Available")) {
+		const resolvedStatus = String(status || fallbackStatus || "").trim() || fallbackStatus;
+		const normalizedStatus = resolvedStatus.toLowerCase();
+		let dotColor = "#6c757d";
+		if (["valid", "active", "registered"].some((value) => normalizedStatus.includes(value))) {
+			dotColor = "#198754";
+		} else if (["invalid", "cancelled", "blocked", "inactive"].some((value) => normalizedStatus.includes(value))) {
+			dotColor = "#dc3545";
+		}
+
+		let updatedLabel = "";
+		if (updatedOn) {
+			try {
+				if (frappe.datetime?.comment_when) {
+					updatedLabel = `${__("updated")} ${frappe.datetime.comment_when(updatedOn)}`;
+				} else {
+					updatedLabel = `${__("updated")} ${frappe.utils.escape_html(String(updatedOn))}`;
+				}
+			} catch (e) {
+				updatedLabel = "";
+			}
+		}
+
+		return `
+			<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 text-muted fs-sm">
+				<span class="d-inline-flex align-items-center gap-2">
+					<span style="width:8px;height:8px;border-radius:999px;background:${dotColor};display:inline-block;"></span>
+					<span>${__("Status")}: <strong>${frappe.utils.escape_html(resolvedStatus)}</strong></span>
+				</span>
+				${updatedLabel ? `<span>${updatedLabel} <i class="fa fa-refresh"></i></span>` : ""}
+			</div>
+		`;
+	}
+
+	getCustomerTaxValues() {
+		const controls = this.taxes_controls || {};
+		const getValue = (field) => {
+			const control = controls[field];
+			if (!control) return "";
+			if (control.get_value) {
+				return control.get_value() || "";
+			}
+			return control.$input ? (control.$input.val() || "") : "";
+		};
+
+		return {
+			gstin: getValue("gstin"),
+			gst_category: getValue("gst_category"),
+			pan: getValue("pan"),
+			territory: getValue("territory"),
+			tax_category: getValue("tax_category")
+		};
+	}
+
+	saveCustomerTaxFields(customerId, fields, statusEl, saveBtn) {
+		if (!customerId) return;
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const panel = wrapper?.querySelector('[data-tab-panel="taxes"]');
+		const container = panel?.querySelector("#customer-taxes");
+
+		frappe.call({
+			method: "renewal_module.custom_module.page.customers.customers.update_customer_tax_fields",
+			args: {
+				customer_id: customerId,
+				fields: JSON.stringify(fields || {})
+			},
+			callback: (r) => {
+				const updated = r && r.message ? r.message : fields;
+				this.current_customer_details = {
+					...(this.current_customer_details || {}),
+					...updated
+				};
+
+				if (this.taxes_controls) {
+					if (Object.prototype.hasOwnProperty.call(updated, "gstin")) {
+						this.taxes_controls.gstin.set_value(updated.gstin || "");
+					}
+					if (Object.prototype.hasOwnProperty.call(updated, "gst_category")) {
+						this.taxes_controls.gst_category.set_value(updated.gst_category || "");
+					}
+					if (Object.prototype.hasOwnProperty.call(updated, "pan")) {
+						this.taxes_controls.pan.set_value(updated.pan || "");
+					}
+					if (Object.prototype.hasOwnProperty.call(updated, "territory") && this.taxes_controls.territory) {
+						this.taxes_controls.territory.set_value(updated.territory || "");
+					}
+					if (Object.prototype.hasOwnProperty.call(updated, "tax_category")) {
+						this.taxes_controls.tax_category.set_value(updated.tax_category || "");
+					}
+				}
+
+				const gstinStatusTarget = container?.querySelector("#customer-gstin-status");
+				if (gstinStatusTarget) {
+					gstinStatusTarget.innerHTML = this.getTaxStatusMarkup(
+						updated.gstin_status,
+						updated.gstin_last_updated_on,
+						__("Not Available")
+					);
+				}
+
+				const panStatusTarget = container?.querySelector("#customer-pan-status");
+				if (panStatusTarget) {
+					const derivedPanStatus = updated.pan_status
+						|| (/^[A-Z]{5}[0-9]{4}[A-Z]$/i.test(String(updated.pan || "").trim()) ? __("Valid") : __("Not Available"));
+					panStatusTarget.innerHTML = this.getTaxStatusMarkup(
+						derivedPanStatus,
+						updated.pan_last_updated_on,
+						__("Not Available")
+					);
+				}
+
+				this.taxes_initial_values = this.getCustomerTaxValues();
+				if (saveBtn) saveBtn.classList.add("d-none");
+				if (statusEl) statusEl.textContent = "Saved";
+				frappe.show_alert({ message: "Tax details updated", indicator: "green" });
+			},
+			error: (err) => {
+				console.error("Tax fields update failed", err);
+				if (statusEl) statusEl.textContent = "Failed to save";
+				frappe.msgprint("Failed to update tax details.");
 			}
 		});
 	}
@@ -3757,27 +4914,35 @@ class customersPage {
 		const filterConfig = {
 			"Opportunity": {
 				doctype: "Opportunity",
-				fieldname: "party_name"
+				fieldname: "party_name",
+				customRoute: "opportunity-list"
+				//customRoute: "opportunity"
 			},
 			"Quotation": {
 				doctype: "Quotation",
-				fieldname: "party_name"
+				fieldname: "party_name",
+				customRoute: "quotation-list"
+				//customRoute: "quotation"
 			},
 			"Customer Order Form": {
 				doctype: "Customer Order Form",
-				fieldname: "customer"
+				fieldname: "customer",
+				customRoute: "customer-order-forms"
 			},
 			"Sales Order": {
 				doctype: "Sales Order",
-				fieldname: "customer"
+				fieldname: "customer",
+				customRoute: "sales-order"
 			},
 			"Sales Invoice": {
 				doctype: "Sales Invoice",
-				fieldname: "customer"
+				fieldname: "customer",
+				customRoute: "sales-invoice"
 			},
 			"Renewal List": {
 				doctype: "Renewal List",
-				fieldname: "customer_name"
+				fieldname: "customer_name",
+				customRoute: "renewal-list"
 			},
 			"Issue": {
 				doctype: "Issue",
@@ -3786,11 +4951,13 @@ class customersPage {
 			},
 			"Call List": {
 				doctype: "Call List",
-				fieldname: "name1"
+				fieldname: "name1",
+				customRoute: "call-lists"
 			},
 			"Payment Entry": {
 				doctype: "Payment Entry",
-				fieldname: "party_name"
+				fieldname: "party_name",
+				customRoute: "payment-entry"
 			}
 		};
 
@@ -3800,23 +4967,24 @@ class customersPage {
 			return;
 		}
 
-		// For Issue doctype, navigate to custom ticket page with customer filter
-		if (dataType === "Issue" && config.customRoute) {
-			const filters = [["Issue", "customer", "=", customerId, false]];
+		// For Issue, Opportunity, Quotation, and Call List, use customRoute base with filters param
+		const customRouteTypes = ["Issue", "Opportunity", "Quotation", "Call List", "Customer Order Form"];
+		//const customRouteTypes = ["Issue", "Call List"];
+		if (customRouteTypes.includes(dataType) && config.customRoute) {
+			// Always use filters param as expected by custom page
+			const filters = [[config.doctype, config.fieldname, "=", customerId, false]];
 			const encodedFilters = encodeURIComponent(JSON.stringify(filters));
-			// Open in new tab with URL params to ensure applyUrlFilters picks them up
-			const ticketUrl = `/app/${config.customRoute}?filters=${encodedFilters}`;
-			window.open(ticketUrl, '_blank');
+			const customUrl = `/app/${config.customRoute}?filters=${encodedFilters}`;
+			// window.open(customUrl, '_blank');
+			window.location.assign(customUrl);
 			return;
 		}
 
-		// Build the proper Frappe route with filters and open in new tab
+		// For other doctypes, use standard list route with filter
 		const routeName = frappe.router.slug(config.doctype);
-		const filterParam = encodeURIComponent(JSON.stringify({
-			[config.fieldname]: ["=", customerId]
-		}));
 		const listUrl = `/app/list/${routeName}?${config.fieldname}=%5B%22%3D%22%2C%22${encodeURIComponent(customerId)}%22%5D`;
-		window.open(listUrl, '_blank');
+		//window.open(listUrl, '_blank');
+		window.location.assign(listUrl);
 	}
 
 	getPriorityColor(priority) {
@@ -3862,7 +5030,15 @@ class customersPage {
 				frappe.msgprint("No customer selected.");
 				return;
 			}
-
+			const getCurrentUserEmailSignature = async () => {
+				try {
+					const response = await frappe.db.get_value("User", frappe.session.user, "email_signature");
+					return String(response?.message?.email_signature || "").trim();
+				} catch (err) {
+					console.warn("Unable to fetch current user email signature", err);
+					return "";
+				}
+			};
 			// 🔹 Fetch Customer details
 			let customer_doc = await frappe.db.get_doc("Customer", customer_id);
 			let customer = customer_id;
@@ -3878,6 +5054,10 @@ class customersPage {
 			} catch (err) {
 				console.error("Error fetching contact emails:", err);
 			}
+			const userEmailSignature = await getCurrentUserEmailSignature();
+			const defaultMessageContent = userEmailSignature
+				? `${"<p><br></p>".repeat(5)}${userEmailSignature}`
+				: "";
 
 			// Fallback email
 			let default_email = customer_doc.email_id || customer_doc.contact_email || "";
@@ -3930,7 +5110,9 @@ class customersPage {
 						label: __("Message"),
 						fieldname: "content",
 						fieldtype: "Text Editor",
-						reqd: 1
+						reqd: 1,
+						default: defaultMessageContent
+
 					},
 					{
 						fieldtype: "Section Break",
@@ -4108,6 +5290,414 @@ class customersPage {
 		});
 	}
 
+	bindCustomerRenameButton(customer_id) {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const nameText = wrapper?.querySelector("#customer-name-text");
+		if (!nameText) return;
+
+		const meta = frappe.get_meta("Customer") || {};
+		const allowRename = Object.prototype.hasOwnProperty.call(meta, "allow_rename")
+			? !!meta.allow_rename
+			: true;
+		const hasWrite = frappe.model?.can_write
+			? frappe.model.can_write("Customer")
+			: frappe.perm.has_perm("Customer", 0, "write");
+		const canRename = allowRename && hasWrite;
+
+		nameText.dataset.customerId = String(customer_id || this.current_customer_id || "").trim();
+		nameText.style.cursor = canRename ? "pointer" : "default";
+		nameText.title = canRename
+			? __("Click to rename customer")
+			: __("You do not have permission to rename this customer");
+
+		nameText.onclick = (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+
+			if (!canRename) {
+				frappe.msgprint(__("You do not have permission to rename this Customer."));
+				return;
+			}
+
+			const targetCustomer = nameText.dataset.customerId || customer_id || this.current_customer_id;
+			this.openCustomerRenamePopup(targetCustomer);
+		};
+	}
+
+	handleCustomerRenameResult(oldName, newName, isMerge = false) {
+		const updatedName = String(newName || oldName || "").trim();
+		if (!updatedName) return;
+
+		if (locals.Customer && oldName && oldName !== updatedName && locals.Customer[oldName]) {
+			delete locals.Customer[oldName];
+		}
+
+		this.current_customer_id = updatedName;
+		this.setPageTitle(`Customers/${updatedName}`);
+		frappe.show_alert({
+			message: isMerge
+				? __("Customer merged into {0}", [updatedName])
+				: __("Customer renamed to {0}", [updatedName]),
+			indicator: "green",
+		});
+
+		if (frappe.get_route()[0] === "customers" && frappe.get_route()[1] === updatedName) {
+			this.bindCustomerRenameButton(updatedName);
+			this.load_customer_details(updatedName);
+		} else {
+			frappe.set_route("customers", updatedName);
+		}
+	}
+
+	openCustomerRenamePopup(customer_id) {
+		const currentName = String(customer_id || this.current_customer_id || "").trim();
+		if (!currentName) {
+			frappe.msgprint(__("Customer name is missing."));
+			return;
+		}
+
+		const canMerge = frappe.model?.can_write
+			? frappe.model.can_write("Customer")
+			: frappe.perm.has_perm("Customer", 0, "write");
+		const mergeWarning = __("This cannot be undone");
+
+		const dialog = new frappe.ui.Dialog({
+			title: __("Rename {0}", [currentName]),
+			fields: [
+				{
+					label: __("Current Name"),
+					fieldname: "old_name_display",
+					fieldtype: "Data",
+					default: currentName,
+					read_only: 1,
+				},
+				{
+					label: __("New Name"),
+					fieldname: "new_name",
+					fieldtype: "Data",
+					reqd: 1,
+					default: currentName,
+				},
+				{
+					label: __("Merge with existing") + " <b>(" + mergeWarning + ")</b>",
+					fieldname: "merge",
+					fieldtype: "Check",
+					default: 0,
+					read_only: canMerge ? 0 : 1,
+					description: canMerge
+						? __("Choose this only when merging into an existing Customer.")
+						: __("You need Customer write access to use merge."),
+				},
+			],
+		});
+
+		const forceHideDialog = () => {
+			try {
+				dialog.hide();
+			} catch (e) {
+				console.warn("Unable to hide rename dialog via dialog.hide()", e);
+			}
+
+			const $wrapper = dialog.$wrapper || $(dialog.wrapper);
+			if ($wrapper && $wrapper.length) {
+				if (typeof $wrapper.modal === "function") {
+					$wrapper.modal("hide");
+				}
+				$wrapper.removeClass("show").hide();
+			}
+
+			$(".modal-backdrop").remove();
+			$("body").removeClass("modal-open");
+		};
+
+		const showRenameError = (error, attemptedMerge = false) => {
+			let serverMessage = "";
+			const rawMessages = error?._server_messages;
+
+			if (rawMessages) {
+				try {
+					const parsedMessages = JSON.parse(rawMessages);
+					serverMessage = (parsedMessages || [])
+						.map((msg) => {
+							try {
+								const parsed = JSON.parse(msg);
+								return parsed.message || parsed;
+							} catch (e) {
+								return msg;
+							}
+						})
+						.filter(Boolean)
+						.join("<br>");
+				} catch (e) {
+					serverMessage = "";
+				}
+			}
+
+			const fallbackMessage = attemptedMerge
+				? __("You do not have permission to merge these customer records.")
+				: error?.message || __("Unable to rename customer.");
+
+			frappe.msgprint({
+				title: attemptedMerge ? __("Merge not allowed") : __("Rename failed"),
+				indicator: "red",
+				message: serverMessage || fallbackMessage,
+			});
+		};
+
+		const executeRename = (newName, merge = false) => {
+			dialog.disable_primary_action();
+
+			return frappe.call({
+				method: "renewal_module.custom_module.page.customers.customers.rename_or_merge_customer",
+				freeze: true,
+				freeze_message: merge ? __("Merging customer...") : __("Updating related fields..."),
+				args: {
+					old_name: currentName,
+					new_name: newName,
+					merge: merge ? 1 : 0,
+				},
+			})
+				.then((r) => {
+					if (r.exc) return;
+					forceHideDialog();
+					this.handleCustomerRenameResult(currentName, r.message || newName, merge);
+				})
+				.catch((error) => {
+					dialog.enable_primary_action();
+					showRenameError(error, merge);
+				});
+		};
+
+		dialog.set_primary_action(__("Rename"), () => {
+			const values = dialog.get_values();
+			const newName = String(values?.new_name || "").trim();
+			const shouldMerge = !!values?.merge;
+
+			if (!newName) return;
+
+			if (!shouldMerge && newName === currentName) {
+				frappe.show_alert({
+					indicator: "info",
+					message: __("Unchanged"),
+				});
+				return;
+			}
+
+			if (shouldMerge && newName === currentName) {
+				frappe.msgprint(__("Please select another existing Customer to merge into."));
+				return;
+			}
+
+			if (shouldMerge && !canMerge) {
+				showRenameError(null, true);
+				return;
+			}
+
+			if (shouldMerge) {
+				const confirmMessage = `${__("Are you sure you want to merge {0} with {1}?", [
+					currentName.bold(),
+					newName.bold(),
+				])}<br><b>${mergeWarning}</b>`;
+
+				frappe.confirm(confirmMessage, () => executeRename(newName, true));
+				return;
+			}
+
+			executeRename(newName, false);
+		});
+
+		dialog.show();
+		setTimeout(() => {
+			const $wrapper = dialog.$wrapper || $(dialog.wrapper);
+			const closeBtn = dialog.get_close_btn();
+			if (closeBtn && closeBtn.length) {
+				closeBtn.off("click.customerRenameDialog").on("click.customerRenameDialog", function (e) {
+					e.preventDefault();
+					e.stopImmediatePropagation();
+					forceHideDialog();
+				});
+			}
+
+			if ($wrapper && $wrapper.length) {
+				$wrapper
+					.off("click.customerRenameDialogDismiss", ".btn-modal-close, .modal-header .close")
+					.on("click.customerRenameDialogDismiss", ".btn-modal-close, .modal-header .close", function (e) {
+						e.preventDefault();
+						e.stopImmediatePropagation();
+						forceHideDialog();
+					});
+			}
+		}, 50);
+	}
+
+	bindAccountManagerPicker(customerId, customerData = {}) {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const accountManagerEl = wrapper?.querySelector("#customer-account-manager");
+		if (!accountManagerEl || !customerId) return;
+
+		const currentUser = String(customerData.account_manager || "").trim();
+
+		const setPickerEnabled = (enabled) => {
+			accountManagerEl.onclick = null;
+			accountManagerEl.onkeydown = null;
+
+			if (enabled) {
+				accountManagerEl.classList.add("customer-account-manager-link");
+				accountManagerEl.setAttribute("role", "button");
+				accountManagerEl.setAttribute("tabindex", "0");
+				accountManagerEl.setAttribute("title", __("Click to change Account Manager and share linked documents"));
+				accountManagerEl.style.cursor = "pointer";
+				return;
+			}
+
+			accountManagerEl.classList.remove("customer-account-manager-link");
+			accountManagerEl.removeAttribute("role");
+			accountManagerEl.removeAttribute("tabindex");
+			accountManagerEl.removeAttribute("title");
+			accountManagerEl.style.cursor = "default";
+		};
+
+		setPickerEnabled(false);
+
+		const openPicker = async () => {
+			let userOptions = [];
+			try {
+				const filtersResp = await frappe.call({
+					method: "renewal_module.custom_module.page.customers.customers.get_customer_filters"
+				});
+				const managerRows = filtersResp?.message?.account_manager || [];
+				let userIds = managerRows
+					.map(row => (typeof row === "string" ? row : row?.value))
+					.filter(Boolean);
+
+				if (currentUser && !userIds.includes(currentUser)) {
+					userIds.push(currentUser);
+				}
+
+				if (userIds.length) {
+					const infoResp = await frappe.call({
+						method: "renewal_module.custom_module.page.customers.customers.get_users_basic_info",
+						args: { users: JSON.stringify(userIds) }
+					});
+
+					const infoRows = Array.isArray(infoResp?.message) ? infoResp.message : [];
+					userOptions = infoRows.map(u => {
+						const userId = String(u.name || u.email || "").trim();
+						const label = String(u.full_name || userId).trim();
+						return {
+							value: userId,
+							label: label
+						};
+					}).filter(u => u.value);
+				}
+			} catch (err) {
+				console.warn("Failed loading account manager user options", err);
+			}
+
+			if (!userOptions.length && currentUser) {
+				userOptions = [{ value: currentUser, label: currentUser }];
+			}
+
+			const optionsString = userOptions
+				.map(opt => `${opt.value}`)
+				.join("\n");
+
+			const dialog = new frappe.ui.Dialog({
+				title: __("Set Account Manager and Share Linked Documents"),
+				fields: [
+					{
+						fieldtype: "Select",
+						fieldname: "user",
+						label: __("User"),
+						options: optionsString,
+						reqd: 1,
+						default: currentUser
+					}
+				],
+				primary_action_label: __("Save"),
+				primary_action: (values) => {
+					if (!values?.user) return;
+					dialog.disable_primary_action();
+					frappe.call({
+						method: "renewal_module.custom_module.page.customers.customers.assign_account_manager_and_share",
+						args: {
+							customer_id: customerId,
+							user_email: values.user
+						},
+						callback: (r) => {
+							dialog.hide();
+							const result = r?.message || {};
+							const updatedUser = result.account_manager || values.user;
+							const sharesCount = Number(result.shared_doc_count || 0);
+							$("#customer-account-manager").text(updatedUser || "");
+							this.load_customer_details(customerId);
+							frappe.show_alert({
+								indicator: "green",
+								message: __("Account Manager updated and {0} linked documents shared", [sharesCount])
+							});
+						},
+						error: (err) => {
+							console.error("Failed to update account manager", err);
+							dialog.enable_primary_action();
+							frappe.msgprint(__("Failed to update Account Manager."));
+						}
+					});
+				}
+			});
+
+			dialog.show();
+			setTimeout(() => {
+				const closeBtn = dialog.get_close_btn();
+				if (!closeBtn || !closeBtn.length) return;
+				closeBtn.off("click.dialog").on("click.dialog", () => dialog.hide());
+			}, 50);
+		};
+
+		const bindPickerHandlers = () => {
+			setPickerEnabled(true);
+			accountManagerEl.onclick = (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				openPicker();
+			};
+
+			accountManagerEl.onkeydown = (e) => {
+				if (e.key !== "Enter" && e.key !== " ") return;
+				e.preventDefault();
+				openPicker();
+			};
+		};
+
+		const userRoles = frappe?.user_roles || [];
+		const isPrivilegedUser =
+			userRoles.includes("System Manager") ||
+			userRoles.includes("Administrator") ||
+			frappe?.session?.user === "Administrator";
+
+		if (isPrivilegedUser) {
+			bindPickerHandlers();
+			return;
+		}
+
+		frappe.call({
+			method: "renewal_module.custom_module.page.customers.customers.can_change_account_manager",
+			args: { customer_id: customerId },
+			callback: (r) => {
+				const allowed = !!(r?.message?.allowed);
+				if (!allowed) {
+					setPickerEnabled(false);
+					return;
+				}
+
+				bindPickerHandlers();
+			},
+			error: () => {
+				setPickerEnabled(false);
+			}
+		});
+	}
+
+
 
 	async load_customer_details(customer_id) {
 
@@ -4121,12 +5711,17 @@ class customersPage {
 			this.current_customer_details = c;
 			console.log("showing customer data", r.message);
 			const wrapper = this.page.wrapper[0] || this.page.wrapper;
+			this.bindCustomerRenameButton(customer_id);
 			const container = wrapper.querySelector(".profile-card");
 			if (!container) return;
 			container.innerHTML = "";
-			$("#customer-names").text(c.customer_name || "");
+			const displayCustomerName = String(customer_id || c.name || c.customer_name || "").trim();
+			$("#customer-name-text")
+				.text(displayCustomerName)
+				.attr("title", displayCustomerName);
 			$("#customer-status").text(c.custom_customer_status || "");
 			$("#customer-account-manager").text(c.account_manager || "");
+			this.bindAccountManagerPicker(customer_id, c);
 
 
 			$(this.wrapper).off("click", ".customer-status").on("click", ".customer-status", function () {
@@ -4187,6 +5782,27 @@ class customersPage {
 				return url;
 			};
 
+			const linkedCustomerContext = {
+				link_doctype: "Customer",
+				link_name: String(customer_id || "").trim(),
+				link_title: String(c.customer_name || customer_id || "").trim(),
+				customer: String(customer_id || "").trim(),
+				customer_name: String(c.customer_name || customer_id || "").trim()
+			};
+
+			const linkedQuery = new URLSearchParams(linkedCustomerContext).toString();
+
+			const openLinkedForm = (routeParts) => {
+				const context = { ...linkedCustomerContext };
+				try {
+					localStorage.setItem("renewal_module_new_link_context", JSON.stringify(context));
+				} catch (e) {
+					console.warn("Unable to persist linked customer context", e);
+				}
+				frappe.route_options = context;
+				frappe.set_route(...routeParts);
+			};
+
 			function renderCustomerAddresses(addresses = []) {
 				const esc = (v) => (v == null ? "" : frappe.utils.escape_html(String(v)));
 				if (!addresses.length) {
@@ -4220,12 +5836,12 @@ class customersPage {
 					const title = esc(addr.name || addr.address_title || "Address");
 					const dotSep = `<span class="text-muted" style="display:inline-flex;align-items:center;justify-content:center;font-size:16px;line-height:1;vertical-align:middle;margin:0 4px;">&middot;</span>`;
 					const labelText = labels.length ? `${dotSep}<span class="text-muted">${labels.map(esc).join(`</span>${dotSep}<span class="text-muted">`)}</span>` : "";
-					const addressLink = `/app/address/${encodeURIComponent(addr.name || "")}`;
+					const addressLink = `/app/addresses/${encodeURIComponent(addr.name || "")}`;
 
 					return `
 						<div class="address-box customer-address-card">
 							<p class="">
-								<span><a href="${addressLink}" target="_blank" class="text-decoration-none">${title}</a></span>${labelText}
+								<span><a href="${addressLink}" target="_blank" class="text-decoration-none"><b>${title}</b></a></span>${labelText}
 							</p>
 							<p class="address-body mb-0">${displayHtml}</p>
 						</div>
@@ -4244,10 +5860,10 @@ class customersPage {
 				</div>	
 
 				<ul class="info">
-					${c.tax_id ?
-					`<li title="Tax ID: ${this.escapeHtml(c.tax_id)}">
+					${c.gstin ?
+					`<li title="Tax ID: ${this.escapeHtml(c.gstin)}">
 							<i class="fa fa-id-card"></i>
-							<span>${this.escapeHtml(c.tax_id)}</span>
+							<span>${this.escapeHtml(c.gstin)}</span>
 						</li>`
 					: ""}
 					${c.territory ?
@@ -4299,6 +5915,12 @@ class customersPage {
 				
 				</ul>
 				<div class="customer-address-section">
+					<div class="d-flex align-items-center justify-content-between mb-2">
+						<div class="fw-semibold">Addresses</div>
+						<a href="/app/addresses/new-addresses?${linkedQuery}" class="btn btn-sm btn-primary1 customer-new-address-btn" title="Add Address">
+							<i class="fa fa-plus me-1"></i> New Address
+						</a>
+					</div>
 					<div id="customer-address">
 						${renderCustomerAddresses(c.addresses || [])}
 					</div>
@@ -4330,6 +5952,14 @@ class customersPage {
 				};
 			}
 
+			const newAddressBtn = container.querySelector(".customer-new-address-btn");
+			if (newAddressBtn) {
+				newAddressBtn.onclick = (e) => {
+					e.preventDefault();
+					e.stopPropagation();
+					openLinkedForm(["addresses", "new-addresses"]);
+				};
+			}
 
 			// -------------------- CONTACTS --------------------
 			const timelinePanel = wrapper.querySelector('[data-tab-panel="contacts"]');
@@ -4337,6 +5967,22 @@ class customersPage {
 
 			if (customer_contact_container) {
 				customer_contact_container.innerHTML = "";
+				customer_contact_container.insertAdjacentHTML("beforeend", `
+					<div class="d-flex align-items-center justify-content-end mb-2">
+						<a href="/app/contactss/new?${linkedQuery}" class="btn btn-sm btn-primary1 customer-new-contact-btn" title="Add Contact">
+							<i class="fa fa-plus me-1"></i> New Contact
+						</a>
+					</div>
+				`);
+
+				const newContactBtn = customer_contact_container.querySelector(".customer-new-contact-btn");
+				if (newContactBtn) {
+					newContactBtn.onclick = (e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						openLinkedForm(["contactss", "new"]);
+					};
+				}
 
 				if (c.contacts && c.contacts.length > 0) {
 					// Create a row container for columns
@@ -4472,7 +6118,7 @@ class customersPage {
 								<div class="customer-contact-card h-100 w-100">
 									<div class="contact-header">
 										<div class="contact-name">
-											<a href="/app/contacts/${ct.name}"target="_blank" class="text-decoration-none"> ${full_name}</a>${designation}
+											<a href="/app/contactss/${ct.name}"target="_blank" class="text-decoration-none"> ${full_name}</a>${designation}
 										</div>
 										<i class="fa fa-pencil edit-icon hidden"></i>
 									</div>
@@ -4494,9 +6140,9 @@ class customersPage {
 					// Append the row container to the main container
 					customer_contact_container.appendChild(rowContainer);
 				} else {
-					customer_contact_container.innerHTML = `
-						<p class="text-muted fs-sm">No contact available</p>
-					`;
+					customer_contact_container.insertAdjacentHTML("beforeend", `
+						<p class="text-muted fs-sm mt-2">No contact available</p>
+					`);
 				}
 			}
 
@@ -4592,8 +6238,9 @@ class customersPage {
 				}
 			}
 
-			// ================= SALES TEAM TAB =================
+			// ================= SALES TEAM / TAX / SETTINGS TABS =================
 			this.renderSalesTeamTab(customer_id, c.sales_team || [], c);
+			this.renderTaxesTab(customer_id, c);
 			this.renderSettingsTab(customer_id, c);
 			this.renderAccountsTab(customer_id, c);
 			this.renderPortalUsersTab(customer_id, c);
@@ -5061,9 +6708,62 @@ class customersPage {
 
 	/***New customer Form */
 
+	gotoNewCustomerWizardStep(step) {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const $scope = $(wrapper);
+		const totalSteps = 4;
+		this._newCustomerCurrentStep = step;
+
+		$scope.find(".new-customer-wizard-step").each(function () {
+			const currentStep = parseInt($(this).data("step"), 10);
+			$(this).removeClass("is-active is-done");
+			if (currentStep < step) $(this).addClass("is-done");
+			else if (currentStep === step) $(this).addClass("is-active");
+		});
+
+		$scope.find(".new-customer-wizard-connector").each(function (idx) {
+			$(this).toggleClass("is-done", idx + 1 < step);
+		});
+
+		$scope.find(".new-customer-wizard-panel").each(function () {
+			const panelStep = parseInt($(this).data("panel"), 10);
+			$(this).toggleClass("d-none", panelStep !== step);
+		});
+
+		$scope.find("#new-customer-back").toggleClass("d-none", step === 1);
+		$scope.find("#new-customer-next").toggleClass("d-none", step === totalSteps);
+		$scope.find("#new-customer-save").toggleClass("d-none", step !== totalSteps);
+	}
+
+	validateNewCustomerWizardStep(step, controls = {}) {
+		const requiredFieldsByStep = {
+			1: [
+				{ control: controls.customerNameControl, label: "Customer Name" },
+				{ control: controls.customertypeControl, label: "Customer Type" },
+				{ control: controls.territoryControl, label: "Territory" }
+			],
+			2: [
+				{ control: controls.industryControl, label: "Industry" },
+				{ control: controls.employeesControl, label: "Employees" }
+			]
+		};
+
+		const fields = requiredFieldsByStep[step] || [];
+		for (const field of fields) {
+			const value = field.control?.get_value ? String(field.control.get_value() || "").trim() : "";
+			if (!value) {
+				frappe.show_alert({ message: __(`Please fill ${field.label} before proceeding.`), indicator: "red" }, 4);
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	async bind_customer_form_events() {
 		const me = this;
 		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const $scope = $(wrapper);
 		const customerForm = wrapper.querySelector("#new-customers-form");
 		if (!customerForm) return;
 
@@ -5077,6 +6777,10 @@ class customersPage {
 		const customerTypeOptions = (customerTypeDf && customerTypeDf.options)
 			? customerTypeDf.options
 			: "\nIndividual\nCompany\nPartner";
+		const gstCategoryDf = frappe.meta.get_docfield("Customer", "gst_category");
+		const gstCategoryOptions = (gstCategoryDf && gstCategoryDf.options)
+			? gstCategoryDf.options
+			: "\nRegistered Regular\nRegistered Composition\nUnregistered\nSEZ\nOverseas\nDeemed Export\nUIN Holders\nTax Deductor";
 		let newCustomerDoc = frappe.model.get_new_doc("Customer");
 
 		let customerNameControl = frappe.ui.form.make_control({
@@ -5175,6 +6879,40 @@ class customersPage {
 			render_input: true
 		});
 		taxcategoryControl.refresh();
+
+		let gstinControl = frappe.ui.form.make_control({
+			parent: document.getElementById("gstin-field"),
+			df: {
+				fieldtype: "Data",
+				label: "GSTIN / UIN",
+				fieldname: "gstin"
+			},
+			render_input: true
+		});
+		gstinControl.refresh();
+
+		let gstCategoryControl = frappe.ui.form.make_control({
+			parent: document.getElementById("gst-category-field"),
+			df: {
+				fieldtype: "Select",
+				options: gstCategoryOptions,
+				label: "GST Category",
+				fieldname: "gst_category"
+			},
+			render_input: true
+		});
+		gstCategoryControl.refresh();
+
+		let panControl = frappe.ui.form.make_control({
+			parent: document.getElementById("pan-field"),
+			df: {
+				fieldtype: "Data",
+				label: "PAN",
+				fieldname: "pan"
+			},
+			render_input: true
+		});
+		panControl.refresh();
 
 		let customerGroupControl = frappe.ui.form.make_control({
 			parent: document.getElementById("customer-group-field"),
@@ -5290,18 +7028,29 @@ class customersPage {
 		};
 
 		const updateTaxCategoryFromTerritory = () => {
-			const territory = territoryControl.get_value();
-			if (!territory) return;
-			let nextTaxCategory = "Out-State - TG";
-			if (territory === "Telangana") {
-				nextTaxCategory = "In-State - TG";
-			} else if (territory === "Tamil Nadu") {
-				nextTaxCategory = "In-State - TN";
-			}
-			if (taxcategoryControl.get_value() !== nextTaxCategory) {
+			const nextTaxCategory = this.getTaxCategoryForTerritory(territoryControl.get_value());
+			if (nextTaxCategory && taxcategoryControl.get_value() !== nextTaxCategory) {
 				taxcategoryControl.set_value(nextTaxCategory);
 			}
-			newCustomerDoc.tax_category = nextTaxCategory;
+			newCustomerDoc.tax_category = taxcategoryControl.get_value() || nextTaxCategory || "";
+		};
+
+		const syncTaxDetailsFromGSTIN = () => {
+			this.autoFillTaxFieldsFromGSTIN({
+				gstinControl,
+				panControl,
+				gstCategoryControl,
+				territoryControl,
+				taxCategoryControl: taxcategoryControl,
+				onComplete: () => {
+					newCustomerDoc.gstin = gstinControl.get_value() || "";
+					newCustomerDoc.tax_id = newCustomerDoc.gstin || "";
+					newCustomerDoc.pan = panControl.get_value() || "";
+					newCustomerDoc.gst_category = gstCategoryControl.get_value() || "";
+					newCustomerDoc.territory = territoryControl.get_value() || "";
+					newCustomerDoc.tax_category = taxcategoryControl.get_value() || "";
+				}
+			});
 		};
 
 		const applyDefaults = () => {
@@ -5313,6 +7062,9 @@ class customersPage {
 			employeesControl.set_value(newCustomerDoc.employees || "");
 			accountManagerControl.set_value(newCustomerDoc.account_manager || "");
 			taxcategoryControl.set_value(newCustomerDoc.tax_category || "");
+			gstinControl.set_value(newCustomerDoc.gstin || newCustomerDoc.tax_id || "");
+			gstCategoryControl.set_value(newCustomerDoc.gst_category || "");
+			panControl.set_value(newCustomerDoc.pan || "");
 			customerGroupControl.set_value(newCustomerDoc.customer_group || "");
 			customphoneControl.set_value(newCustomerDoc.custom_phone_number || "");
 			customphoneverifiedControl.set_value(newCustomerDoc.custom_verified || 0);
@@ -5351,6 +7103,12 @@ class customersPage {
 		bindValueChange(industryControl, "industry");
 		bindValueChange(employeesControl, "employees");
 		bindValueChange(accountManagerControl, "account_manager", updateSalesTeamFromAccountManager);
+		bindValueChange(gstinControl, "gstin", () => {
+			newCustomerDoc.tax_id = gstinControl.get_value() || "";
+			syncTaxDetailsFromGSTIN();
+		});
+		bindValueChange(gstCategoryControl, "gst_category");
+		bindValueChange(panControl, "pan");
 		bindValueChange(taxcategoryControl, "tax_category");
 		bindValueChange(customerGroupControl, "customer_group");
 		bindValueChange(customphoneControl, "custom_phone_number");
@@ -5359,6 +7117,59 @@ class customersPage {
 		bindValueChange(memberoffcontrol, "member_of");
 		bindValueChange(mxrecordControl, "mx_record");
 		bindValueChange(websiteControl, "website");
+
+		$scope
+			.off("click", "#new-customer-cancel")
+			.on("click", "#new-customer-cancel", function (e) {
+				e.preventDefault();
+				frappe.set_route("customers");
+			});
+
+		$scope
+			.off("click", "#new-customer-back")
+			.on("click", "#new-customer-back", function (e) {
+				e.preventDefault();
+				const current = me._newCustomerCurrentStep || 1;
+				if (current > 1) me.gotoNewCustomerWizardStep(current - 1);
+			});
+
+		$scope
+			.off("click", "#new-customer-next")
+			.on("click", "#new-customer-next", function (e) {
+				e.preventDefault();
+				const current = me._newCustomerCurrentStep || 1;
+				const isValid = me.validateNewCustomerWizardStep(current, {
+					customerNameControl,
+					customertypeControl,
+					territoryControl,
+					industryControl,
+					employeesControl
+				});
+				if (!isValid) return;
+				me.gotoNewCustomerWizardStep(current + 1);
+			});
+
+		$scope
+			.off("click", ".new-customer-wizard-step")
+			.on("click", ".new-customer-wizard-step", function (e) {
+				e.preventDefault();
+				const targetStep = parseInt($(this).data("step"), 10);
+				if (!Number.isFinite(targetStep) || targetStep < 1) return;
+
+				const current = me._newCustomerCurrentStep || 1;
+				if (targetStep > current) {
+					const isValid = me.validateNewCustomerWizardStep(current, {
+						customerNameControl,
+						customertypeControl,
+						territoryControl,
+						industryControl,
+						employeesControl
+					});
+					if (!isValid) return;
+				}
+
+				me.gotoNewCustomerWizardStep(Math.min(Math.max(targetStep, 1), 4));
+			});
 
 		applyDefaults();
 		if (territoryControl.get_value()) {
@@ -5376,6 +7187,9 @@ class customersPage {
 			const industry = industryControl.get_value();
 			const employees = employeesControl.get_value();
 			const account_manager = accountManagerControl.get_value();
+			const gstin = gstinControl.get_value();
+			const gst_category = gstCategoryControl.get_value();
+			const pan = panControl.get_value();
 			const tax_category = taxcategoryControl.get_value();
 			const customer_group = customerGroupControl.get_value();
 			const custom_phone_number = customphoneControl.get_value();
@@ -5393,6 +7207,10 @@ class customersPage {
 				industry,
 				employees,
 				account_manager,
+				gstin,
+				tax_id: gstin,
+				gst_category,
+				pan,
 				tax_category,
 				customer_group,
 				custom_phone_number,
@@ -5506,7 +7324,7 @@ frappe.customers_page_template = {
 										</button>
 									</div>
 										
-									<a id="new-customers-btn" href="/app/customers/new-customers" class="btn btn-sm btn-primary1 mr-2">
+									<a id="new-customers-btn" href="/app/customers/new" class="btn btn-sm btn-primary1 mr-2">
 										<i class="fa fa-plus me-1"></i> New Customers
 									</a>
 									<div class="dropdown d-none" id="actions-dropdown">
@@ -5595,9 +7413,11 @@ frappe.customers_page_template = {
 					<div class="col-12">
 						<!-- Cover -->
 						<section class="profile-cover">
-							<div class="d-flex align-items-center">
-								<div id="customer-names" class="customer-names"></div>
-								<div style="margin: 0 10px;">-</div>
+							<div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+								<div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+									<span id="customer-name-text" class="customer-names"></span>
+								</div>
+								<div style="margin: 0 4px;">-</div>
 								<div class="customer-badges">
 									<span id="customer-status" class="customer-status badge bg-secondary text-white me-1"></span>
 								</div>
@@ -5623,18 +7443,16 @@ frappe.customers_page_template = {
 							<!-- Right -->
 								<section class="timeline-card">
 									<!-- Tabs -->
-									<div class="tabs">
+									<div class="tabs profile-main-tabs">
 										<span class="tab-link active" data-tab="dashboard" role="button" tabindex="0">Dashboard</span>
+										<span class="tab-link" data-tab="connections" role="button" tabindex="0">Connections</span>
 										<span class="tab-link" data-tab="contacts" role="button" tabindex="0">Contacts</span>
 										<span class="tab-link" data-tab="services" role="button" tabindex="0">Services</span>
-										<span class="tab-link" data-tab="connections" role="button" tabindex="0">Connections</span>
-										<span class="tab-link" data-tab="sales-team" role="button" tabindex="0">Sales Team</span>
-										<span class="tab-link" data-tab="settings" role="button" tabindex="0">Settings</span>
-										<span class="tab-link" data-tab="Accounts" role="button" tabindex="0"> Accounts</span>
-										<span class="tab-link" data-tab="portal-users" role="button" tabindex="0"> Portal Users</span>
+										<span class="tab-link" data-tab="logs" role="button" tabindex="0">Logs</span>
+										<span class="tab-link" data-tab="others" role="button" tabindex="0">Others</span>
 									</div>
 
-									<div class="tab-panels">
+									<div class="tab-panels profile-main-tab-panels">
 
 										<section class="tab-panel" data-tab-panel="contacts">
 											<div class="post">
@@ -5643,7 +7461,6 @@ frappe.customers_page_template = {
 												</div>
 											</div>
 										</section>
-
 
 										<section class="tab-panel d-none" data-tab-panel="services">
 											<div class="post">
@@ -5683,6 +7500,63 @@ frappe.customers_page_template = {
 														</div>
 													</div>
 												</div>	
+
+												<div class="mt-2 fiscal-financials-section">
+															<div class="fiscal-financials-header d-flex align-items-center justify-content-between" style="gap: 8px;">
+																<div class="d-flex align-items-center" style="gap: 8px;">
+														<i class="fa fa-calendar" style="color: #667eea;"></i>
+														<span style="font-weight: 600; color: #2c3e50; font-size: 15px;">Fiscal Year Financials</span>
+																</div>
+																<select class="form-control form-control-sm fiscal-year-select" style="min-width: 180px; border-radius: 8px;" title="Select Fiscal Year" disabled>
+																	<option value="">Loading...</option>
+																</select>
+													</div>
+													<div class="fiscal-financials-body mt-2">
+														<div class="text-center py-3 text-muted"><i class="fa fa-spinner fa-spin"></i> Loading fiscal year summary...</div>
+													</div>
+												</div>
+
+												<div class="mt-3 renewal-dashboard-section">
+													<div class="renewal-dashboard-header">
+														<div style="display: flex; align-items: center; gap: 8px;">
+															<i class="fa fa-refresh" style="color: #27ae60;"></i>
+															<span style="font-weight: 600; color: #2c3e50; font-size: 15px;">Renewal Overview</span>
+														</div>
+														<i class="fa fa-chevron-up toggle-icon" style="color: #27ae60; transition: transform 0.3s ease; cursor: pointer;" role="button" tabindex="0"></i>
+													</div>
+													<div class="renewal-dashboard-content" style="margin-top: 12px;">
+														<div class="renewal-metrics-grid">
+															<div class="renewal-metric-card">
+																<div class="metric-header">
+																	<i class="fa fa-check-circle" style="color: #27ae60;"></i>
+																	<span class="metric-label">Active Renewals</span>
+																</div>
+																<div class="metric-value"><span class="active-renewals-count">0</span></div>
+															</div>
+															<div class="renewal-metric-card">
+																<div class="metric-header">
+																	<i class="fa fa-calendar" style="color: #f39c12;"></i>
+																	<span class="metric-label">Expiring Soon</span>
+																</div>
+																<div class="metric-value"><span class="expiring-soon-count">0</span></div>
+															</div>
+															<div class="renewal-metric-card">
+																<div class="metric-header">
+																	<i class="fa fa-lightbulb-o" style="color: #3498db;"></i>
+																	<span class="metric-label">New Opportunities</span>
+																</div>
+																<div class="metric-value"><span class="new-opp-count">0</span></div>
+															</div>
+														</div>
+														<!--<div id="renewal-summary-container" class="mt-3"></div>-->
+													</div>
+												</div>
+													
+											</div>
+										</section>
+
+										<section class="tab-panel d-none" data-tab-panel="logs">
+											<div class="post">
 												<div class="mb-3">
 													<div class="card recent-activity-card">
 														<div class="card-header" style="gap:8px;">
@@ -5693,7 +7567,6 @@ frappe.customers_page_template = {
 														</div>
 													</div>
 												</div>
-
 											</div>
 										</section>
 
@@ -5768,7 +7641,7 @@ frappe.customers_page_template = {
 																</div>
 																<div class="connection-badge-content">
 																	<div class="connection-badge-text">
-																		<span class="connection-badge-label" title="Invoice">Invoice</span>
+																		<span class="connection-badge-label" title="Invoice">Sales Invoice</span>
 																		<span class="connection-badge-count" data-count="0">0</span>
 																	</div>
 																</div>
@@ -5882,35 +7755,47 @@ frappe.customers_page_template = {
 											</div>
 										</section>	
 
-										<section class="tab-panel" data-tab-panel="sales-team">
-											<div class="post">
-												<div class="post-container">
-													
-												</div>
+										<section class="tab-panel d-none" data-tab-panel="others">
+											<div class="tabs others-tabs mb-2">
+												<span class="tab-link active" data-tab="taxes" role="button" tabindex="0">Taxes</span>
+												<span class="tab-link" data-tab="sales-team" role="button" tabindex="0">Sales Team</span>
+												<span class="tab-link" data-tab="settings" role="button" tabindex="0">Settings</span>
+												<span class="tab-link" data-tab="Accounts" role="button" tabindex="0">Accounts</span>
+												<span class="tab-link" data-tab="portal-users" role="button" tabindex="0">Portal Users</span>
 											</div>
-										</section>
 
-										<section class="tab-panel" data-tab-panel="settings">
-											<div class="post">
-												<div class="post-container">
-													
-												</div>
-											</div>
-										</section>
+											<div class="tab-panels others-tab-panels">
+												<section class="tab-panel" data-tab-panel="taxes">
+													<div class="post">
+														<div class="post-container">
+															<div id="customer-taxes" class="mt-2"></div>
+														</div>
+													</div>
+												</section>
 
-										<section class="tab-panel" data-tab-panel="Accounts">
-											<div class="post">
-												<div class="post-container">
-													
-												</div>
-											</div>
-										</section>
+												<section class="tab-panel d-none" data-tab-panel="sales-team">
+													<div class="post">
+														<div class="post-container"></div>
+													</div>
+												</section>
 
-										<section class="tab-panel" data-tab-panel="portal-users">
-											<div class="post">
-												<div class="post-container">
-													
-												</div>
+												<section class="tab-panel d-none" data-tab-panel="settings">
+													<div class="post">
+														<div class="post-container"></div>
+													</div>
+												</section>
+
+												<section class="tab-panel d-none" data-tab-panel="Accounts">
+													<div class="post">
+														<div class="post-container"></div>
+													</div>
+												</section>
+
+												<section class="tab-panel d-none" data-tab-panel="portal-users">
+													<div class="post">
+														<div class="post-container"></div>
+													</div>
+												</section>
 											</div>
 										</section>
 
@@ -5985,105 +7870,109 @@ frappe.customers_page_template = {
 				</div>
 
 				<div class="row mt-3">
-					<div class="card w-100" style="min-height:80vh;">
+					<div class="card w-100" style="background:transparent;border:none">
 						<div class="card-body p-2" style="padding:5px;">
-							<h5 class="mb-1">New Customer</h5>
 							<form id="new-customers-form">
-								<div class="row">
-									<div class="col-12 col-md-6">
-										<div class="mb-3">
-											<div id="customer-name-field"></div>
-										</div>
+								<div class="new-customer-wrap">
+									<div class="new-customer-wizard-bar">
+										<button type="button" class="new-customer-wizard-step is-active" data-step="1">
+											<div class="new-customer-wizard-circle">1</div>
+											<div class="new-customer-wizard-label">Basic Info</div>
+										</button>
+										<div class="new-customer-wizard-connector"></div>
+										<button type="button" class="new-customer-wizard-step" data-step="2">
+											<div class="new-customer-wizard-circle">2</div>
+											<div class="new-customer-wizard-label">Business</div>
+										</button>
+										<div class="new-customer-wizard-connector"></div>
+										<button type="button" class="new-customer-wizard-step" data-step="3">
+											<div class="new-customer-wizard-circle">3</div>
+											<div class="new-customer-wizard-label">Tax Info</div>
+										</button>
+										<div class="new-customer-wizard-connector"></div>
+										<button type="button" class="new-customer-wizard-step" data-step="4">
+											<div class="new-customer-wizard-circle">4</div>
+											<div class="new-customer-wizard-label">Contact</div>
+										</button>
 									</div>
-									<div class="col-12 col-md-6">
-										<div class="mb-3">
-											<div id="customer-status-field"></div>
-										</div>
-									</div>
-								</div>
 
-								<div class="row">
-									<div class="col-12 col-md-6">
-										<div class="mb-3">
-											<div id="customer-type-field"></div>
+									<div class="new-customer-wizard-panel" data-panel="1">
+										<div class="new-customer-card">
+											<div class="new-customer-card-title">Basic Information</div>
+											<div class="new-customer-form">
+												<div class="new-customer-row two-col">
+													<div class="new-customer-field"><div id="customer-name-field"></div></div>
+													<div class="new-customer-field"><div id="customer-status-field"></div></div>
+												</div>
+												<div class="new-customer-row two-col">
+													<div class="new-customer-field"><div id="customer-type-field"></div></div>
+													<div class="new-customer-field"><div id="territory-field"></div></div>
+												</div>
+												<div class="new-customer-row two-col">
+													<div class="new-customer-field"><div id="account-manager-field"></div></div>
+												</div>
+											</div>
 										</div>
 									</div>
-									<div class="col-12 col-md-6">
-										<div class="mb-3">
-											<div id="territory-field"></div>
-										</div>
-									</div>
-								</div>
 
-								<div class="row">
-									<div class="col-12 col-md-6">
-										<div class="mb-3">
-											<div id="industry-field"></div>
+									<div class="new-customer-wizard-panel d-none" data-panel="2">
+										<div class="new-customer-card">
+											<div class="new-customer-card-title">Business Information</div>
+											<div class="new-customer-form">
+												<div class="new-customer-row two-col">
+													<div class="new-customer-field"><div id="industry-field"></div></div>
+													<div class="new-customer-field"><div id="employees-field"></div></div>
+												</div>
+												<div class="new-customer-row two-col">
+													<div class="new-customer-field"><div id="customer-group-field"></div></div>
+													<div class="new-customer-field"><div id="member-of-field"></div></div>
+												</div>
+											</div>
 										</div>
 									</div>
-									<div class="col-12 col-md-6">
-										<div class="mb-3">
-											<div id="employees-field"></div>
-										</div>
-									</div>
-								</div>
 
-								<div class="row">
-									<div class="col-12 col-md-6">
-										<div class="mb-3">
-											<div id="account-manager-field"></div>
+									<div class="new-customer-wizard-panel d-none" data-panel="3">
+										<div class="new-customer-card">
+											<div class="new-customer-card-title">Tax Information</div>
+											<div class="new-customer-form">
+												<div class="new-customer-row two-col">
+													<div class="new-customer-field"><div id="gstin-field"></div></div>
+													<div class="new-customer-field"><div id="gst-category-field"></div></div>
+												</div>
+												<div class="new-customer-row two-col">
+													<div class="new-customer-field"><div id="pan-field"></div></div>
+													<div class="new-customer-field"><div id="tax-category-field"></div></div>
+												</div>
+											</div>
 										</div>
 									</div>
-									<div class="col-12 col-md-6">
-										<div class="mb-3">
-											<div id="tax-category-field"></div>
-										</div>
-									</div>
-								</div>
 
-								<div class="row">
-									<div class="col-12 col-md-6">
-										<div class="mb-3">
-											<div id="customer-group-field"></div>
+									<div class="new-customer-wizard-panel d-none" data-panel="4">
+										<div class="new-customer-card">
+											<div class="new-customer-card-title">Contact &amp; Web Presence</div>
+											<div class="new-customer-form">
+												<div class="new-customer-row two-col">
+													<div class="new-customer-field"><div id="phone-number-field"></div></div>
+													<div class="new-customer-field"><div id="verified-phone-field"></div></div>
+												</div>
+												<div class="new-customer-row two-col">
+													<div class="new-customer-field"><div id="website-field"></div></div>
+													<div class="new-customer-field"><div id="customer-linked-in-field"></div></div>
+												</div>
+												<div class="new-customer-row one-col">
+													<div class="new-customer-field"><div id="mxrecord-field"></div></div>
+												</div>
+											</div>
 										</div>
 									</div>
-									<div class="col-12 col-md-6">
-										<div class="mb-3">
-											<div id="phone-number-field"></div>
-											<div id="verified-phone-field"></div>
-										</div>
-									</div>
-								</div>
 
-								<div class="row">
-									<div class="col-12 col-md-6">
-										<div id="member-of-field"></div>
-									</div>
-									
-									<div class="col-12 col-md-6">
-										<div class="mb-3">
-											<div id="mxrecord-field"></div>
+									<div class="new-customer-wizard-footer">
+										<button class="btn btn-default" id="new-customer-cancel" type="button">Cancel</button>
+										<div class="new-customer-wizard-nav">
+											<button class="btn btn-default d-none" id="new-customer-back" type="button">&#8592; Back</button>
+											<button class="btn btn-primary1" id="new-customer-next" type="button">Next</button>
+											<button type="submit" class="btn btn-primary d-none" id="new-customer-save">Save Customer</button>
 										</div>
-									</div>
-								</div>
-
-								<div class="row">
-									<div class="col-12 col-md-6">
-										<div class="mb-3">
-											<div id="website-field"></div>
-										</div>
-									</div>
-									<div class="col-12 col-md-6">
-										<div class="mb-3">
-											<div id="customer-linked-in-field"></div>
-										</div>
-									</div>
-								</div>
-								
-								
-								<div class="row">
-									<div class="col-12 text-end">
-										<button type="submit" class="btn btn-primary">Save Issue</button>
 									</div>
 								</div>
 							</form>

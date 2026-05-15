@@ -72,7 +72,7 @@
                             {% set end_date = end_datetime.strftime("%d-%m-%Y")  %}
                             
                             {% if start_datetime >= today %}                            
-                            <a href="events.html" style="color: #ffffff;"><i class="fas fa-shield-alt text-primary me-2" ></i>
+                            <a href="/events" style="color: #ffffff;"><i class="fas fa-shield-alt text-primary me-2" ></i>
                                 {{event.subject }} starts on {{ start_date }} at {{start_time}}  and ends on {{end_date}}.</a>
                                  &nbsp;
                                                     <!-- {{event.name}} -->
@@ -98,7 +98,7 @@
             </div>
             <div class="container px-0">
               <nav class="navbar navbar-expand-lg navbar-dark bg-white py-1 px-3">
-                    <a href="index.html" class="navbar-brand p-0">
+                    <a href="/" class="navbar-brand p-0">
                         <img src="img/logo.png">
                         <!-- <img src="img/logo.png" alt="Logo"> -->
                     </a>
@@ -120,14 +120,14 @@
                     </button>
                     <div class="collapse navbar-collapse" id="navbarCollapse">
                         <div class="navbar-nav ms-auto py-0">
-                            <a href="index.html" class="nav-item nav-link ">Home</a>
-                            <a href="aboutus.html" class="nav-item nav-link">About</a>
-                            <a href="solutions.html" class="nav-item nav-link">Solutions</a>
-                            <a href="blog1.html" class="nav-item nav-link">Blog</a>
-                            <a href="career.html" class="nav-item nav-link">Career</a>
-                            <a href="events.html" class="nav-item nav-link active">Events</a>
+                            <a href="/index" class="nav-item nav-link ">Home</a>
+                            <a href="/aboutus" class="nav-item nav-link">About</a>
+                            <a href="/solutions" class="nav-item nav-link">Solutions</a>
+                            <a href="/blog1" class="nav-item nav-link">Blog</a>
+                            <a href="/career" class="nav-item nav-link">Career</a>
+                            <a href="/events" class="nav-item nav-link active">Events</a>
                             
-                            <a href="contact.html" class="nav-item nav-link ">Contact</a>
+                            <a href="/contact" class="nav-item nav-link ">Contact</a>
                             <a href="/login" class="nav-item nav-link ">Login</a>
                       </div>
                         <!-- <div class="d-flex align-items-center flex-nowrap pt-xl-0">
@@ -177,7 +177,7 @@
             <div class="container text-center py-5" style="max-width: 900px;">
                 <h4 class="text-white display-4 mb-4 wow fadeInDown" data-wow-delay="0.1s">Events</h4>
                 <ol class="breadcrumb justify-content-center mb-0 wow fadeInDown" data-wow-delay="0.3s">
-                    <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+                    <li class="breadcrumb-item"><a href="/">Home</a></li>
                    
                     <li class="breadcrumb-item active text-primary">Events</li>
                 </ol>    
@@ -276,7 +276,7 @@
                     <div class="col-md-6 col-lg-6 col-xl-6">
                         <div class="footer-item d-flex flex-column">
                             <div class="footer-item">
-                                <a href="index.html" class="navbar-brand p-0">
+                                <a href="/index" class="navbar-brand p-0">
                         <img src="img/logow.png">
                         <!-- <img src="img/logo.png" alt="Logo"> -->
                     </a>
@@ -289,11 +289,10 @@
                         <div class="footer-item d-flex flex-column">
                             <h4 class="text-white mb-4">Explore</h4>
                             
-                            <a href="#"><i class="fas fa-angle-right me-2"></i> About Us</a>
-                            <a href="#"><i class="fas fa-angle-right me-2"></i> Solutions</a>
-                            
-                            <a href="#"><i class="fas fa-angle-right me-2"></i> Blog</a>
-                            <a href="#"><i class="fas fa-angle-right me-2"></i> Contact Us</a>
+                            <a href="/aboutus"><i class="fas fa-angle-right me-2"></i> About Us</a>
+                            <a href="/solutions"><i class="fas fa-angle-right me-2"></i> Solutions</a>
+                            <a href="/blog1"><i class="fas fa-angle-right me-2"></i> Blog</a>
+                            <a href="/contact"><i class="fas fa-angle-right me-2"></i> Contact Us</a>
                         </div>
                     </div>
                     <div class="col-md-6 col-lg-6 col-xl-3">

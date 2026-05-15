@@ -1,0 +1,50 @@
+[data-route^="quote-list"] .sticky-top {
+    display: none !important;
+}
+
+[data-route^="quote-list"] .page-head {
+    display: none !important;
+}
+
+body[data-route^="quote-list"] .page-title {
+    font-size: 14px !important;
+}
+
+
+[data-route^="quote-list"] .layout-main {
+    padding: 0 !important;
+    background: #F3F4F6;
+    margin: 0px !important;
+    width: 100%;
+}
+
+
+[data-route^="quote-list"] .layout-main-section-wrapper {
+    padding: 0 !important;
+}
+
+[data-route^="quote-list"] .container,
+[data-route^="quote-list"] .container-fluid,
+[data-route^="quote-list"] .container-lg,
+[data-route^="quote-list"] .container-md,
+[data-route^="quote-list"] .container-sm,
+[data-route^="quote-list"] .container-xl,
+[data-route^="quote-list"] .container-xxl {
+    padding: 0px !important;
+    max-width: 100% !important;
+}
+
+[data-route^="quote-list"] .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+[data-route^="quote-list"] .body-sidebar-container {
+    display: none !important;
+    width: 0 !important;
+}
+
+[data-route^="quote-list"] [class^="col"],
+[data-route^="quote-list"] [class*=" col"] {
+    padding: 10px;
+}

@@ -13,6 +13,7 @@
   {
    "fieldname": "user",
    "fieldtype": "Link",
+   "ignore_user_permissions": 1,
    "in_list_view": 1,
    "label": "User",
    "options": "User",
@@ -22,12 +23,13 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-07-23 12:58:50.883324",
+ "modified": "2026-04-01 16:33:36.116763",
  "modified_by": "Administrator",
  "module": "Custom Module",
  "name": "Task Users",
  "owner": "Administrator",
  "permissions": [],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

@@ -17,10 +17,10 @@ frappe.pages['addresses'].on_page_show = (wrapper) => {
 	const ensureSupportLayoutLoaded = (cb) => {
 		if (typeof loadSupportLayout === "function") return cb();
 		frappe.require(["/assets/renewal_module/js/issue_themes/support_layout2.js"], () => {
-		setTimeout(cb, 10);
+			setTimeout(cb, 10);
 		});
 		frappe.require([
-		"/assets/renewal_module/css/issue_themes/support_theme2.css",
+			"/assets/renewal_module/css/issue_themes/support_theme2.css",
 		]);
 	};
 	ensureSupportLayoutLoaded(() => {
@@ -130,7 +130,9 @@ class AddressesPage {
 		$(".new-addresses").removeClass("d-none");
 		this.setPageTitle("New Addresses");
 		this.setActiveSidebar();
+		this._newAddressCurrentStep = 1;
 		this.bind_address_form_events();
+		this.gotoNewAddressWizardStep(1);
 	}
 
 	setPageTitle(title) {
@@ -198,8 +200,12 @@ class AddressesPage {
 				console.log("%c[debug]-> active_filters:", "color: blue;", this.active_filters);
 				const normalizedFilters = (saved_filters || []).map(f => {
 					if (Array.isArray(f)) {
-						const arr = f.length >= 5 ? f.slice(1, 4) : f.slice(0, 3);
-						const [field, operatorRaw, valueRaw] = arr;
+						let field, operatorRaw, valueRaw;
+						if (f.length >= 4) {
+							[, field, operatorRaw, valueRaw] = f;
+						} else {
+							[field, operatorRaw, valueRaw] = f;
+						}
 						const operator = (operatorRaw || "=").toLowerCase();
 						let value = valueRaw;
 						if (operator === "between" && typeof value === "string" && value.includes(",")) {
@@ -688,20 +694,20 @@ class AddressesPage {
 			footer.find('.clear-filters').off("click").on("click", () => {
 				if (filter_group) filter_group.clear_filters();
 				me.saved_filters = [];
-				//me.clearBasicFilterUI();
-				//me._fetch_in_process = false;
-				me.fetch_list_data({ reset: true, saved_filters: [] });
-				update_filter_button_count($btn, 0);
+				me._fetch_in_progress = false;
 				updateUrlWithFilters([]);
+				update_filter_button_count($btn, 0);
+				me.fetch_list_data({ reset: true, saved_filters: [] });
 				closePopover($btn, "clear-filters");
 			});
 
 			footer.find('.apply-filters').off("click").on("click", () => {
 				if (filter_group) {
 					me.saved_filters = filter_group.get_filters();
-					me.fetch_list_data({ reset: true, saved_filters: me.saved_filters });
-					update_filter_button_count($btn, me.saved_filters.length);
+					me._fetch_in_progress = false;
 					updateUrlWithFilters(me.saved_filters);
+					update_filter_button_count($btn, me.saved_filters.length);
+					me.fetch_list_data({ reset: true, saved_filters: me.saved_filters });
 				}
 				closePopover($btn, "apply-filters");
 			});
@@ -1738,6 +1744,528 @@ class AddressesPage {
 		});
 	}
 
+	getAddressStatusLabel(disabledValue) {
+		return disabledValue ? __("Disabled") : __("Enabled");
+	}
+
+	getAddressStatusBadgeClass(disabledValue) {
+		return disabledValue ? "badge badge-danger" : "badge badge-success";
+	}
+
+	updateAddressStatusBadge(disabledValue) {
+		const wrapper = this.page?.wrapper?.[0] || this.page?.wrapper || document;
+		const statusBadge = wrapper.querySelector?.("#address-status") || document.querySelector("#address-status");
+		if (!statusBadge) return;
+
+		const label = this.getAddressStatusLabel(!!disabledValue);
+		statusBadge.textContent = label;
+		statusBadge.title = __("Click to change status");
+		statusBadge.className = `${this.getAddressStatusBadgeClass(!!disabledValue)} flex-shrink-0`;
+		statusBadge.style.cursor = "pointer";
+	}
+
+	bindAddressStatusBadge(addressId, disabledValue = 0) {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const statusBadge = wrapper?.querySelector("#address-status");
+		if (!statusBadge) return;
+
+		const canWrite = frappe.model?.can_write
+			? frappe.model.can_write("Address")
+			: frappe.perm.has_perm("Address", 0, "write");
+
+		this.updateAddressStatusBadge(disabledValue);
+		if (!canWrite) {
+			statusBadge.style.cursor = "default";
+			statusBadge.title = __("You do not have permission to change this address status");
+		}
+
+		$(wrapper)
+			.off("click.addressStatus", "#address-status")
+			.on("click.addressStatus", "#address-status", () => {
+				if (!canWrite) {
+					frappe.msgprint(__("You do not have permission to change this Address status."));
+					return;
+				}
+
+				const currentStatus = this.getAddressStatusLabel(!!disabledValue);
+				const dialog = new frappe.ui.Dialog({
+					title: __("Change Address Status"),
+					fields: [
+						{
+							fieldtype: "Select",
+							fieldname: "address_status",
+							label: __("Status"),
+							options: [__("Enabled"), __("Disabled")].join("\n"),
+							default: currentStatus,
+							reqd: 1,
+						}
+					],
+					primary_action_label: __("Change Status"),
+					primary_action: (values) => {
+						const nextStatus = String(values?.address_status || currentStatus).trim();
+						const nextDisabled = nextStatus === "Disabled" ? 1 : 0;
+
+						dialog.hide();
+						frappe.call({
+							method: "frappe.client.set_value",
+							args: {
+								doctype: "Address",
+								name: addressId,
+								fieldname: "disabled",
+								value: nextDisabled,
+							},
+							callback: (r) => {
+								if (r.exc) return;
+								this.updateAddressStatusBadge(nextDisabled);
+								frappe.show_alert({
+									message: __("Address status updated to {0}", [nextStatus]),
+									indicator: "green"
+								});
+								this.load_address_details(addressId);
+							}
+						});
+					}
+				});
+
+				dialog.show();
+				setTimeout(() => {
+					const closeBtn = dialog.get_close_btn();
+					if (!closeBtn || !closeBtn.length) return;
+					closeBtn.off("click.dialog").on("click.dialog", function () {
+						dialog.hide();
+					});
+				}, 50);
+			});
+	}
+
+	bindAddressRenameButton(addressId) {
+		const wrapper = this.page.wrapper[0] || this.page.wrapper;
+		const nameText = wrapper?.querySelector("#addressname");
+		if (!nameText) return;
+
+		const meta = frappe.get_meta("Address") || {};
+		const allowRename = Object.prototype.hasOwnProperty.call(meta, "allow_rename")
+			? !!meta.allow_rename
+			: true;
+		const hasWrite = frappe.model?.can_write
+			? frappe.model.can_write("Address")
+			: frappe.perm.has_perm("Address", 0, "write");
+		const canRename = allowRename && hasWrite;
+
+		nameText.dataset.addressId = String(addressId || this.current_address_id || "").trim();
+		nameText.style.cursor = canRename ? "pointer" : "default";
+		nameText.title = canRename
+			? __("Click to rename address")
+			: __("You do not have permission to rename this address");
+
+		$(nameText)
+			.off("click.addressRename")
+			.on("click.addressRename", (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+
+				if (!canRename) {
+					frappe.msgprint(__("You do not have permission to rename this Address."));
+					return;
+				}
+
+				const targetAddress = nameText.dataset.addressId || addressId || this.current_address_id;
+				this.openAddressRenamePopup(targetAddress);
+			});
+	}
+
+	handleAddressRenameResult(oldName, newName, isMerge = false) {
+		const updatedName = String(newName || oldName || "").trim();
+		if (!updatedName) return;
+
+		if (locals.Address && oldName && oldName !== updatedName && locals.Address[oldName]) {
+			delete locals.Address[oldName];
+		}
+
+		this.current_address_id = updatedName;
+		this.setPageTitle(`Addresses/${updatedName}`);
+		frappe.show_alert({
+			message: isMerge
+				? __("Address merged into {0}", [updatedName])
+				: __("Address renamed to {0}", [updatedName]),
+			indicator: "green",
+		});
+
+		if (frappe.get_route()[0] === "addresses" && frappe.get_route()[1] === updatedName) {
+			this.bindAddressRenameButton(updatedName);
+			this.load_address_details(updatedName);
+		} else {
+			frappe.set_route("addresses", updatedName);
+		}
+	}
+
+	openAddressRenamePopup(addressId) {
+		const currentName = String(addressId || this.current_address_id || "").trim();
+		if (!currentName) {
+			frappe.msgprint(__("Address name is missing."));
+			return;
+		}
+
+		const canMerge = frappe.model?.can_write
+			? frappe.model.can_write("Address")
+			: frappe.perm.has_perm("Address", 0, "write");
+		const mergeWarning = __("This cannot be undone");
+
+		const dialog = new frappe.ui.Dialog({
+			title: __("Rename {0}", [currentName]),
+			fields: [
+				{
+					label: __("Current Name"),
+					fieldname: "old_name_display",
+					fieldtype: "Data",
+					default: currentName,
+					read_only: 1,
+				},
+				{
+					label: __("New Name"),
+					fieldname: "new_name",
+					fieldtype: "Data",
+					reqd: 1,
+					default: currentName,
+				},
+				{
+					label: __("Merge with existing") + " <b>(" + mergeWarning + ")</b>",
+					fieldname: "merge",
+					fieldtype: "Check",
+					default: 0,
+					read_only: canMerge ? 0 : 1,
+					description: canMerge
+						? __("Choose this only when merging into an existing Address.")
+						: __("You need Address write access to use merge."),
+				},
+			],
+		});
+
+		const forceHideDialog = () => {
+			try {
+				dialog.hide();
+			} catch (e) {
+				console.warn("Unable to hide address rename dialog", e);
+			}
+
+			const $wrapper = dialog.$wrapper || $(dialog.wrapper);
+			if ($wrapper && $wrapper.length) {
+				if (typeof $wrapper.modal === "function") {
+					$wrapper.modal("hide");
+				}
+				$wrapper.removeClass("show").hide();
+			}
+
+			$(".modal-backdrop").remove();
+			$("body").removeClass("modal-open");
+		};
+
+		const showRenameError = (error, attemptedMerge = false) => {
+			let serverMessage = "";
+			const rawMessages = error?._server_messages;
+
+			if (rawMessages) {
+				try {
+					const parsedMessages = JSON.parse(rawMessages);
+					serverMessage = (parsedMessages || [])
+						.map((msg) => {
+							try {
+								const parsed = JSON.parse(msg);
+								return parsed.message || parsed;
+							} catch (e) {
+								return msg;
+							}
+						})
+						.filter(Boolean)
+						.join("<br>");
+				} catch (e) {
+					serverMessage = "";
+				}
+			}
+
+			const fallbackMessage = attemptedMerge
+				? __("You do not have permission to merge these address records.")
+				: error?.message || __("Unable to rename address.");
+
+			frappe.msgprint({
+				title: attemptedMerge ? __("Merge not allowed") : __("Rename failed"),
+				indicator: "red",
+				message: serverMessage || fallbackMessage,
+			});
+		};
+
+		const executeRename = (newName, merge = false) => {
+			dialog.disable_primary_action();
+
+			return frappe.call({
+				method: "renewal_module.custom_module.page.addresses.addresses.rename_address",
+				freeze: true,
+				freeze_message: merge ? __("Merging address...") : __("Renaming address..."),
+				args: {
+					old_name: currentName,
+					new_name: newName,
+					merge: merge ? 1 : 0,
+				},
+			})
+				.then((r) => {
+					if (r.exc) return;
+					forceHideDialog();
+					this.handleAddressRenameResult(currentName, r.message || newName, merge);
+				})
+				.catch((error) => {
+					dialog.enable_primary_action();
+					showRenameError(error, merge);
+				});
+		};
+
+		dialog.set_primary_action(__("Rename"), () => {
+			const values = dialog.get_values();
+			const newName = String(values?.new_name || "").trim();
+			const shouldMerge = !!values?.merge;
+
+			if (!newName) return;
+
+			if (!shouldMerge && newName === currentName) {
+				frappe.show_alert({ indicator: "info", message: __("Unchanged") });
+				return;
+			}
+
+			if (shouldMerge && newName === currentName) {
+				frappe.msgprint(__("Please select another existing Address to merge into."));
+				return;
+			}
+
+			if (shouldMerge && !canMerge) {
+				showRenameError(null, true);
+				return;
+			}
+
+			if (shouldMerge) {
+				const confirmMessage = `${__("Are you sure you want to merge {0} with {1}?", [
+					currentName.bold(),
+					newName.bold(),
+				])}<br><b>${mergeWarning}</b>`;
+
+				frappe.confirm(confirmMessage, () => executeRename(newName, true));
+				return;
+			}
+
+			executeRename(newName, false);
+		});
+
+		dialog.show();
+		setTimeout(() => {
+			const $wrapper = dialog.$wrapper || $(dialog.wrapper);
+			const closeBtn = dialog.get_close_btn();
+			if (closeBtn && closeBtn.length) {
+				closeBtn.off("click.addressRenameDialog").on("click.addressRenameDialog", function (e) {
+					e.preventDefault();
+					e.stopImmediatePropagation();
+					forceHideDialog();
+				});
+			}
+
+			if ($wrapper && $wrapper.length) {
+				$wrapper
+					.off("click.addressRenameDialogDismiss", ".btn-modal-close, .modal-header .close")
+					.on("click.addressRenameDialogDismiss", ".btn-modal-close, .modal-header .close", function (e) {
+						e.preventDefault();
+						e.stopImmediatePropagation();
+						forceHideDialog();
+					});
+			}
+		}, 50);
+	}
+
+	getAddressTaxCategoryForState(state) {
+		const normalizedState = String(state || "").trim();
+		if (!normalizedState) return "";
+		if (normalizedState === "Telangana") return "In-State - TG";
+		if (normalizedState === "Tamil Nadu") return "In-State - TN";
+		return "Out-State - TG";
+	}
+
+	syncAddressTaxCategoryWithState(stateControl, taxCategoryControl) {
+		if (!stateControl || !taxCategoryControl) return;
+		const nextTaxCategory = this.getAddressTaxCategoryForState(stateControl.get_value());
+		if (nextTaxCategory && taxCategoryControl.get_value() !== nextTaxCategory) {
+			taxCategoryControl.set_value(nextTaxCategory);
+		}
+	}
+
+	getAddressStateSuggestions(country) {
+		const normalizedCountry = String(country || "").trim().toLowerCase();
+		const countryStateMap = {
+			india: [
+				"Andhra Pradesh",
+				"Arunachal Pradesh",
+				"Assam",
+				"Bihar",
+				"Chhattisgarh",
+				"Goa",
+				"Gujarat",
+				"Haryana",
+				"Himachal Pradesh",
+				"Jharkhand",
+				"Karnataka",
+				"Kerala",
+				"Madhya Pradesh",
+				"Maharashtra",
+				"Manipur",
+				"Meghalaya",
+				"Mizoram",
+				"Nagaland",
+				"Odisha",
+				"Punjab",
+				"Rajasthan",
+				"Sikkim",
+				"Tamil Nadu",
+				"Telangana",
+				"Tripura",
+				"Uttar Pradesh",
+				"Uttarakhand",
+				"West Bengal",
+				"Andaman and Nicobar Islands",
+				"Chandigarh",
+				"Dadra and Nagar Haveli and Daman and Diu",
+				"Delhi",
+				"Jammu and Kashmir",
+				"Ladakh",
+				"Lakshadweep",
+				"Puducherry"
+			],
+		};
+
+		return countryStateMap[normalizedCountry] || [];
+	}
+
+	isIndiaAddressCountry(country) {
+		return String(country || "").trim().toLowerCase() === "india";
+	}
+
+	refreshStateControlOptions({ stateControl, countryControl, preserveValue = true, forceCountry = null } = {}) {
+		if (!stateControl) return Promise.resolve([]);
+
+		const country = String(forceCountry != null ? forceCountry : (countryControl?.get_value?.() || "")).trim();
+		const isIndia = this.isIndiaAddressCountry(country);
+		const currentValue = preserveValue ? String(stateControl.get_value?.() || "").trim() : "";
+		const requestKey = `${country || "__blank__"}::${Date.now()}`;
+		this._addressStateRefreshKey = requestKey;
+
+		const applyOptions = (records = []) => {
+			if (this._addressStateRefreshKey !== requestKey) {
+				return [];
+			}
+
+			const recordOptions = Array.isArray(records)
+				? records.map(row => row.state || row.name || row.value || "")
+				: [];
+			const stateOptions = [
+				...(isIndia ? this.getAddressStateSuggestions(country || "India") : []),
+				...recordOptions,
+			];
+
+			if (currentValue) {
+				stateOptions.push(currentValue);
+			}
+
+			const uniqueOptions = Array.from(
+				new Set(stateOptions.map(value => String(value || "").trim()).filter(Boolean))
+			).sort((a, b) => a.localeCompare(b));
+
+			if (stateControl.df) {
+				stateControl.df.options = uniqueOptions;
+			}
+			if (stateControl.set_data) {
+				stateControl.set_data(uniqueOptions);
+			}
+			if (stateControl.$input) {
+				stateControl.$input
+					.attr("placeholder", isIndia ? __("Select or type a state") : __("Enter a state / province"))
+					.attr("data-country", country || "");
+			}
+			if (preserveValue && currentValue) {
+				stateControl.set_value(currentValue);
+			} else if (!preserveValue) {
+				stateControl.set_value("");
+				if (stateControl.$input) {
+					stateControl.$input.val("");
+				}
+			}
+			if (stateControl.awesomplete) {
+				stateControl.awesomplete.list = uniqueOptions;
+				if (!uniqueOptions.length && typeof stateControl.awesomplete.close === "function") {
+					stateControl.awesomplete.close();
+				}
+			}
+
+			return uniqueOptions;
+		};
+
+		if (!country) {
+			return Promise.resolve(applyOptions());
+		}
+
+		return frappe.db.get_list("Address", {
+			fields: ["state"],
+			filters: {
+				country,
+				state: ["!=", ""]
+			},
+			order_by: "state asc",
+			limit_page_length: 500,
+		})
+			.then((records) => applyOptions(records))
+			.catch((err) => {
+				console.warn("Unable to load address state suggestions", err);
+				return applyOptions();
+			});
+	}
+
+	autoFillAddressTaxFieldsFromGSTIN({
+		gstinControl,
+		gstCategoryControl,
+		stateControl = null,
+		taxCategoryControl = null,
+		countryControl = null,
+	} = {}) {
+		const normalizedGstin = String(gstinControl?.get_value?.() || "").trim().toUpperCase();
+		const country = countryControl?.get_value?.() || "India";
+
+		if (!normalizedGstin) {
+			if (gstCategoryControl) {
+				gstCategoryControl.set_value(country && country !== "India" ? "Overseas" : "Unregistered");
+			}
+			this.syncAddressTaxCategoryWithState(stateControl, taxCategoryControl);
+			return;
+		}
+
+		if (normalizedGstin.length < 15) return;
+
+		frappe.call({
+			method: "renewal_module.custom_module.page.customers.customers.get_gstin_autofill_details",
+			args: {
+				gstin: normalizedGstin,
+				current_territory: stateControl?.get_value?.() || "",
+				current_gst_category: gstCategoryControl?.get_value?.() || "",
+				country,
+			},
+			callback: (r) => {
+				const details = r?.message || {};
+				if (details.gstin && gstinControl?.get_value?.() !== details.gstin) {
+					gstinControl.set_value(details.gstin);
+				}
+				if (gstCategoryControl && Object.prototype.hasOwnProperty.call(details, "gst_category")) {
+					gstCategoryControl.set_value(details.gst_category || "");
+				}
+				if (stateControl && details.territory) {
+					stateControl.set_value(details.territory || "");
+				}
+				this.syncAddressTaxCategoryWithState(stateControl, taxCategoryControl);
+			},
+		});
+	}
+
 	/***details view */
 
 	load_address_details(address_name) {
@@ -1775,6 +2303,7 @@ class AddressesPage {
 				}
 
 				const address = r.message;
+				me.current_address_id = address.name || address_name;
 				console.log("Loaded address details:", address);
 				$(me.page.wrapper)
 					.off("click.address-main-edit")
@@ -1801,14 +2330,8 @@ class AddressesPage {
 					$(`#${id}`).text(val).attr("title", val);
 				}
 				setTextAndTitle("addressname", address.name);
-				// Set status badge with color coding
-				const statusBadge = document.getElementById("address-status");
-				if (statusBadge) {
-					const isDisabled = address.disabled;
-					statusBadge.textContent = isDisabled ? "Disabled" : "Enabled";
-					statusBadge.title = isDisabled ? "Disabled" : "Enabled";
-					statusBadge.className = `badge ${isDisabled ? "badge-danger" : "badge-success"}`;
-				}
+				me.bindAddressRenameButton(address.name || address_name);
+				me.bindAddressStatusBadge(address.name || address_name, address.disabled ? 1 : 0);
 
 				if (profileSummaryWrapper) {
 					profileSummaryWrapper.innerHTML = `
@@ -2682,6 +3205,20 @@ class AddressesPage {
 				console.error("Error fetching address emails:", err);
 			}
 
+			const getCurrentUserEmailSignature = async () => {
+				try {
+					const response = await frappe.db.get_value("User", frappe.session.user, "email_signature");
+					return String(response?.message?.email_signature || "").trim();
+				} catch (err) {
+					console.warn("Unable to fetch current user email signature", err);
+					return "";
+				}
+			};
+			const userEmailSignature = await getCurrentUserEmailSignature();
+			const defaultMessageContent = userEmailSignature
+				? `${"<p><br></p>".repeat(5)}${userEmailSignature}`
+				: "";
+
 			// Collect address's own emails
 			const address_emails = normalizeEmails(
 				(address.address_emails || []).map(row => row.email_id).concat(address.email_id || [])
@@ -2708,10 +3245,10 @@ class AddressesPage {
 						fieldname: "cc_bcc_links",
 						options: `
 							<div class="email-subject-hint">
-		<a href="#" class="add-cc">${__("Add CC")}</a> |
-		<a href="#" class="add-bcc">${__("Add BCC")}</a>
+								<a href="#" class="add-cc">${__("Add CC")}</a> |
+								<a href="#" class="add-bcc">${__("Add BCC")}</a>
 							</div>
-	`
+						`
 					},
 					{
 						label: __("CC"),
@@ -2737,7 +3274,8 @@ class AddressesPage {
 						label: __("Message"),
 						fieldname: "content",
 						fieldtype: "TextEditor",
-						reqd: 1
+						reqd: 1,
+						default: defaultMessageContent
 					},
 					{
 						fieldtype: "Section Break",
@@ -2919,6 +3457,48 @@ class AddressesPage {
 	}
 
 
+	gotoNewAddressWizardStep(step) {
+		const safeStep = Math.min(3, Math.max(1, cint(step) || 1));
+		this._newAddressCurrentStep = safeStep;
+
+		const $root = $(this.page.wrapper);
+		$root.find(".new-address-wizard-step").each(function () {
+			const s = cint($(this).attr("data-step")) || 1;
+			$(this).toggleClass("is-active", s === safeStep);
+			$(this).toggleClass("is-done", s < safeStep);
+		});
+
+		$root.find(".new-address-wizard-connector").each(function (idx) {
+			$(this).toggleClass("is-done", (idx + 1) < safeStep);
+		});
+
+		$root.find(".new-address-wizard-panel").addClass("d-none");
+		$root.find(`.new-address-wizard-panel[data-panel="${safeStep}"]`).removeClass("d-none");
+
+		$root.find("#new-address-back").toggleClass("d-none", safeStep === 1);
+		$root.find("#new-address-next").toggleClass("d-none", safeStep === 3);
+		$root.find("#new-address-save").toggleClass("d-none", safeStep !== 3);
+	}
+
+	validateNewAddressWizardStep(step, controls = {}) {
+		if (step === 1) {
+			if (!controls.address_type?.get_value?.() || !controls.address_line1?.get_value?.() || !controls.city?.get_value?.() || !controls.country?.get_value?.()) {
+				frappe.msgprint(__("Please fill Address Type, Address Line 1, City and Country."));
+				return false;
+			}
+		}
+
+		if (step === 2) {
+			const pincode = (controls.pincode?.get_value?.() || "").trim();
+			if (pincode && !/^\d{4,10}$/.test(pincode)) {
+				frappe.msgprint(__("Pincode must contain 4 to 10 digits."));
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	/**new address Form */
 	bind_address_form_events() {
 		const me = this;
@@ -2955,24 +3535,67 @@ class AddressesPage {
 		});
 		cityControl.refresh();
 
+		const defaultCountry = "India";
+		const initialStateOptions = me.getAddressStateSuggestions(defaultCountry);
 		let stateControl = frappe.ui.form.make_control({
 			parent: document.getElementById('state-field'),
-			df: { fieldtype: 'Data', label: 'State', fieldname: 'state' },
+			df: {
+				fieldtype: 'Autocomplete',
+				label: 'State/Province',
+				fieldname: 'state',
+				options: initialStateOptions,
+				placeholder: __('Select or type a state'),
+				ignore_validation: true
+			},
 			render_input: true
 		});
 		stateControl.refresh();
+		if (stateControl.df) {
+			stateControl.df.options = initialStateOptions;
+		}
+		if (stateControl.set_data) {
+			stateControl.set_data(initialStateOptions);
+		}
+		if (stateControl.$input) {
+			const showStateSuggestions = () => {
+				setTimeout(() => {
+					if (!stateControl.awesomplete) return;
+					let activeOptions = stateControl.get_data
+						? (stateControl.get_data() || [])
+						: (Array.isArray(stateControl.df?.options) ? stateControl.df.options : initialStateOptions);
+
+					if (!activeOptions.length && me.isIndiaAddressCountry(countryControl?.get_value?.() || defaultCountry)) {
+						activeOptions = initialStateOptions;
+						if (stateControl.set_data) {
+							stateControl.set_data(activeOptions);
+						}
+					}
+
+					stateControl.awesomplete.list = activeOptions;
+					if (activeOptions.length) {
+						stateControl.awesomplete.evaluate();
+					} else if (typeof stateControl.awesomplete.close === "function") {
+						stateControl.awesomplete.close();
+					}
+				}, 0);
+			};
+			stateControl.$input
+				.attr("placeholder", __("Select or type a state"))
+				.off("focus.addressStateOptions click.addressStateOptions input.addressStateOptions")
+				.on("focus.addressStateOptions click.addressStateOptions input.addressStateOptions", showStateSuggestions);
+		}
 
 		let countryControl = frappe.ui.form.make_control({
 			parent: document.getElementById('country-field'),
 			df: { fieldtype: 'Link', label: 'Country', reqd: 1, fieldname: 'country', options: 'Country' },
 			render_input: true
 		});
-		countryControl.set_value("India");
 		countryControl.refresh();
+		countryControl.set_value(defaultCountry);
 
 		let pincodeControl = frappe.ui.form.make_control({
 			parent: document.getElementById('pincode-field'),
-			df: { fieldtype: 'Data', label: 'Pincode', fieldname: 'pincode' },
+			df: { fieldtype: 'Data', label: 'Pincode', fieldname: 'pincode', reqd: 1 },
 			render_input: true
 		});
 		pincodeControl.refresh();
@@ -3027,12 +3650,100 @@ class AddressesPage {
 		});
 		isCompanyControl.refresh();
 
+		const canManageCompanyAddress = (frappe.user_roles || []).includes("Administrator")
+			|| (frappe.user_roles || []).includes("System Manager");
+		const companyAddressFieldWrapper = document.getElementById('is-your-company-address-field')?.closest('.new-address-field');
+		if (companyAddressFieldWrapper) {
+			companyAddressFieldWrapper.classList.toggle('d-none', !canManageCompanyAddress);
+		}
+		if (!canManageCompanyAddress) {
+			isCompanyControl.set_value(0);
+		}
+
 		let disabledControl = frappe.ui.form.make_control({
 			parent: document.getElementById('disabled-field'),
 			df: { fieldtype: 'Check', label: 'Disabled', fieldname: 'disabled' },
 			render_input: true
 		});
 		disabledControl.refresh();
+
+		const controls = {
+			address_type: typeControl,
+			address_line1: line1Control,
+			city: cityControl,
+			country: countryControl,
+			pincode: pincodeControl
+		};
+
+		const updateTaxCategoryFromState = () => {
+			me.syncAddressTaxCategoryWithState(stateControl, taxCategoryControl);
+		};
+
+		const syncTaxDetailsFromGSTIN = () => {
+			me.autoFillAddressTaxFieldsFromGSTIN({
+				gstinControl,
+				gstCategoryControl,
+				stateControl,
+				taxCategoryControl,
+				countryControl,
+			});
+		};
+
+		if (stateControl?.$input) {
+			stateControl.$input.off("change.addressStateTax").on("change.addressStateTax", updateTaxCategoryFromState);
+		}
+
+		const refreshStateFieldForCountry = ({ preserveValue = false, fallbackCountry = "" } = {}) => {
+			const activeCountry = String(countryControl?.get_value?.() || fallbackCountry || "").trim();
+			return me.refreshStateControlOptions({
+				stateControl,
+				countryControl,
+				preserveValue,
+				forceCountry: activeCountry
+			});
+		};
+
+		if (countryControl?.$input) {
+			countryControl.$input
+				.off("change.addressCountryTax awesomplete-selectcomplete.addressCountryTax blur.addressCountryTax")
+				.on("change.addressCountryTax awesomplete-selectcomplete.addressCountryTax blur.addressCountryTax", () => {
+					refreshStateFieldForCountry({ preserveValue: false });
+					if (!gstinControl.get_value()) {
+						gstCategoryControl.set_value(countryControl.get_value() && countryControl.get_value() !== "India" ? "Overseas" : "Unregistered");
+					}
+					updateTaxCategoryFromState();
+				});
+		}
+
+		refreshStateFieldForCountry({ preserveValue: true, fallbackCountry: defaultCountry });
+
+		if (gstinControl?.$input) {
+			gstinControl.$input
+				.off("change.addressGstin blur.addressGstin")
+				.on("change.addressGstin blur.addressGstin", syncTaxDetailsFromGSTIN);
+		}
+
+		const $scope = $(wrapper);
+		$scope.find("#new-address-cancel").off("click").on("click", function () {
+			frappe.set_route("addresses");
+		});
+
+		$scope.find("#new-address-back").off("click").on("click", function () {
+			me.gotoNewAddressWizardStep((me._newAddressCurrentStep || 1) - 1);
+		});
+
+		$scope.find("#new-address-next").off("click").on("click", function () {
+			const current = me._newAddressCurrentStep || 1;
+			if (!me.validateNewAddressWizardStep(current, controls)) return;
+			me.gotoNewAddressWizardStep(current + 1);
+		});
+
+		$scope.find(".new-address-wizard-step").off("click").on("click", function () {
+			const targetStep = cint($(this).attr("data-step")) || 1;
+			const current = me._newAddressCurrentStep || 1;
+			if (targetStep > current && !me.validateNewAddressWizardStep(current, controls)) return;
+			me.gotoNewAddressWizardStep(targetStep);
+		});
 
 		function setuprefrencelink() {
 			const referenceLinkControl = wrapper.querySelector('#add-reference-link');
@@ -3169,13 +3880,72 @@ class AddressesPage {
 			renderReferenceLink();
 		}
 
+		const applyLinkedCustomerReference = () => {
+			const params = new URLSearchParams(window.location.search || "");
+			const routeOptions = frappe.get_route_options?.() || frappe.route_options || {};
+			let storedContext = {};
+			try {
+				storedContext = JSON.parse(localStorage.getItem("renewal_module_new_link_context") || "{}");
+			} catch (e) {
+				storedContext = {};
+			}
+
+			const linkDoctype = String(
+				routeOptions.link_doctype ||
+				params.get("link_doctype") ||
+				storedContext.link_doctype ||
+				""
+			).trim();
+			const linkName = String(
+				routeOptions.link_name ||
+				params.get("link_name") ||
+				routeOptions.customer ||
+				params.get("customer") ||
+				params.get("name") ||
+				storedContext.link_name ||
+				storedContext.customer ||
+				""
+			).trim();
+			const linkTitle = String(
+				routeOptions.link_title ||
+				params.get("link_title") ||
+				routeOptions.customer_name ||
+				params.get("customer_name") ||
+				storedContext.link_title ||
+				storedContext.customer_name ||
+				linkName
+			).trim();
+
+			if (linkDoctype === "Customer" && linkName && typeof me.setreflinklist === "function") {
+				me.setreflinklist([
+					{ link_doctype: "Customer", link_name: linkName, link_title: linkTitle || linkName }
+				]);
+				try {
+					localStorage.removeItem("renewal_module_new_link_context");
+				} catch (e) {
+					console.warn("Unable to clear linked customer context", e);
+				}
+			}
+		};
+
+
 		frappe.after_ajax(() => {
 			setuprefrencelink(me);
+			applyLinkedCustomerReference();
 		});
 		setuprefrencelink(me);
+		applyLinkedCustomerReference();
 
-		addressForm.addEventListener('submit', function (e) {
+		$(addressForm).off('submit.newAddress').on('submit.newAddress', function (e) {
 			e.preventDefault();
+			if (!me.validateNewAddressWizardStep(1, controls)) {
+				me.gotoNewAddressWizardStep(1);
+				return;
+			}
+			if (!me.validateNewAddressWizardStep(2, controls)) {
+				me.gotoNewAddressWizardStep(2);
+				return;
+			}
 			const address_type = typeControl.get_value();
 			const address_line1 = line1Control.get_value();
 			const address_line2 = line2Control.get_value();
@@ -3398,6 +4168,7 @@ frappe.addresses_page_template = {
 							<div class="d-flex flex-wrap justify-content-between align-items-center mb-1 pl-2 pr-2 gap-2">
 								<div class="d-flex align-items-center flex-wrap gap-1 min-w-0">
 									<h4 class="mb-0 fw-bold text-dark text-truncate" id="addressname" style="max-width:100%;"></h4>
+									<div style="margin: 0 4px;">-</div>
 									<span id="address-status" class="badge badge-secondary flex-shrink-0"></span>
 								</div>
 								<button type="button" class="btn btn-primary shadow-sm px-3 rounded-pill d-inline-flex align-items-center justify-content-center gap-1 flex-shrink-0" id="edit-address-details-btn">
@@ -3487,100 +4258,98 @@ frappe.addresses_page_template = {
 				</div>
 				
 				<div class="row mt-3">
-					<div class="card w-100 new-address-card">
+					<div class="card w-100 new-address-card" style="background: none; box-shadow: none; border: none;">
 						<div class="card-body new-address-card-body">
 							<form id="new-addresses-form">
-								<div class="row">
-									<div class="col-12 col-md-6">
-										<div class="mb-1" id="address-type-field"></div>
+								<div class="new-address-wrap">
+									<div class="new-address-wizard-bar">
+										<button type="button" class="new-address-wizard-step is-active" data-step="1">
+											<div class="new-address-wizard-circle">1</div>
+											<div class="new-address-wizard-label">Address</div>
+										</button>
+										<div class="new-address-wizard-connector"></div>
+										<button type="button" class="new-address-wizard-step" data-step="2">
+											<div class="new-address-wizard-circle">2</div>
+											<div class="new-address-wizard-label">Tax &amp; Extras</div>
+										</button>
+										<div class="new-address-wizard-connector"></div>
+										<button type="button" class="new-address-wizard-step" data-step="3">
+											<div class="new-address-wizard-circle">3</div>
+											<div class="new-address-wizard-label">Reference</div>
+										</button>
 									</div>
-								</div>
 
-								<div class="row">
-									<div class="col-md-6">
-										<div class="mb-1" id="address-line1-field"></div>
+									<div class="new-address-wizard-panel" data-panel="1">
+										<div class="new-address-form-card">
+											<div class="new-address-card-title">Address Details</div>
+											<div class="new-address-form-grid">
+												<div class="new-address-row one-col">
+													<div class="new-address-field" id="address-type-field"></div>
+												</div>
+												<div class="new-address-row two-col">
+													<div class="new-address-field" id="address-line1-field"></div>
+													<div class="new-address-field" id="address-line2-field"></div>
+												</div>
+												<div class="new-address-row two-col">
+													<div class="new-address-field" id="city-field"></div>
+													<div class="new-address-field" id="state-field"></div>
+												</div>
+												<div class="new-address-row two-col">
+													<div class="new-address-field" id="country-field"></div>
+													<div class="new-address-field" id="pincode-field"></div>
+												</div>
+											</div>
+										</div>
 									</div>
-									<div class="col-md-6">
-										<div class="mb-1" id="address-line2-field"></div>
-									</div>
-								</div>
 
-								<div class="row mb-1">
-									<div class="col-md-6">
-										<div class="mb-1" id="city-field"></div>
+									<div class="new-address-wizard-panel d-none" data-panel="2">
+										<div class="new-address-form-card">
+											<div class="new-address-card-title">Tax &amp; Additional Info</div>
+											<div class="new-address-form-grid">
+												<div class="new-address-row two-col">
+													<div class="new-address-field" id="fax-field"></div>
+													<div class="new-address-field" id="taxcategory-field"></div>
+												</div>
+												<div class="new-address-row two-col">
+													<div class="new-address-field" id="gstin-field"></div>
+													<div class="new-address-field" id="gstcategory-field"></div>
+												</div>
+											</div>
+										</div>
 									</div>
-									<div class="col-md-6">
-										<div class="mb-1" id="state-field"></div>
-									</div>
-								</div>
 
-								<div class="row mb-1">
-									<div class="col-md-6">
-										<div class="mb-1" id="country-field"></div>
+									<div class="new-address-wizard-panel d-none" data-panel="3">
+										<div class="new-address-form-card">
+											<div class="new-address-card-title">Reference &amp; Flags</div>
+											<div class="new-address-form-grid">
+												<div class="new-address-row one-col">
+													<div class="new-address-list-block">
+														<label class="control-label">
+															Links
+															<i id="add-reference-link" class="fa fa-plus text-primary ml-1 icon-btn--clickable" title="Add Link"></i>
+														</label>
+														<div id="reference-link-container" class="ps-2"></div>
+													</div>
+												</div>
+												<div class="new-address-row two-col">
+													<div class="new-address-field"><div id="is-primary-address-field" class="form-check"></div></div>
+													<div class="new-address-field"><div id="is-shipping-address-field" class="form-check"></div></div>
+												</div>
+												<div class="new-address-row two-col">
+													<div class="new-address-field"><div id="is-your-company-address-field" class="form-check"></div></div>
+													<div class="new-address-field"><div id="disabled-field" class="form-check"></div></div>
+												</div>
+											</div>
+										</div>
 									</div>
-									<div class="col-md-6">
-										<div class="mb-1" id="pincode-field"></div>
-									</div>
-								</div>
 
-								<div class="row mb-1">
-									<div class="col-md-6">
-										<div class="mb-1" id="fax-field"></div>
-									</div>
-									<div class="col-md-6">
-										<div class="mb-1" id="taxcategory-field"></div>
-									</div>
-								</div>
-
-								<div class="row mb-1">
-									<div class="col-md-6">
-										<div class="mb-1" id="gstin-field"></div>
-									</div>
-									<div class="col-md-6">
-										<div class="mb-1" id="gstcategory-field"></div>
-									</div>
-								</div>
-
-								<div class="row mb-1">
-									<div class="col-md-6">
-										<div class="mb-1" id="gst-state-number-field"></div>
-									</div>
-									<div class="col-md-6">
-										<div class="mb-1" id="gst-category-field"></div>
-									</div>
-								</div>
-
-								<div class="row mb-1">
-									<h6 class="mb-2">Reference</h6>
-									<div class="col-12">
-										<label class="control-label">
-											Links <span class="required-star">*</span>
-											<i id="add-reference-link" class="fa fa-plus text-primary ml-1 icon-btn--clickable" title="Add Link"></i>
-										</label>
-										<div id="reference-link-container" class="ps-2"></div>
-									</div>
-								</div>
-
-								<div class="row mb-1">
-									<div class="col-md-6">
-										<div id="is-primary-address-field" class="form-check"></div>
-									</div>	
-									<div class="col-md-6">
-										<div id="is-shipping-address-field" class="form-check"></div>	
-									</div>
-								</div>	
-								<div class="row mb-1">
-									<div class="col-md-6">
-										<div id="is-your-company-address-field" class="form-check"></div>
-									</div>	
-									<div class="col-md-6">
-										<div id="disabled-field" class="form-check"></div>	
-									</div>
-								</div>	
-
-								<div class="row">
-									<div class="col-12 text-end">
-										<button type="submit" class="btn btn-primary">Save Address</button>
+									<div class="new-address-wizard-footer">
+										<button class="btn btn-default" id="new-address-cancel" type="button">Cancel</button>
+										<div class="new-address-wizard-nav">
+											<button class="btn btn-default d-none" id="new-address-back" type="button">&#8592; Back</button>
+											<button class="btn btn-primary1" id="new-address-next" type="button">Next</button>
+											<button type="submit" class="btn btn-primary d-none" id="new-address-save">Save Address</button>
+										</div>
 									</div>
 								</div>
 							</form>

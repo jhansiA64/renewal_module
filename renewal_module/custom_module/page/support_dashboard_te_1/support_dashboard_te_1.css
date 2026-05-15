@@ -28,6 +28,11 @@
     max-width: 100% !important;
 }
 
+[data-route^="support-dashboard-te-1"] .body-sidebar-container {
+    display: none !important;
+    width: 0 !important;
+}
+
 /*[data-route="support-dashboard-te-1"] .page-container {
     background: #f3f4f6;
 }*/

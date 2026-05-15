@@ -1,0 +1,34 @@
+{
+ "content": null,
+ "creation": "2026-03-25 15:33:45.938749",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2026-04-16 11:43:37.608154",
+ "modified_by": "Administrator",
+ "module": "Custom Module",
+ "name": "interview-schedulers",
+ "owner": "Administrator",
+ "page_name": "interview-schedulers",
+ "roles": [
+  {
+   "role": "Administrator"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "HR Head"
+  },
+  {
+   "role": "HR Manager"
+  },
+  {
+   "role": "HR Support"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0
+}

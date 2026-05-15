@@ -64,7 +64,7 @@ frappe.pages['test-page'].on_page_load = function(wrapper) {
         <div class="sidenav-menu">
 
             <!-- Brand Logo -->
-            <a href="index.html" class="logo">
+            <a href="/" class="logo">
                 <span class="logo logo-light">
                     <span class="logo-lg"><img src="assets/images/logo.png" alt="logo"></span>
                     <span class="logo-sm"><img src="assets/images/logo-sm.png" alt="small logo"></span>
@@ -166,7 +166,7 @@ frappe.pages['test-page'].on_page_load = function(wrapper) {
                         <div class="collapse" id="sidebarDashboards">
                             <ul class="sub-menu">
                                 <li class="side-nav-item">
-                                    <a href="index.html" class="side-nav-link">
+                                    <a href="/" class="side-nav-link">
                                         <span class="menu-text" data-lang="dashboard-one">Dashboard 1</span>
                                     </a>
                                 </li>
@@ -1544,7 +1544,7 @@ frappe.pages['test-page'].on_page_load = function(wrapper) {
                     <!-- Topbar Brand Logo -->
                     <div class="logo-topbar">
                         <!-- Logo light -->
-                        <a href="index.html" class="logo-light">
+                        <a href="/" class="logo-light">
                             <span class="logo-lg">
                                 <img src="assets/images/logo.png" alt="logo">
                             </span>
@@ -1554,7 +1554,7 @@ frappe.pages['test-page'].on_page_load = function(wrapper) {
                         </a>
 
                         <!-- Logo Dark -->
-                        <a href="index.html" class="logo-dark">
+                        <a href="/" class="logo-dark">
                             <span class="logo-lg">
                                 <img src="assets/images/logo-black.png" alt="dark logo">
                             </span>
