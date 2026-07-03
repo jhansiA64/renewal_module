@@ -19506,7 +19506,7 @@
             </div>
           </div>
         </div>
-
+		
         <div class="panel__form-footer">
           <button class="detail-btn detail-btn--primary detail-btn--full" id="panel-save-btn">Save</button>
         </div>

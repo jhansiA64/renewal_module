@@ -1,0 +1,76 @@
+/* ── ERPNext layout overrides ── */
+[data-route^="supplier-quote-list"] .sticky-top,
+[data-route^="supplier-quote-list"] .page-head {
+    display: none !important;
+}
+
+body[data-route^="supplier-quote-list"] {
+    font-family: 'DM Sans', sans-serif;
+    background: #f0f2f5;
+    color: #111827;
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 100vh;
+}
+
+[data-route^="supplier-quote-list"] .layout-main,
+[data-route^="supplier-quote-list"] .layout-main-section-wrapper,
+[data-route^="supplier-quote-list"] .container,
+[data-route^="supplier-quote-list"] .container-fluid,
+[data-route^="supplier-quote-list"] .container-lg,
+[data-route^="supplier-quote-list"] .container-md,
+[data-route^="supplier-quote-list"] .container-sm,
+[data-route^="supplier-quote-list"] .container-xl,
+[data-route^="supplier-quote-list"] .container-xxl {
+    padding: 0 !important;
+    background: #f0f2f5;
+    max-width: 100% !important;
+}
+
+[data-route^="supplier-quote-list"] .layout-main-section-wrapper {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+}
+
+[data-route^="supplier-quote-list"] .layout-main-section {
+    height: 100% !important;
+    padding: 0 !important;
+    background: #f0f2f5;
+    overflow: hidden !important;
+}
+
+[data-route^="supplier-quote-list"] .support-layout-wrap,
+[data-route^="supplier-quote-list"] .support-main-wrap,
+[data-route^="supplier-quote-list"] .support-body-wrap {
+    height: 100% !important;
+    overflow: hidden !important;
+}
+
+[data-route^="supplier-quote-list"] #support-page-content {
+    height: calc(100vh - 52px) !important;
+    max-height: calc(100vh - 52px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+}
+
+[data-route^="supplier-quote-list"] .ql-page {
+    min-height: 100%;
+    padding: 0;
+}
+
+[data-route^="supplier-quote-list"] .page-wrap {
+    padding: 16px 16px 40px;
+    max-width: 100%;
+}
+[data-route^="supplier-quote-list"] .hidden { display: none !important; }
+
+[data-route^="supplier-quote-list"] .body-sidebar-container {
+    display: none !important;
+    width: 0 !important;
+}

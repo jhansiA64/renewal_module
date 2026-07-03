@@ -179,6 +179,8 @@
       // this.active_probability = "";
       this.selectedOwners = [];
       this.saved_filters = []; // advanced popover filters (optional)
+      this._mention_users = [];
+      this.fetch_mention_users();
     }
 
     normalizeDateForDoc(value, fallback = "") {
@@ -398,8 +400,12 @@
       this.bind_connections_button(name);
       this.bindDescriptionEditor(name);
       this.init_attachment_section(name);
-      this.bindTabEvents();
+      this.bindTagEvents(name, $(".detail-content"), $(".detail-panel"));
       this.initPanelDefaults();
+      this.bindcallcardsEvents(name);
+      this.bindAppointmentCardsEvents(name);
+      this.bindOpportunityActivitiesEvents(name);
+      $('.detail-panel .ptab[data-type="Notes"]').trigger('click');
     }
 
     bindDialogCloseFix() {
@@ -6048,11 +6054,29 @@
     }
 
     bindLineItemsFullWidth() {
+      if (this._detailLayoutObserver) {
+        this._detailLayoutObserver.disconnect();
+        this._detailLayoutObserver = null;
+      }
+
       $(window)
         .off("resize.oppLineItemsWidth")
         .on("resize.oppLineItemsWidth", () => {
           this.updateLineItemsFullWidth();
         });
+
+      if (window.ResizeObserver) {
+        const detailContent = $(this.page.wrapper)
+          .find(".quotation-list-details .detail-content")
+          .get(0);
+
+        if (detailContent) {
+          this._detailLayoutObserver = new window.ResizeObserver(() => {
+            this.updateLineItemsFullWidth();
+          });
+          this._detailLayoutObserver.observe(detailContent);
+        }
+      }
 
       const $scrollContainers = $(this.page.wrapper).find(".detail-card--lineitems .table-wrap, #new-opp-items-table-wrap, .new-opp-item-inline-editor-wrap");
       const setLineItemsScroll = function () {
@@ -6076,37 +6100,23 @@
       const wrapper = $scope.find(".quotation-list-details .detail-view-wrapper").get(0);
       if (!wrapper) return;
 
-      if (window.matchMedia("(max-width: 1100px)").matches) {
-        wrapper.style.setProperty("--line-items-extra", "0px");
-        wrapper.style.setProperty("--line-items-shift", "0px");
+      // Keep line items and comments in normal grid flow to avoid any right-panel overlap.
+      wrapper.style.setProperty("--line-items-extra", "0px");
+      wrapper.style.setProperty("--line-items-shift", "0px");
+
+      const detailContent = wrapper.querySelector(".detail-content");
+      const detailPanel = wrapper.querySelector(".detail-panel");
+      if (!detailContent || !detailPanel || window.innerWidth <= 1100) {
+        wrapper.style.removeProperty("--detail-panel-height");
         return;
       }
 
-      const panel = wrapper.querySelector(".detail-panel");
-      const lineItemsCard = wrapper.querySelector(".detail-card--lineitems");
-      if (!panel) {
-        wrapper.style.setProperty("--line-items-extra", "0px");
-        wrapper.style.setProperty("--line-items-shift", "0px");
-        return;
-      }
+      const panelTop = parseFloat(window.getComputedStyle(detailPanel).top) || 70;
+      const viewportLimit = Math.max(320, Math.floor(window.innerHeight - panelTop - 22));
+      const detailContentHeight = Math.ceil(detailContent.getBoundingClientRect().height);
+      const targetHeight = Math.max(320, Math.min(detailContentHeight, viewportLimit));
 
-      const styles = window.getComputedStyle(wrapper);
-      const gap = parseFloat(styles.columnGap || styles.gap || "0") || 0;
-      const panelRect = panel.getBoundingClientRect();
-      const extra = Math.max(0, Math.round(panelRect.width + gap));
-      wrapper.style.setProperty("--line-items-extra", `${extra}px`);
-
-      if (!lineItemsCard) {
-        wrapper.style.setProperty("--line-items-shift", "0px");
-        return;
-      }
-
-      const wrapperRect = wrapper.getBoundingClientRect();
-      const lineRect = lineItemsCard.getBoundingClientRect();
-      const panelBottom = panelRect.bottom - wrapperRect.top;
-      const lineTop = lineRect.top - wrapperRect.top;
-      const shift = Math.max(0, Math.ceil(panelBottom - lineTop + 12));
-      wrapper.style.setProperty("--line-items-shift", `${shift}px`);
+      wrapper.style.setProperty("--detail-panel-height", `${targetHeight}px`);
     }
 
     attachInlineLinkPortal(control) {
@@ -7830,9 +7840,15 @@
       }
 
       const me = this;
+      // ensure editor rows exist and controls can mount into the dedicated host
+      ["customer", "shipping", "company"].forEach((t) => {
+        if (!$(`#detail-${t}-address-editor`).length) return;
+        if (!$(`#detail-${t}-address-edit-btn`).length) return;
+      });
+
       $("#detail-customer-address-name, #detail-shipping-address-name, #detail-company-address-name")
-        .off("click")
-        .on("click", async function () {
+        .off("click.detailAddressPreview")
+        .on("click.detailAddressPreview", async function () {
           const addressName = String($(this).data("addressName") || "").trim();
           if (!addressName) return;
 
@@ -7863,6 +7879,49 @@
             secondaryMetaValue: gstin || "",
           });
         });
+
+      const $scope = $(this.page.wrapper);
+
+      // bind edit/save/cancel actions
+
+      ["customer", "shipping", "company"].forEach((t) => {
+        const editSel = `#detail-${t}-address-edit-btn`;
+        const saveSel = `#detail-${t}-address-save-btn`;
+        const cancelSel = `#detail-${t}-address-cancel-btn`;
+
+        $scope
+          .off("click", editSel)
+          .on("click", editSel, (e) => {
+            e.preventDefault();
+            me.setDetailAddressEditMode(t, true);
+          });
+
+        $scope
+          .off("click", cancelSel)
+          .on("click", cancelSel, (e) => {
+            e.preventDefault();
+            me.setDetailAddressEditMode(t, false);
+          });
+
+        $scope
+          .off("click", saveSel)
+          .on("click", saveSel, async (e) => {
+            e.preventDefault();
+            const control = me.ensureDetailAddressControl(t);
+            const value = String(control?.get_value?.() || "").trim();
+            try {
+              const saved = await me.saveDetailAddress(t, value);
+              if (saved) {
+                me.setDetailAddressEditMode(t, false);
+                await me.renderOpportunityAddressSection(me._currentOpportunityDoc || {});
+                frappe.show_alert({ message: __("Address updated"), indicator: "green" });
+              }
+            } catch (err) {
+              console.error("Unable to save address:", err);
+              frappe.msgprint({ title: __("Update Failed"), message: __("Unable to update address."), indicator: "red" });
+            }
+          });
+      });
     }
 
     renderQuotationTaxesSection(doc) {
@@ -7942,31 +8001,365 @@
       }
     }
 
-    renderQuotationPaymentTermsSection(doc) {
+    ensureDetailPaymentTermsControl() {
+      const $host = $("#detail-payment-terms-template-control");
+      if (!$host.length || !frappe?.ui?.form?.make_control) return null;
+
+      if (this._detailPaymentTermsControl) {
+        const wrapperEl = this._detailPaymentTermsControl.$wrapper?.get?.(0);
+        const hostEl = $host.get(0);
+        if (wrapperEl && hostEl && !hostEl.contains(wrapperEl)) {
+          $host.empty().append(this._detailPaymentTermsControl.$wrapper);
+        }
+        if (typeof this._detailPaymentTermsControl.refresh === "function") {
+          this._detailPaymentTermsControl.refresh();
+        }
+        this.attachInlineLinkPortal(this._detailPaymentTermsControl);
+        return this._detailPaymentTermsControl;
+      }
+
+      $host.empty();
+      this._detailPaymentTermsControl = frappe.ui.form.make_control({
+        parent: $host,
+        df: {
+          fieldtype: "Link",
+          fieldname: "detail_payment_terms_template",
+          label: "",
+          options: "Payment Terms Template",
+        },
+        render_input: true,
+      });
+      this.bindDetailPaymentTermsControlEvents(this._detailPaymentTermsControl);
+      this.attachInlineLinkPortal(this._detailPaymentTermsControl);
+      return this._detailPaymentTermsControl;
+    }
+
+    bindDetailPaymentTermsControlEvents(control) {
+      if (!control || control._detailPaymentTermsEventsBound) return;
+      control._detailPaymentTermsEventsBound = true;
+
+      const me = this;
+      const handleCommittedChange = async () => {
+        if (me._suppressDetailPaymentTermsPreview) return;
+        const selectedTemplate = String(control.get_value?.() || "").trim();
+        if (selectedTemplate === String(me._detailPaymentTermsCommittedValue || "").trim()) return;
+        me._detailPaymentTermsCommittedValue = selectedTemplate;
+        me._detailPaymentTermsPreviewTemplate = selectedTemplate;
+        await me.renderQuotationPaymentTermsSection({
+          ...(me._currentOpportunityDoc || {}),
+          payment_terms_template: selectedTemplate,
+          payment_schedule: [],
+        });
+      };
+
+      if (control.$input?.length) {
+        control.$input
+          .off("awesomplete-selectcomplete.detailPaymentTerms link-change.detailPaymentTerms")
+          .on("awesomplete-selectcomplete.detailPaymentTerms link-change.detailPaymentTerms", handleCommittedChange);
+      }
+
+      const existingOnChange = control.df.onchange;
+      control.df.onchange = async function () {
+        if (typeof existingOnChange === "function") existingOnChange.call(this);
+        await handleCommittedChange();
+      };
+    }
+
+    setDetailPaymentTermsEditMode(isEditing = false) {
+      const showEditor = Boolean(isEditing);
+      $("#detail-payment-terms-template").toggleClass("d-none", showEditor);
+      $("#detail-payment-terms-template-editor-wrap").toggleClass("d-none", !showEditor);
+      $("#detail-payment-terms-edit-btn").toggleClass("d-none", showEditor);
+      if (showEditor) {
+        const control = this.ensureDetailPaymentTermsControl();
+        const currentValue = String(this._currentOpportunityDoc?.payment_terms_template || "").trim();
+        this._suppressDetailPaymentTermsPreview = true;
+        this._detailPaymentTermsPreviewTemplate = currentValue;
+        this._detailPaymentTermsCommittedValue = currentValue;
+        if (control?.set_value) {
+          control.set_value(currentValue);
+        }
+        setTimeout(() => {
+          this._suppressDetailPaymentTermsPreview = false;
+        }, 0);
+      }
+    }
+
+    async saveDetailPaymentTermsTemplate(templateName) {
+      const quotationName = String(this._currentOpportunityName || this._currentOpportunityDoc?.name || "").trim();
+      const normalizedTemplate = String(templateName || "").trim();
+      if (!quotationName) {
+        frappe.msgprint(__("Quotation is not available"));
+        return false;
+      }
+      if (!normalizedTemplate) {
+        frappe.msgprint(__("Please select Payment Terms Template."));
+        return false;
+      }
+
+      const response = await frappe.call({
+        method: "frappe.client.set_value",
+        args: {
+          doctype: OPP_CFG.DOCTYPE,
+          name: quotationName,
+          fieldname: "payment_terms_template",
+          value: normalizedTemplate,
+        },
+      });
+
+      const updatedDoc = response?.message || {};
+      this._currentOpportunityDoc = {
+        ...(this._currentOpportunityDoc || {}),
+        ...updatedDoc,
+        payment_terms_template: normalizedTemplate,
+        payment_schedule: [],
+      };
+      this._detailPaymentTermsCommittedValue = normalizedTemplate;
+      return true;
+    }
+
+    ensureDetailAddressControl(target) {
+      if (!target) return null;
+      const key = `_detail${String(target || "").replace(/\W+/g, "").replace(/^./, (c) => c.toUpperCase())}AddressControl`;
+      const hostSelector = `#detail-${target}-address-control`;
+      const $host = $(hostSelector);
+      if (!$host.length || !frappe?.ui?.form?.make_control) return null;
+
+      if (this[key]) {
+        const wrapperEl = this[key].$wrapper?.get?.(0);
+        const hostEl = $host.get(0);
+        if (wrapperEl && hostEl && !hostEl.contains(wrapperEl)) {
+          $host.empty().append(this[key].$wrapper);
+        }
+        if (typeof this[key].refresh === "function") this[key].refresh();
+        this.attachInlineLinkPortal(this[key]);
+        return this[key];
+      }
+
+      $host.empty();
+      const me = this;
+      const get_query = () => {
+        const doc = me._currentOpportunityDoc || {};
+        const cust = String(doc.customer || doc.party_name || "").trim();
+        const company = String(doc.company || "").trim();
+        if (target === "company") {
+          if (!company) return {};
+          return {
+            query: "frappe.contacts.doctype.address.address.address_query",
+            filters: { link_doctype: "Company", link_name: company },
+          };
+        }
+        if (!cust) return {};
+        return {
+          query: "frappe.contacts.doctype.address.address.address_query",
+          filters: { link_doctype: "Customer", link_name: cust },
+        };
+      };
+
+      this[key] = frappe.ui.form.make_control({
+        parent: $host,
+        df: {
+          fieldtype: "Link",
+          fieldname: `detail_${target}_address`,
+          label: "",
+          options: "Address",
+          get_query,
+        },
+        render_input: true,
+      });
+      this.bindDetailAddressControlEvents(this[key], target);
+      this.attachInlineLinkPortal(this[key]);
+      return this[key];
+    }
+
+    bindDetailAddressControlEvents(control, target) {
+      if (!control || control._detailAddressEventsBound) return;
+      control._detailAddressEventsBound = true;
+      const me = this;
+      const handleCommittedChange = async () => {
+        // update preview text only on committed selection
+        if (!control) return;
+        const selected = String(control.get_value?.() || "").trim();
+        if (!selected) return;
+        const span = $(`#detail-${target}-address-name`);
+        if (span.length) {
+          span.text(selected).attr("title", selected).data("addressName", selected);
+        }
+      };
+
+      if (control.$input?.length) {
+        control.$input.off("awesomplete-selectcomplete.detailAddress link-change.detailAddress").on("awesomplete-selectcomplete.detailAddress link-change.detailAddress", handleCommittedChange);
+      }
+
+      const existingOnChange = control.df.onchange;
+      control.df.onchange = async function () {
+        if (typeof existingOnChange === "function") existingOnChange.call(this);
+        await handleCommittedChange();
+      };
+    }
+
+    setDetailAddressEditMode(target, isEditing = false) {
+      const show = Boolean(isEditing);
+      $(`#detail-${target}-address-name`).toggleClass("d-none", show);
+      $(`#detail-${target}-address-editor`).toggleClass("d-none", !show);
+
+      if (show) {
+        const control = this.ensureDetailAddressControl(target);
+        const current = String((this._currentOpportunityDoc || {})[target === "shipping" ? "shipping_address_name" : (target === "company" ? "company_address" : "customer_address")] || "").trim();
+        if (control?.set_value) {
+          control.set_value(current);
+        }
+      } else {
+        const key = `_detail${String(target || "").replace(/\W+/g, "").replace(/^./, (c) => c.toUpperCase())}AddressControl`;
+        const existing = this[key];
+        if (existing?.$wrapper) {
+          existing.$wrapper.remove();
+        }
+        delete this[key];
+      }
+    }
+
+    async saveDetailAddress(target, addressName) {
+      const quotationName = String(this._currentOpportunityName || this._currentOpportunityDoc?.name || "").trim();
+      const normalized = String(addressName || "").trim();
+      if (!quotationName) {
+        frappe.msgprint(__("Quotation is not available"));
+        return false;
+      }
+      if (!normalized) {
+        frappe.msgprint(__("Please select an Address."));
+        return false;
+      }
+
+      const fieldMap = { customer: "customer_address", shipping: "shipping_address_name", company: "company_address" };
+      const fieldname = fieldMap[target] || `customer_address`;
+
+      const response = await frappe.call({
+        method: "frappe.client.set_value",
+        args: { doctype: OPP_CFG.DOCTYPE, name: quotationName, fieldname, value: normalized },
+      });
+
+      const updated = response?.message || {};
+      this._currentOpportunityDoc = { ...(this._currentOpportunityDoc || {}), ...updated };
+      // ensure addressName is set on doc fields commonly used
+      if (target === "shipping") this._currentOpportunityDoc.shipping_address_name = normalized;
+      else if (target === "company") this._currentOpportunityDoc.company_address = normalized;
+      else this._currentOpportunityDoc.customer_address = normalized;
+      return true;
+    }
+
+
+
+    async renderQuotationPaymentTermsSection(doc) {
       const $tbody = $("#detail-payment-terms-tbody");
       const $total = $("#detail-payment-terms-total");
       const $template = $("#detail-payment-terms-template");
+      const control = this.ensureDetailPaymentTermsControl();
       if (!$tbody.length || !$total.length) return;
 
       if ($template.length) {
         const templateName = String(doc.payment_terms_template || "").trim();
         $template.text(templateName || "-").attr("title", templateName || "-");
+        if (control?.set_value) {
+          this._suppressDetailPaymentTermsPreview = true;
+          control.set_value(templateName);
+          this._detailPaymentTermsCommittedValue = templateName;
+          setTimeout(() => {
+            this._suppressDetailPaymentTermsPreview = false;
+          }, 0);
+        }
       }
 
-      const rows = Array.isArray(doc.payment_schedule) ? doc.payment_schedule : [];
+      const templateName = String(
+        this._detailPaymentTermsPreviewTemplate
+        || doc.payment_terms_template
+        || ""
+      ).trim();
+      let rows = Array.isArray(doc.payment_schedule) ? doc.payment_schedule : [];
+      if (templateName) {
+        try {
+          const templateDoc = await frappe.db.get_doc("Payment Terms Template", templateName);
+          const templateRows = templateDoc?.terms || templateDoc?.payment_schedule || templateDoc?.payment_terms || templateDoc?.rows || [];
+          if (Array.isArray(templateRows) && templateRows.length) {
+            rows = templateRows;
+          }
+        } catch (e) {
+          console.warn("Unable to load payment terms template for detail view:", e);
+        }
+      }
+
       if (!rows.length) {
         $tbody.html('<tr><td colspan="6" class="muted">No payment terms</td></tr>');
         $total.text(fmtCurrency(0));
+        this.bindDetailPaymentTermsEditor();
         return;
       }
 
+      const getIsoDateString = (value) => {
+        const normalized = String(value || "").trim();
+        return /^\d{4}-\d{2}-\d{2}$/.test(normalized) ? normalized : "";
+      };
+
+      const addDaysToIsoDate = (dateString, daysToAdd) => {
+        const normalized = getIsoDateString(dateString);
+        if (!normalized) return "";
+        const [year, month, day] = normalized.split("-").map(Number);
+        const result = new Date(year, month - 1, day);
+        result.setDate(result.getDate() + Number(daysToAdd || 0));
+        const resultYear = result.getFullYear();
+        const resultMonth = String(result.getMonth() + 1).padStart(2, "0");
+        const resultDay = String(result.getDate()).padStart(2, "0");
+        return `${resultYear}-${resultMonth}-${resultDay}`;
+      };
+
+      const getEndOfMonthIsoDate = (dateString) => {
+        const normalized = getIsoDateString(dateString);
+        if (!normalized) return "";
+        const [year, month] = normalized.split("-").map(Number);
+        const result = new Date(year, month, 0);
+        const resultYear = result.getFullYear();
+        const resultMonth = String(result.getMonth() + 1).padStart(2, "0");
+        const resultDay = String(result.getDate()).padStart(2, "0");
+        return `${resultYear}-${resultMonth}-${resultDay}`;
+      };
+
+      const addMonthsFromMonthEndIsoDate = (dateString, monthsToAdd) => {
+        const monthEnd = getEndOfMonthIsoDate(dateString);
+        if (!monthEnd) return "";
+        const [year, month] = monthEnd.split("-").map(Number);
+        const result = new Date(year, month - 1 + Number(monthsToAdd || 0) + 1, 0);
+        const resultYear = result.getFullYear();
+        const resultMonth = String(result.getMonth() + 1).padStart(2, "0");
+        const resultDay = String(result.getDate()).padStart(2, "0");
+        return `${resultYear}-${resultMonth}-${resultDay}`;
+      };
+
+      const resolvePaymentTermDueDate = (row, baseDate) => {
+        const dueDateBasedOn = String(row?.due_date_based_on || row?.credit_days_based_on || "Day(s) after invoice date").trim();
+        const creditDays = Number(row?.credit_days || 0) || 0;
+        const creditMonths = Number(row?.credit_months || 0) || 0;
+        if (!baseDate) return "";
+
+        switch (dueDateBasedOn) {
+          case "Day(s) after the end of the invoice month":
+            return addDaysToIsoDate(getEndOfMonthIsoDate(baseDate), creditDays);
+          case "Month(s) after the end of the invoice month":
+            return addMonthsFromMonthEndIsoDate(baseDate, creditMonths);
+          case "Day(s) after invoice date":
+          default:
+            return addDaysToIsoDate(baseDate, creditDays);
+        }
+      };
+
+      const baseDate = this.normalizeDateForDoc(doc.transaction_date || doc.valid_till || doc.posting_date || "", frappe.datetime?.nowdate?.() || "");
+      const payableAmount = getQuotationAmount(doc);
       let total = 0;
       const bodyHtml = rows.map((row, idx) => {
         const term = String(row.payment_term || row.payment_term_name || "-").trim();
         const description = String(row.description || row.invoice_portion_description || "-").trim();
         const invoicePortion = Number(row.invoice_portion || 0) || 0;
-        const dueDate = row.due_date ? frappe.datetime.str_to_user(String(row.due_date).trim()) : "-";
-        const paymentAmount = Number(row.payment_amount || row.amount || 0) || 0;
+        const dueDate = row.due_date ? frappe.datetime.str_to_user(String(row.due_date).trim()) : (row.due_date_based_on ? resolvePaymentTermDueDate(row, baseDate) : "-");
+        const paymentAmount = Number(row.payment_amount || row.amount || 0) || ((payableAmount * invoicePortion) / 100);
         total += paymentAmount;
 
         return `
@@ -7974,7 +8367,7 @@
 					<td class="line-items-center">${idx + 1}</td>
 					<td><span class="cell-ellipsis" title="${frappe.utils.escape_html(term)}">${frappe.utils.escape_html(term)}</span></td>
 					<td><span class="cell-ellipsis" title="${frappe.utils.escape_html(description)}">${frappe.utils.escape_html(description)}</span></td>
-					<td class="line-items-center">${frappe.utils.escape_html(dueDate)}</td>
+					<td class="line-items-center">${frappe.utils.escape_html(dueDate || "-")}</td>
 					<td class="line-items-center">${frappe.utils.escape_html(String(invoicePortion))}</td>
 					<td class="line-items-center">${frappe.utils.escape_html(fmtCurrency(paymentAmount))}</td>
 				</tr>
@@ -7983,6 +8376,53 @@
 
       $tbody.html(bodyHtml);
       $total.text(fmtCurrency(total));
+      this.bindDetailPaymentTermsEditor();
+    }
+
+    bindDetailPaymentTermsEditor() {
+      const me = this;
+      const $scope = $(this.page.wrapper);
+
+      $scope
+        .off("click", "#detail-payment-terms-edit-btn")
+        .on("click", "#detail-payment-terms-edit-btn", function (e) {
+          e.preventDefault();
+          me.setDetailPaymentTermsEditMode(true);
+        });
+
+      $scope
+        .off("click", "#detail-payment-terms-cancel-btn")
+        .on("click", "#detail-payment-terms-cancel-btn", function (e) {
+          e.preventDefault();
+          me.setDetailPaymentTermsEditMode(false);
+        });
+
+      $scope
+        .off("click", "#detail-payment-terms-save-btn")
+        .on("click", "#detail-payment-terms-save-btn", async function (e) {
+          e.preventDefault();
+          const controlValue = String(me._detailPaymentTermsControl?.get_value?.() || "").trim();
+          try {
+            const saved = await me.saveDetailPaymentTermsTemplate(controlValue);
+            if (!saved) return;
+            me._detailPaymentTermsPreviewTemplate = controlValue;
+            me._detailPaymentTermsCommittedValue = controlValue;
+            me.setDetailPaymentTermsEditMode(false);
+            await me.renderQuotationPaymentTermsSection({
+              ...(me._currentOpportunityDoc || {}),
+              payment_terms_template: controlValue,
+              payment_schedule: [],
+            });
+            frappe.show_alert({ message: __("Payment Terms Template updated"), indicator: "green" });
+          } catch (error) {
+            console.error("Unable to save payment terms template:", error);
+            frappe.msgprint({
+              title: __("Update Failed"),
+              message: __("Unable to update Payment Terms Template."),
+              indicator: "red",
+            });
+          }
+        });
     }
 
     renderQuotationTermsSection(doc) {
@@ -8202,8 +8642,8 @@
       if (!prev) {
         $panel.find(".panel__tabs").removeClass("d-none");
         $panel.find(".panel__header").removeClass("d-none");
-        $panel.find("#panel-cards-section").removeClass("d-none");
-        $panel.find("#panel-form-section").addClass("d-none");
+        $panel.find("#ticket-panel-cards-section").removeClass("d-none");
+        $panel.find("#ticket-panel-form-section").addClass("d-none");
         this._rightPanelPrevState = null;
         return;
       }
@@ -8221,15 +8661,15 @@
       }
 
       if (prev.cardsHidden) {
-        $panel.find("#panel-cards-section").addClass("d-none");
+        $panel.find("#ticket-panel-cards-section").addClass("d-none");
       } else {
-        $panel.find("#panel-cards-section").removeClass("d-none");
+        $panel.find("#ticket-panel-cards-section").removeClass("d-none");
       }
 
       if (prev.formHidden) {
-        $panel.find("#panel-form-section").addClass("d-none");
+        $panel.find("#ticket-panel-form-section").addClass("d-none");
       } else {
-        $panel.find("#panel-form-section").removeClass("d-none");
+        $panel.find("#ticket-panel-form-section").removeClass("d-none");
       }
 
       this._rightPanelPrevState = null;
@@ -8257,8 +8697,8 @@
         this._rightPanelPrevState = {
           tabsHidden: $panel.find(".panel__tabs").hasClass("d-none"),
           headerHidden: $panel.find(".panel__header").hasClass("d-none"),
-          cardsHidden: $panel.find("#panel-cards-section").hasClass("d-none"),
-          formHidden: $panel.find("#panel-form-section").hasClass("d-none"),
+          cardsHidden: $panel.find("#ticket-panel-cards-section").hasClass("d-none"),
+          formHidden: $panel.find("#ticket-panel-form-section").hasClass("d-none"),
         };
       }
 
@@ -8310,7 +8750,7 @@
 		` : ""}
   `);
 
-      $panel.find(".panel__tabs, .panel__header, #panel-cards-section, #panel-form-section").addClass("d-none");
+      $panel.find(".panel__tabs, .panel__header, #ticket-panel-cards-section, #ticket-panel-form-section").addClass("d-none");
       $card.removeClass("d-none");
 
       $card.off("click", ".panel-person-close").on("click", ".panel-person-close", () => {
@@ -10858,8 +11298,8 @@
         this._rightPanelPrevState = {
           tabsHidden: $panel.find(".panel__tabs").hasClass("d-none"),
           headerHidden: $panel.find(".panel__header").hasClass("d-none"),
-          cardsHidden: $panel.find("#panel-cards-section").hasClass("d-none"),
-          formHidden: $panel.find("#panel-form-section").hasClass("d-none"),
+          cardsHidden: $panel.find("#ticket-panel-cards-section").hasClass("d-none"),
+          formHidden: $panel.find("#ticket-panel-form-section").hasClass("d-none"),
         };
       }
 
@@ -10896,7 +11336,7 @@
   			</div>
   		`);
 
-      $panel.find(".panel__tabs, .panel__header, #panel-cards-section, #panel-form-section").addClass("d-none");
+      $panel.find(".panel__tabs, .panel__header, #ticket-panel-cards-section, #ticket-panel-form-section").addClass("d-none");
       $card.removeClass("d-none");
       this._rightPanelCardType = "connections";
 
@@ -11481,8 +11921,8 @@
         this._rightPanelPrevState = {
           tabsHidden: $panel.find(".panel__tabs").hasClass("d-none"),
           headerHidden: $panel.find(".panel__header").hasClass("d-none"),
-          cardsHidden: $panel.find("#panel-cards-section").hasClass("d-none"),
-          formHidden: $panel.find("#panel-form-section").hasClass("d-none"),
+          cardsHidden: $panel.find("#ticket-panel-cards-section").hasClass("d-none"),
+          formHidden: $panel.find("#ticket-panel-form-section").hasClass("d-none"),
         };
       }
 
@@ -11503,7 +11943,7 @@
 			<div id="right-panel-attachments-list" style="padding-top:8px;max-height:calc(100vh - 220px);overflow:auto;"></div>
 		`);
 
-      $panel.find(".panel__tabs, .panel__header, #panel-cards-section, #panel-form-section").addClass("d-none");
+      $panel.find(".panel__tabs, .panel__header, #ticket-panel-cards-section, #ticket-panel-form-section").addClass("d-none");
       $card.removeClass("d-none");
       this._rightPanelCardType = "attachments";
 
@@ -11616,11 +12056,11 @@
 
         if (!rows.length) {
           container.html(`
-          <div class="timeline-empty">
-            <i class="fa fa-inbox text-muted"></i>
-            <p class="text-muted">No activity yet</p>
-          </div>
-        `);
+					<div class="timeline-empty">
+						<i class="fa fa-inbox text-muted"></i>
+						<p class="text-muted">No activity yet</p>
+					</div>
+        		`);
           return;
         }
 
@@ -11628,74 +12068,48 @@
           const docLink = c.reference_doctype
             ? `<a href="/app/${c.reference_doctype}/${c.reference_name}">${frappe.utils.escape_html(c.reference_name || "")}</a>`
             : "";
-          const senderName = frappe.utils.escape_html(c.sender_full_name || c.sender || "System");
-          const isEmail = (c.communication_type || "").toLowerCase() === "email";
-          const isFeedback = !!(c.feedback_type || "");
-          const icon = isEmail ? "envelope" : isFeedback ? "star" : "comment";
-          const iconClass = isEmail ? "email" : "comment";
+          const senderNameRaw = c.owner || c.sender_full_name || c.sender || "System";
+          const senderName = frappe.utils.escape_html(senderNameRaw);
+          const avatarText = frappe.utils.escape_html(
+            String(senderNameRaw)
+              .trim()
+              .split(/\s+/)
+              .map((part) => part[0] || "")
+              .join("")
+              .slice(0, 2)
+              .toUpperCase() || "CM"
+          );
 
-          const time = frappe.datetime.str_to_user(c.communication_date || c.creation || "");
-          const subject = frappe.utils.escape_html(c.subject || "");
-          const contentPreview = (c.content || "").substring(0, 140).replace(/<[^>]*>/g, "");
+          const time = frappe.datetime.str_to_user(c.creation || "");
+          const contentPreview = frappe.utils.escape_html(
+            String(c.content || "").replace(/<[^>]*>/g, "").trim()
+          );
 
           return `
-          <div class="timeline-item email-notification">
-            <div class="timeline-item-icon ${iconClass}">
-              <i class="fa fa-${icon}"></i>
-            </div>
-            <div class="timeline-item-content">
-              <div class="timeline-item-meta">
-                <span class="timeline-item-time">${time}</span>
-                ${docLink ? `<span class="text-muted">•</span><span>${docLink}</span>` : ""}
-              </div>
-              ${subject ? `<div class="timeline-item-title">${subject}</div>` : ""}
-              <div class="timeline-item-body">${contentPreview}${contentPreview.length > 130 ? "..." : ""}</div>
-              <div class="text-muted mt-2" style="font-size: 11px;">By ${senderName}</div>
-            </div>
-          </div>
-        `;
+				<div class="timeline-item timeline-item-comment">
+					<div class="timeline-item-icon comment timeline-avatar-badge">
+						${avatarText}
+					</div>
+					<div class="timeline-item-content">
+						<div class="timeline-item-meta timeline-item-meta-comment">
+							<span class="timeline-item-time">${time}</span>
+							${docLink ? `<span class="text-muted">•</span><span class="timeline-item-link">${docLink}</span>` : ""}
+						</div>
+						<div class="timeline-item-body timeline-item-body-comment">${contentPreview || "-"}</div>
+						<div class="timeline-item-author">By ${senderName}</div>
+					</div>
+				</div>
+				`;
         }).join("");
 
         container.html(html);
       };
 
-      // Users without Comment access can still view Communication entries.
-      if (!canReadDoctype("Comment")) {
-        frappe.db.get_list("Communication", {
-          fields: [
-            "name",
-            "creation",
-            "communication_date",
-            "subject",
-            "content",
-            "sender",
-            "sender_full_name",
-            "reference_doctype",
-            "reference_name",
-            "communication_type",
-            "feedback_type",
-          ],
-          filters: {
-            reference_doctype: OPP_CFG.DOCTYPE,
-            reference_name: name,
-          },
-          limit: 20,
-          order_by: "creation desc",
-        }).then((rows) => {
-          renderTimelineItems(Array.isArray(rows) ? rows : []);
-        }).catch(() => {
-          renderTimelineItems([]);
-        });
-        return;
-      }
-
-      // Load communications and activities
       frappe.call({
-        method: "frappe.desk.form.load.get_communications",
-        args: { doctype: OPP_CFG.DOCTYPE, name, start: 0, limit: 20 },
+        method: "renewal_module.custom_module.page.quotation_list.quotation_list.get_opportunity_comments",
+        args: { docname: name, limit: 20 },
         callback: (r) => {
-          const comms = (r.message && r.message.communication) || [];
-          renderTimelineItems(comms);
+          renderTimelineItems(Array.isArray(r?.message) ? r.message : []);
         },
         error: () => {
           renderTimelineItems([]);
@@ -11801,193 +12215,204 @@
       });
     }
 
-    bindTabEvents() {
-      const me = this;
-      const getTypeFromTab = ($tab) => (($tab?.data("type") || "").toString().trim()
-        || ($tab?.text() || "").trim().replace(/^[^\w\s]+\s*/, "").trim());
+    bindTagEvents(opportunityName, leftCol, rightCol) {
+      const opportunity_name = opportunityName;
+      const self = this;
 
-      const $initialActiveTab = $(".panel__tabs .ptab.is-active").first();
-      let activePanelType = getTypeFromTab($initialActiveTab) || "Call";
-      const subtitleByType = {
-        Call: "Recent Calls",
-        Appointment: "Recent Appointments",
-        Notes: "Notes",
-        Email: "Recent Emails",
-      };
-
-      const applyPanelTypeUI = (type) => {
-        $(".panel__header .panel__subtitle").text(subtitleByType[type] || `Recent ${type}`);
-        $(".panel__form-title").text(type === "Notes" ? "New Note" : `New ${type}`);
-        me.configurePanelFormByType(type);
-
-        if (type === "Email") {
-          $("#btn-panel-create").html('<i class="fa fa-envelope"></i> Send Email');
-        } else if (type === "Notes") {
-          $("#btn-panel-create").html('<i class="fa fa-plus"></i> New Note');
-        } else {
-          $("#btn-panel-create").html('<i class="fa fa-plus"></i> Create');
-        }
-      };
-
-      // Show/hide form buttons
-      $("#btn-panel-create").off("click").on("click", function () {
-        if (activePanelType === "Email") {
-          // For Email, trigger the email dialog
-          $("#email-send").click();
-        } else {
-          me.showPanelForm(activePanelType);
-        }
-        setTimeout(() => me.updateLineItemsFullWidth(), 0);
-        setTimeout(() => me.updateLineItemsFullWidth(), 120);
-      });
-
-      $("#btn-panel-close").off("click").on("click", function () {
-        me.hidePanelForm();
-        setTimeout(() => me.updateLineItemsFullWidth(), 0);
-        setTimeout(() => me.updateLineItemsFullWidth(), 120);
-      });
-
-      // Right Panel tabs
-      $(".panel__tabs .ptab").off("click").on("click", function () {
-        $(".panel__tabs .ptab").removeClass("is-active");
-        $(this).addClass("is-active");
-
-        activePanelType = getTypeFromTab($(this)) || "Call";
-        applyPanelTypeUI(activePanelType);
-
-        // Hide form, show cards
-        me.hidePanelForm();
-
-        // Load cards for this type
-        me.loadPanelCards(activePanelType);
-        setTimeout(() => me.updateLineItemsFullWidth(), 0);
-        setTimeout(() => me.updateLineItemsFullWidth(), 120);
-      });
-
-      // Load initial cards
-      applyPanelTypeUI(activePanelType);
-      this.hidePanelForm();
-      this.loadPanelCards(activePanelType);
-
-      // Save button in right panel
-      $("#panel-save-btn").off("click").on("click", async function (e) {
-        e.preventDefault();
-
-        if (!me._currentOpportunityName) {
-          frappe.msgprint(__("No quotation loaded"));
-          return;
-        }
-
-        // Get form values
-        const dateTime = $("#panel-datetime").val();
-        const assignee = $("#panel-assignee").val();
-        let notes = "";
-
-        if (activePanelType === "Call") {
-          const subject = ($("#panel-call-subject").val() || "").trim();
-          const status = ($("#panel-call-status").val() || "").trim();
-          const startDate = ($("#panel-call-start-date").val() || "").trim();
-          const startTime = ($("#panel-call-start-time").val() || "").trim();
-          const endDate = ($("#panel-call-end-date").val() || "").trim();
-          const endTime = ($("#panel-call-end-time").val() || "").trim();
-          const relatedTo = ($("#panel-call-related-to").val() || "").trim();
-          const name1 = ($("#panel-call-name1").val() || "").trim();
-          const description = ($("#panel-call-description").val() || "").trim();
-          const salesTeam = ($("#panel-call-sales-team").val() || "").trim();
-
-          if (!subject || !status || !startDate || !startTime || !endDate || !endTime || !relatedTo || !name1 || !salesTeam) {
-            frappe.msgprint(__("Please fill all required Call fields"));
-            return;
-          }
-
-          me.savePanelActivity(activePanelType, {
-            opportunity: me._currentOpportunityName,
-            subject,
-            status,
-            start_date: startDate,
-            start_time: startTime,
-            end_date: endDate,
-            end_time: endTime,
-            related_to: relatedTo,
-            name1,
-            description,
-            sales_team: salesTeam,
-          });
-          return;
-        }
-
-        if (activePanelType === "Appointment") {
-          const appointment_with = ($("#panel-appointment-with").val() || "").trim();
-          const party = ($("#panel-party").val() || "").trim();
-          const customer_name = ($("#panel-customer-name").val() || "").trim();
-          const customer_phone_number = ($("#panel-customer-phone-number").val() || "").trim();
-          const customer_email = ($("#panel-customer-email").val() || "").trim();
-          const custom_participants_raw = me.getPanelParticipantValues();
-          const custom_start_date = ($("#panel-custom-start-date").val() || "").trim();
-          const custom_start_time = ($("#panel-custom-start-time").val() || "").trim();
-          const custom_end_date = ($("#panel-custom-end-date").val() || "").trim();
-          const custom_end_time = ($("#panel-custom-end-time").val() || "").trim();
-          const customer_details = ($("#panel-customer-details").val() || "").trim();
-          const scheduled_time = ($("#panel-scheduled-time").val() || "").trim();
-
-          if (!appointment_with || !party || !customer_name || !customer_email || !custom_participants_raw.length || !custom_start_date || !custom_start_time || !custom_end_date || !custom_end_time || !scheduled_time) {
-            frappe.msgprint(__("Please fill all required Appointment fields"));
-            return;
-          }
-
-          me.savePanelActivity(activePanelType, {
-            opportunity: me._currentOpportunityName,
-            appointment_with,
-            party,
-            customer_name,
-            customer_phone_number,
-            customer_email,
-            custom_participants: custom_participants_raw,
-            custom_start_date,
-            custom_start_time,
-            custom_end_date,
-            custom_end_time,
-            custon_end_time: custom_end_time,
-            customer_details,
-            scheduled_time,
-          });
-          return;
-        }
-
-        if (activePanelType === "Notes") {
-          const notesEditor = me.ensurePanelNotesEditor();
-          notes = ((notesEditor && notesEditor.get_value && notesEditor.get_value()) || "").trim();
-          notes = await me.processAndAttachInlineImages(notes, me._currentOpportunityName);
-          const plainNote = (frappe.utils.strip_html ? frappe.utils.strip_html(notes) : $("<div>").html(notes).text()).trim();
-          if (!plainNote) {
-            frappe.msgprint(__("Please enter a note"));
-            return;
-          }
-        } else {
-          notes = $("#panel-notes").val().trim();
-        }
-
-        if (activePanelType !== "Notes" && (!dateTime || !assignee || !notes)) {
-          frappe.msgprint(__("Please fill all fields"));
-          return;
-        }
-
-        me.savePanelActivity(activePanelType, {
-          datetime: dateTime,
-          assignee: assignee,
-          notes: notes,
-          opportunity: me._currentOpportunityName
+      $(document)
+        .off("click", "#add-note-btn")
+        .on("click", "#add-note-btn", function () {
+          const d = frappe.prompt(
+            [{ label: "Note", fieldname: "note", fieldtype: "Small Text", reqd: true }],
+            function (values) {
+              frappe.call({
+                method: "renewal_module.custom_module.page.quotation_list.quotation_list.add_opportunity_note",
+                args: { opportunity_name, note_text: values.note },
+                callback: function (r) {
+                  if (r.message) self.renderNotesList(r.message);
+                }
+              });
+            },
+            "Add Note"
+          );
+          setTimeout(() => {
+            try {
+              if (d && d.get_close_btn) {
+                d.get_close_btn().off("click").on("click", () => d.hide());
+              } else {
+                $(".modal:visible .btn-modal-close").off("click").on("click", () => {
+                  $(".modal:visible").modal("hide");
+                  $(".modal-backdrop").remove();
+                });
+              }
+            } catch (err) {
+              console.error("Failed to bind dialog close:", err);
+            }
+          }, 50);
         });
-      });
 
-      // Quick search functionality
-      $(".searchbox input").off("keyup").on("keyup", function (e) {
-        const searchTerm = $(this).val().toLowerCase();
+      $(document)
+        .off("click", ".note-edit")
+        .on("click", ".note-edit", function () {
+          const idx = $(this).data("idx");
+          const currentText = $(this).closest(".note-card").find(".note-text").text().trim();
 
-        if (e.key === "Enter" && searchTerm) {
-          frappe.set_route("List", "Quotation", {
-            "title": ["like", `%${searchTerm}%`]
+          const d = frappe.prompt(
+            [{ label: "Edit Note", fieldname: "note", fieldtype: "Small Text", default: currentText }],
+            function (values) {
+              frappe.call({
+                method: "renewal_module.custom_module.page.quotation_list.quotation_list.update_opportunity_note",
+                args: { opportunity_name, idx, note_text: values.note },
+                callback: function (r) {
+                  if (r.message) self.renderNotesList(r.message);
+                }
+              });
+            },
+            "Edit Note"
+          );
+          setTimeout(() => {
+            try {
+              if (d && d.get_close_btn) {
+                d.get_close_btn().off("click").on("click", () => d.hide());
+              } else {
+                $(".modal:visible .btn-modal-close").off("click").on("click", () => {
+                  $(".modal:visible").modal("hide");
+                  $(".modal-backdrop").remove();
+                });
+              }
+            } catch (err) {
+              console.error("Failed to bind dialog close:", err);
+            }
+          }, 50);
+        });
+
+      function waitForConfirmModal(callback) {
+        let tries = 0;
+        const maxTries = 20;
+
+        const check = () => {
+          const $modal = $(".modal:visible");
+          if ($modal.length) {
+            callback($modal);
+          } else if (tries < maxTries) {
+            tries++;
+            setTimeout(check, 20);
+          }
+        };
+
+        check();
+      }
+
+      $(document)
+        .off("click", ".note-delete")
+        .on("click", ".note-delete", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          const idx = $(this).data("idx");
+          frappe.confirm(
+            "Delete this note?",
+            () => {
+              frappe.call({
+                method: "renewal_module.custom_module.page.quotation_list.quotation_list.delete_opportunity_note",
+                args: { opportunity_name, idx },
+                callback: function (r) {
+                  if (r.message) self.renderNotesList(r.message);
+                }
+              });
+            }
+          );
+          waitForConfirmModal(($modal) => {
+            const $close = $modal.find(".btn-modal-close");
+            $close.off("click.note-confirm").on("click.note-confirm", function (ev) {
+              ev.preventDefault();
+              ev.stopPropagation();
+              try {
+                $modal.modal("hide");
+              } catch (err) {
+                $modal.removeClass("show in").hide();
+              }
+              $(".modal-backdrop").remove();
+            });
           });
+        });
+
+
+      function renderRightCard(title, content, titleButtonHTML = "") {
+        rightCol.show();
+
+        const $infoCard = rightCol.find("#ticket-info-card");
+        if ($infoCard.length) {
+          // Update title
+          $infoCard.find(".sla-title").html(title);
+          // Update optional extra button (preserve quick-view and time-logs buttons)
+          $infoCard.find(".sla-extra-btn").remove();
+          if (titleButtonHTML) {
+            $infoCard.find(".sla-header .d-flex.align-items-center.gap-1.flex-shrink-0").append(`<span class="sla-extra-btn">${titleButtonHTML}</span>`);
+          }
+          $infoCard.find(".sla-body").html(content);
+        } else {
+          const $panel = rightCol;
+          const $panelInfoCard = $panel.find("#ticket-panel-info-card");
+          if ($panel.length && $panelInfoCard.length) {
+            const prevState = {
+              tabsHidden: $panel.find(".panel__tabs").hasClass("d-none"),
+              headerHidden: $panel.find(".panel__header").hasClass("d-none"),
+              cardsHidden: $panel.find("#ticket-panel-cards-section").hasClass("d-none"),
+              formHidden: $panel.find("#ticket-panel-form-section").hasClass("d-none"),
+            };
+            if ($panelInfoCard.hasClass("d-none") || !$panel.data("ticketPanelPrevState")) {
+              $panel.data("ticketPanelPrevState", prevState);
+            }
+
+            $panel.find("#ticket-panel-info-title").html(title || "Details");
+            $panel.find("#ticket-panel-info-content").html(content || "");
+
+            $panel.find(".panel__tabs, .panel__header, #ticket-panel-cards-section, #ticket-panel-form-section").addClass("d-none");
+            $panelInfoCard.removeClass("d-none");
+
+            $panel.off("click.ticketPanelInfo", "#ticket-panel-info-close").on("click.ticketPanelInfo", "#ticket-panel-info-close", function () {
+              const saved = $panel.data("ticketPanelPrevState") || {};
+              $panelInfoCard.addClass("d-none");
+              if (saved.tabsHidden) $panel.find(".panel__tabs").addClass("d-none"); else $panel.find(".panel__tabs").removeClass("d-none");
+              if (saved.headerHidden) $panel.find(".panel__header").addClass("d-none"); else $panel.find(".panel__header").removeClass("d-none");
+              if (saved.cardsHidden) $panel.find("#ticket-panel-cards-section").addClass("d-none"); else $panel.find("#ticket-panel-cards-section").removeClass("d-none");
+              if (saved.formHidden) $panel.find("#ticket-panel-form-section").addClass("d-none"); else $panel.find("#ticket-panel-form-section").removeClass("d-none");
+              $panel.removeData("ticketPanelPrevState");
+            });
+          }
+        }
+        showRightPanelModal(title, `<div class="card sla-compare-card p-2"><div class="sla-body">${content}</div></div>`, titleButtonHTML);
+      }
+
+      $(document).off("click", ".quick-view-btn");
+
+
+    }
+
+    /* helper to load notes from server and render */
+    loadAndRenderNotes(opportunity_name) {
+      // show loading placeholder in notes list
+      $("#main-notes-list").html(`
+        <div class="d-flex align-items-center text-muted small py-2">
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          <span>Loading notes...</span>
+        </div>
+      `);
+
+      const self = this;
+      frappe.call({
+        method: "renewal_module.custom_module.page.quotation_list.quotation_list.get_opportunity_notes",
+        args: { opportunity_name: opportunity_name },
+        callback: function (r) {
+          const notes = r.message || [];
+          self.renderNotesList(notes);
+
+          // Update pipeline notes count
+          const notesCount = notes.length || 0;
+          $("#pipeline-notes-count").text(notesCount);
+          if (typeof self.updatePipelineAllCount === "function") {
+            self.updatePipelineAllCount();
+          }
         }
       });
     }
@@ -12228,7 +12653,7 @@
       const isCall = type === "Call";
       const isAppointment = type === "Appointment";
       const isNotes = type === "Notes";
-      const $formSection = $("#panel-form-section");
+      const $formSection = $("#ticket-panel-form-section");
       const $callFields = $("#panel-call-fields");
       const $appointmentFields = $("#panel-appointment-fields");
       const $dateField = $("#panel-datetime").closest(".panel__field");
@@ -12284,8 +12709,8 @@
     }
 
     showPanelForm(type) {
-      $("#panel-cards-section").addClass("d-none");
-      $("#panel-form-section").removeClass("d-none");
+      $("#ticket-panel-cards-section").addClass("d-none");
+      $("#ticket-panel-form-section").removeClass("d-none");
       $("#btn-panel-create").hide();
       $(".panel__header").hide();
       this.configurePanelFormByType(type);
@@ -12297,8 +12722,8 @@
     }
 
     hidePanelForm() {
-      $("#panel-form-section").addClass("d-none").removeClass("panel--appointment-mode panel--call-mode");
-      $("#panel-cards-section").removeClass("d-none");
+      $("#ticket-panel-form-section").addClass("d-none").removeClass("panel--appointment-mode panel--call-mode");
+      $("#ticket-panel-cards-section").removeClass("d-none");
       $("#btn-panel-create").show();
       $(".panel__header").show();
       this.clearPanelForm();
@@ -12324,7 +12749,7 @@
 
     loadPanelCards(type) {
       const me = this;
-      const $container = $("#panel-cards-section");
+      const $container = $("#ticket-panel-cards-section");
 
       if (!me._currentOpportunityName) {
         me.renderPanelEmptyState($container, `No ${type.toLowerCase()}s`, "Create one from the panel to get started.");
@@ -12651,7 +13076,7 @@
     }
 
     renderPanelCards(items, type, doctype) {
-      const $container = $("#panel-cards-section");
+      const $container = $("#ticket-panel-cards-section");
 
       if (type === "Notes") {
         const html = items.map((item) => {
@@ -12780,7 +13205,7 @@
 
     bindNoteCardActions() {
       const me = this;
-      const $container = $("#panel-cards-section");
+      const $container = $("#ticket-panel-cards-section");
 
       $container.find(".note-edit").off("click").on("click", function (e) {
         e.preventDefault();
@@ -14852,6 +15277,1756 @@
       if (normalized.includes("on hold") || normalized.includes("hold")) return "on_hold";
       return "bg-light";
     }
+
+
+    applyActivityTabStyles(tabSelector, dataKey, activeFilter) {
+      $(tabSelector).each(function () {
+        const $btn = $(this);
+        const isActive = $btn.data(dataKey) === activeFilter;
+        $btn.toggleClass("active", isActive);
+        $btn.css("border", isActive ? "1px solid #007bff" : "");
+        $btn.css("color", isActive ? "#007bff" : "");
+        $btn.toggleClass("btn-outline-secondary", !isActive);
+      });
+    }
+
+    bindcallcardsEvents(opportunityName) {
+      const self = this;
+      const opportunity_name = opportunityName;
+
+      const callsCardBody = document.querySelector("#calls-card .card-body");
+      const loadMoreBtn = document.querySelector("#calls-card-load-more");
+      const MAX_VISIBLE_CALLS = 5;
+      let activeCallFilter = "all";
+
+      // ================= FETCH CALLS =================
+      frappe.call({
+        method: "renewal_module.custom_module.page.quotation_list.quotation_list.get_permitted_call_list",
+        args: { opportunity_name },
+        callback: async function (r) {
+          const calls = r.message || [];
+          const normalizeStatus = (status) => (status || "").toLowerCase();
+          const getFilteredCalls = (filter) => {
+            if (filter === "all") return calls;
+            return calls.filter(c => normalizeStatus(c.status) === filter);
+          };
+
+          const updateCallTabCounts = () => {
+            const totalCount = calls.length;
+            const heldCount = calls.filter(c => normalizeStatus(c.status) === "held").length;
+            const scheduledCount = calls.filter(c => normalizeStatus(c.status) === "scheduled").length;
+            const cancelledCount = calls.filter(c => normalizeStatus(c.status) === "cancelled").length;
+
+            $("#calls-card-tabs .call-tab").each(function () {
+              const $btn = $(this);
+              switch ($btn.data("callFilter")) {
+                case "held":
+                  $btn.text(`Held (${heldCount})`);
+                  break;
+                case "scheduled":
+                  $btn.text(`Scheduled (${scheduledCount})`);
+                  break;
+                case "cancelled":
+                  $btn.text(`Cancelled (${cancelledCount})`);
+                  break;
+                default:
+                  $btn.text(`All (${totalCount})`);
+                  break;
+              }
+            });
+          };
+
+          const updateTitle = () => {
+            const count = calls.length;
+            $("#calls-card-title").text(
+              count ? `Calls (${count})` : "Calls"
+            );
+            // Update pipeline call count
+            $("#pipeline-calls-count").text(count);
+            if (self.updatePipelineAllCount) self.updatePipelineAllCount();
+          };
+
+          const renderCalls = async (filter) => {
+            const filteredCalls = getFilteredCalls(filter);
+            const filteredCount = filteredCalls.length;
+
+            loadMoreBtn.style.display = filteredCount > MAX_VISIBLE_CALLS ? "block" : "none";
+
+            callsCardBody.innerHTML = "";
+            const $section = $("#activity-calls-section");
+            if (!filteredCalls.length) {
+              callsCardBody.innerHTML =
+                `<div class="empty-state-list text-center py-4"><i class="fa-solid fa-phone-slash text-muted mb-2" style="font-size: 24px;"></i><p class="text-muted mb-0" style="font-size: 13px;">No calls found.</p></div>`;
+              $section.addClass("is-empty");
+              return;
+            }
+            $section.removeClass("is-empty");
+
+            filteredCalls.forEach((c, index) => {
+              const html = buildCallCard(c, index >= MAX_VISIBLE_CALLS);
+              callsCardBody.insertAdjacentHTML("beforeend", html);
+            });
+
+            await loadCallAvatars(filteredCalls);
+          };
+          updateCallTabCounts();
+          updateTitle();
+          self.applyActivityTabStyles("#calls-card-tabs .call-tab", "callFilter", activeCallFilter);
+          await renderCalls(activeCallFilter);
+
+          $(document)
+            .off("click", "#calls-card-tabs .call-tab")
+            .on("click", "#calls-card-tabs .call-tab", async function () {
+              const filter = $(this).data("callFilter") || "all";
+              activeCallFilter = filter;
+              self.applyActivityTabStyles("#calls-card-tabs .call-tab", "callFilter", activeCallFilter);
+              await renderCalls(activeCallFilter);
+            });
+        }
+      });
+
+      // ================= HELPERS =================
+      const esc = frappe.utils.escape_html;
+
+      function safeId(v) {
+        return String(v).replace(/[^a-zA-Z0-9-_]/g, "_");
+      }
+
+      function formatDate(dt) {
+        if (!dt) return "";
+        const [y, m, d] = String(dt).split(" ")[0].split("-");
+        return `${d}-${m}-${y}`;
+      }
+
+      function pad2(value) {
+        return String(value).padStart(2, "0");
+      }
+
+      function parseDateTime(value) {
+        if (!value) return null;
+        if (value instanceof Date) {
+          return Number.isNaN(value.getTime()) ? null : value;
+        }
+        if (frappe?.datetime?.str_to_obj) {
+          const parsed = frappe.datetime.str_to_obj(value);
+          if (parsed instanceof Date && !Number.isNaN(parsed.getTime())) {
+            return parsed;
+          }
+        }
+        const fallback = new Date(value);
+        return Number.isNaN(fallback.getTime()) ? null : fallback;
+      }
+
+      function formatDateTimeDisplay(value) {
+        const dt = parseDateTime(value);
+        if (!dt) return "";
+        const dd = pad2(dt.getDate());
+        const mm = pad2(dt.getMonth() + 1);
+        const yy = String(dt.getFullYear()).slice(-2);
+        const hh = pad2(dt.getHours());
+        const min = pad2(dt.getMinutes());
+        return `${dd}-${mm}-${yy} ${hh}:${min}`;
+      }
+
+      function formatTime(t) {
+        if (!t) return "";
+        return String(t).split(".")[0].split(" ")[1] || t;
+      }
+
+      function statusBadgeClass(status) {
+        switch (status) {
+          case "Held":
+            return "bg-warning text-white";
+          case "Scheduled":
+            return "bg-primary text-white";
+          case "Cancelled":
+            return "bg-danger text-white";
+          default:
+            return "bg-secondary text-white";
+        }
+      }
+
+      // ================= CARD HTML =================
+      function buildCallCard(c, hidden = false) {
+        const id = safeId(c.name);
+
+        return `
+          <div class="call-card p-2 mb-2 rounded shadow-sm ${hidden ? "call-hidden" : ""}"
+            style="background:#f8f9fa;border:1px solid #e6e6e6;">
+
+            <div class="d-flex justify-content-between align-items-center mb-1 gap-1">
+              <div class="fw-bold text-primary text-truncate" title="${esc(c.subject || "")}">
+                ${esc(c.subject || "")}
+              </div>
+              <div id="avatar-${id}" title="${esc(c.owner || "")}">
+                ${simpleInitialAvatar(c.owner)}
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-1 gap-1">
+              <span class="text-dark text-truncate" title="${esc(c.name1 || "")}">${esc(c.name1 || "")}</span>
+              <span class=" text-truncate status-badge ${statusBadgeClass(c.status)} rounded" title="${esc(c.status || "")}">${esc(c.status || "")}</span>
+              <span class="call-open badge bg-light p-1"
+                data-name="${esc(c.name)}" title="${esc(c.name)}"
+                style="cursor:pointer;border:1px solid #ddd;">
+                ${esc(c.name)}
+              </span>
+            </div>
+
+            <div class="row small">
+              <div class="col-6">
+                ${c.start_date ? `<div><i class="fa fa-calendar-days text-warning mr-1"></i>${esc(formatDate(c.start_date))}</div>` : ""}
+                ${c.start_timing ? `<div><i class="fa fa-clock text-primary mr-1"></i>${esc(formatTime(c.start_timing))}</div>` : ""}
+              </div>
+
+              <div class="col-6">
+                ${c.end_date ? `<div><i class="fa fa-calendar-days text-warning mr-1"></i>${esc(formatDate(c.end_date))}</div>` : ""}
+                ${c.end_timing ? `<div><i class="fa fa-clock text-primary mr-1"></i>${esc(formatTime(c.end_timing))}</div>` : ""}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+
+      function simpleInitialAvatar(owner) {
+        const init = (owner || "U").substring(0, 2).toUpperCase();
+        return `
+          <span style="width:22px;height:22px;border-radius:50%;
+            background:#4A81D4;color:#fff;
+            display:flex;align-items:center;justify-content:center;font-size:11px;">
+            ${init}
+          </span>
+        `;
+      }
+
+      // ================= AVATARS =================
+      async function loadCallAvatars(list) {
+        if (!frappe.model.can_read("User")) return;
+
+        const owners = [...new Set(list.map(x => x.owner))];
+
+        const res = await frappe.call({
+          method: "renewal_module.custom_module.page.quotation_list.quotation_list.get_users_basic_info",
+          args: {
+            users: owners   // array of emails
+          }
+        });
+
+        const map = {};
+        (res.message || []).forEach(u => map[u.name] = u);
+
+        list.forEach(c => {
+          const u = map[c.owner];
+          const holder = document.getElementById(`avatar-${safeId(c.name)}`);
+          if (!holder) return;
+
+          if (u?.user_image) {
+            holder.innerHTML = `<img src="${u.user_image}"
+					style="width:22px;height:22px;border-radius:50%;">`;
+          }
+        });
+      }
+
+      // ================= EVENTS =================
+      $(document)
+        .off("click", ".call-open")
+        .on("click", ".call-open", function () {
+          const name = $(this).data("name");
+          if (name) {
+            const url = "/app/call-lists/" + name;
+            window.open(url, "_blank");
+          }
+        });
+
+      $(document)
+        .off("click", ".appointment-open")
+        .on("click", ".appointment-open", function () {
+          const name = $(this).data("name");
+          if (name) {
+            const url = "/app/appointments/" + name;
+            window.open(url, "_blank");
+          }
+        });
+
+      $(document)
+        .off("click", "#calls-card-load-more, #calls-card-title")
+        .on("click", "#calls-card-load-more, #calls-card-title", function () {
+          const advancedFilters = [
+            ["Call List", "reference", "=", "Quotation"],
+            ["Call List", "reference_to", "=", opportunity_name],
+          ];
+          const params = new URLSearchParams();
+          params.set("filters", encodeURIComponent(JSON.stringify(advancedFilters)));
+
+          if (activeCallFilter === "held") {
+            params.set("status", "Held");
+          } else if (activeCallFilter === "scheduled") {
+            params.set("status", "Scheduled");
+          } else if (activeCallFilter === "cancelled") {
+            params.set("status", "Cancelled");
+          }
+          const url = `/app/call-lists?${params.toString()}`;
+          window.open(url, "_blank");
+        });
+
+      $(document).off("click", "#add-calls-btn").on("click", "#add-calls-btn", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openNewCallDialog(opportunity_name);
+      });
+
+      $(document).off("click", "#add-appointments-btn").on("click", "#add-appointments-btn", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openNewAppointmentDialog(opportunity_name);
+        //frappe.new_doc("Appointment", { custom_opportunity_name: opportunity_name });
+      });
+
+      async function getCustomerSalesPerson(customer) {
+        if (!customer) return "";
+
+        const res = await frappe.call({
+          method: "renewal_module.custom_module.page.quotation_list.quotation_list.get_customer_sales_person",
+          args: { customer },
+          silent: true
+        });
+
+        return res.message || "";
+      }
+
+      async function openNewCallDialog(opportunity_name) {
+        // Load default customer from the Quotation
+        const opp = await frappe.call({
+          method: "frappe.client.get_value",
+          args: {
+            doctype: "Quotation",
+            filters: { name: opportunity_name },
+            fieldname: ["party_name"]
+          },
+          silent: true
+        });
+        const default_customer = opp.message?.party_name || "";
+        console.log("Default customer for new call:", default_customer);
+        let selected_customer = default_customer;
+        let callNameControl = null;
+
+        const d = new frappe.ui.Dialog({
+          title: "New Call List",
+          fields: [
+            { label: "Subject", fieldname: "subject", fieldtype: "Data", reqd: true },
+            { fieldtype: "Section Break" },
+            { label: "Related To", fieldname: "related_to", fieldtype: "Select", options: ["Customer", "Contact"], default: "Customer" },
+            { fieldtype: "Column Break" },
+            { label: "Full Name", fieldname: "name1_html", fieldtype: "HTML" },
+            { fieldtype: "Section Break" },
+            { label: "Start Date", fieldname: "start_date", fieldtype: "Date" },
+            { fieldtype: "Column Break" },
+            { label: "Start Time", fieldname: "start_timing", fieldtype: "Time" },
+            { fieldtype: "Section Break" },
+            { label: "End Date", fieldname: "end_date", fieldtype: "Date" },
+            { fieldtype: "Column Break" },
+            { label: "End Time", fieldname: "end_timing", fieldtype: "Time" },
+            { fieldtype: "Section Break" },
+            { label: "Status", fieldname: "status", fieldtype: "Select", options: ["Held", "Scheduled", "Cancelled"], default: "Held" },
+            { fieldtype: "Section Break" },
+            { label: "Description", fieldname: "description", fieldtype: "Small Text" }
+          ],
+          primary_action_label: "Create",
+          primary_action: async () => {
+            const v = d.get_values();
+            if (!v) return;
+
+            const related_to = v.related_to || "Customer";
+            const name1 = callNameControl?.get_value?.() || "";
+            const customer_name = related_to === "Customer" ? name1 : (selected_customer || default_customer || "");
+
+            if (!v.subject || !name1) {
+              frappe.msgprint(__((related_to === "Contact")
+                ? "Please select a contact."
+                : "Please select a customer."));
+              return;
+            }
+
+            const sales_person = (related_to === "Customer" && customer_name)
+              ? await getCustomerSalesPerson(customer_name)
+              : "";
+
+            const doc = {
+              doctype: "Call List",
+              subject: v.subject,
+              name1,
+              related_to,
+              status: v.status,
+              description: v.description,
+              reference: "Quotation",
+              reference_to: opportunity_name,
+              custom_date: frappe.datetime.get_today(),
+              start_date: v.start_date,
+              end_date: v.end_date,
+              start_timing: v.start_timing,
+              end_timing: v.end_timing,
+              custom_sales_person: sales_person
+            };
+
+            const insert = await frappe.call({
+              method: "frappe.client.insert",
+              args: { doc }
+            });
+
+            const callName = insert.message.name;
+
+            const userInfo = await frappe.call({
+              method: "frappe.client.get_value",
+              args: {
+                doctype: "User",
+                filters: { name: frappe.session.user },
+                fieldname: ["full_name", "email", "mobile_no", "phone"]
+              }
+            });
+
+            const u = userInfo.message || {};
+
+            await frappe.call({
+              method: "frappe.client.insert",
+              args: {
+                doc: {
+                  parent: callName,
+                  parenttype: "Call List",
+                  parentfield: "sales_team",
+                  doctype: "Sales Team",
+                  sales_person: u.full_name || frappe.session.user,
+                  mobile_no: u.mobile_no || u.phone,
+                  email_id: u.email
+                }
+              }
+            });
+
+            d.hide();
+            frappe.show_alert("Call created", "green");
+            self.bindcallcardsEvents(opportunity_name);
+          }
+        });
+
+        const renderDialogNameControl = () => {
+          const related_to = d.get_value("related_to") || "Customer";
+          const $wrapper = $(d.fields_dict.name1_html.wrapper);
+          $wrapper.empty();
+
+          callNameControl = frappe.ui.form.make_control({
+            parent: d.fields_dict.name1_html.wrapper,
+            df: {
+              fieldtype: "Link",
+              fieldname: "name1",
+              label: "",
+              options: related_to,
+              reqd: true,
+              onchange: () => {
+                if (related_to === "Customer") {
+                  selected_customer = callNameControl?.get_value?.() || selected_customer;
+                }
+              }
+            },
+            render_input: true,
+          });
+
+          if (callNameControl?.refresh) {
+            callNameControl.refresh();
+          }
+
+          if (related_to === "Contact") {
+            callNameControl.get_query = function () {
+              return {
+                query: "frappe.contacts.doctype.contact.contact.contact_query",
+                filters: {
+                  link_doctype: "Customer",
+                  link_name: selected_customer || default_customer || ""
+                }
+              };
+            };
+            callNameControl.set_value("");
+          } else {
+            callNameControl.set_value(selected_customer || default_customer || "");
+          }
+        };
+
+        d.show();
+
+        const callDefaults = getActivityDateTimeDefaults("Calls");
+        d.set_value("start_date", callDefaults.start_date);
+        d.set_value("start_timing", callDefaults.start_time);
+        d.set_value("end_date", callDefaults.end_date);
+        d.set_value("end_timing", callDefaults.end_time);
+
+        d.fields_dict.related_to.$input.on("change", function () {
+          if ((d.get_value("related_to") || "Customer") === "Contact") {
+            const current_customer = callNameControl?.get_value?.();
+            if (current_customer) {
+              selected_customer = current_customer;
+            }
+          }
+          renderDialogNameControl();
+        });
+
+        renderDialogNameControl();
+
+      }
+
+      async function openNewAppointmentDialog(opportunity_name) {
+        const opp = await frappe.call({
+          method: "frappe.client.get_value",
+          args: {
+            doctype: "Quotation",
+            filters: { name: opportunity_name },
+            fieldname: ["party_name"]
+          },
+          silent: true
+        });
+        let users = [];
+        try {
+          const res = await frappe.call({
+            method: "renewal_module.custom_module.page.quotation_list.quotation_list.get_enabled_users",
+            silent: true
+          });
+          users = res.message || [];
+        } catch (err) {
+          console.error("Failed to load users for participants:", err);
+        }
+        const default_customer = opp.message?.party_name || "";
+        const default_scheduled_time = frappe.datetime?.now_datetime
+          ? frappe.datetime.now_datetime()
+          : "";
+        const d = frappe.prompt([
+          { label: "Appointment With", fieldname: "appointment_with", fieldtype: "Select", options: ["Customer", "Lead"], "default": "Customer" },
+          { fieldtype: "Column Break" },
+          { label: "Party", fieldname: "party", fieldtype: "Dynamic Link", options: "appointment_with", "default": default_customer },
+          { fieldtype: "Section Break" },
+          { label: "Name", fieldname: "customer_name", fieldtype: "Data", reqd: true },
+          { label: "Email", fieldname: "customer_email", fieldtype: "Data", reqd: true },
+          { fieldtype: "Column Break" },
+          { label: "Phone Number", fieldname: "customer_phone_number", fieldtype: "Data" },
+          { fieldtype: "Section Break" },
+          { label: "Start Date", fieldname: "custom_start_date", fieldtype: "Date", reqd: true },
+          { fieldtype: "Column Break" },
+          { label: "Start Time", fieldname: "custom_start_time", fieldtype: "Time", reqd: true },
+          { fieldtype: "Section Break" },
+          { label: "End Date", fieldname: "custom_end_date", fieldtype: "Date", reqd: true },
+          { fieldtype: "Column Break" },
+          { label: "End Time", fieldname: "custom_end_time", fieldtype: "Time", reqd: true },
+          { fieldtype: "Section Break" },
+          {
+            label: "Participants", fieldname: "custom_participants", fieldtype: "MultiSelect", options: users.map((u) => ({ label: u.full_name, value: u.email, description: u.name })), reqd: true
+          },
+          { fieldtype: "Section Break" },
+          { label: "Scheduled Time", fieldname: "scheduled_time", fieldtype: "Datetime", reqd: true, "default": default_scheduled_time, hidden: true },
+          { label: "Details", fieldname: "customer_details", fieldtype: "Long Text" }
+        ], function (values) {
+          const participants = (() => {
+            if (!values.custom_participants) return [];
+            const raw = Array.isArray(values.custom_participants)
+              ? values.custom_participants
+              : String(values.custom_participants)
+                .split(",")
+                .map((val) => val.trim())
+                .filter(Boolean);
+            return raw.map((user) => ({ user }));
+          })();
+
+          const doc = {
+            doctype: "Appointment",
+            appointment_with: values.appointment_with,
+            party: values.party,
+            customer_name: values.customer_name,
+            customer_phone_number: values.customer_phone_number,
+            customer_email: values.customer_email,
+            scheduled_time: values.scheduled_time,
+            custom_participants: participants,
+            customer_details: values.customer_details,
+            custom_start_date: values.custom_start_date,
+            custom_start_time: values.custom_start_time,
+            custom_end_date: values.custom_end_date,
+            custom_end_time: values.custom_end_time,
+            reference: "Quotation",
+            reference_to: opportunity_name
+          };
+
+          frappe.call({
+            method: "frappe.client.insert",
+            args: { doc },
+            callback: function () {
+              frappe.show_alert("Appointment created", "green");
+              self.bindcallcardsEvents(opportunity_name);
+              self.bindAppointmentCardsEvents(opportunity_name);
+            }
+          });
+        });
+
+        setTimeout(() => {
+          const appointment_with_field = d.fields_dict.appointment_with?.$input;
+          const party_field = d.fields_dict.party;
+          const scheduled_time_field = d.fields_dict.scheduled_time;
+          const appointmentDefaults = getActivityDateTimeDefaults("Appointments");
+
+          d?.set_value?.("custom_start_date", appointmentDefaults.start_date);
+          d?.set_value?.("custom_start_time", appointmentDefaults.start_time);
+          d?.set_value?.("custom_end_date", appointmentDefaults.end_date);
+          d?.set_value?.("custom_end_time", appointmentDefaults.end_time);
+
+          if (default_customer && party_field && party_field.get_value && !party_field.get_value()) {
+            party_field.set_value(default_customer);
+          }
+          if (scheduled_time_field && scheduled_time_field.get_value && !scheduled_time_field.get_value()) {
+            scheduled_time_field.set_value(appointmentDefaults.scheduled_time || default_scheduled_time);
+          }
+
+          if (appointment_with_field) {
+            appointment_with_field.on("change", function () {
+              const val = appointment_with_field.val();
+              if (val === "Customer") {
+                party_field?.set_value(default_customer);
+              } else {
+                party_field?.set_value("");
+              }
+            });
+          }
+        }, 200);
+
+        setTimeout(() => {
+          try {
+            if (d && d.get_close_btn) {
+              d.get_close_btn().off("click").on("click", () => d.hide());
+            } else {
+              $(".modal:visible .btn-modal-close").off("click").on("click", () => {
+                $(".modal:visible").modal("hide");
+                $(".modal-backdrop").remove();
+              });
+            }
+          } catch (err) {
+            console.error("Failed to bind dialog close:", err);
+          }
+        }, 50);
+
+      }
+    }
+
+    bindAppointmentCardsEvents(opportunityName) {
+      const self = this;
+      const opportunity_name = opportunityName;
+      const appointmentsCardBody = document.querySelector("#appointments-card .card-body");
+      const loadMoreBtn = document.querySelector("#appointments-card-load-more");
+      if (!appointmentsCardBody || !loadMoreBtn) return;
+
+      const MAX_VISIBLE_APPOINTMENTS = 5;
+      let activeAppointmentFilter = "all";
+
+      frappe.call({
+        method: "renewal_module.custom_module.page.quotation_list.quotation_list.get_permitted_appointments",
+        args: { opportunity_name },
+        callback: async function (r) {
+          let appointments = r.message || [];
+
+          const participantIds = [...new Set(
+            appointments.flatMap(a => a.custom_participants || []).filter(Boolean)
+          )];
+          let participantMap = {};
+
+          if (participantIds.length && frappe.model.can_read("User")) {
+            try {
+              const usersRes = await frappe.call({
+                method: "renewal_module.custom_module.page.quotation_list.quotation_list.get_users_basic_info",
+                args: { users: participantIds },
+                silent: true
+              });
+              (usersRes.message || []).forEach((u) => {
+                participantMap[u.name] = {
+                  full_name: u.full_name || u.name,
+                  image: u.user_image ? frappe.utils.get_file_link(u.user_image) : null
+                };
+              });
+            } catch (err) {
+              console.error("Failed to load appointment participants:", err);
+            }
+          }
+
+          appointments = appointments.map((a) => ({
+            ...a,
+            participant_info: (a.custom_participants || [])
+              .map((id) => participantMap[id])
+              .filter(Boolean)
+          }));
+
+          const normalizeStatus = (status) => (status || "").toLowerCase();
+
+          const getFilteredAppointments = (filter) => {
+            const status = normalizeStatus(filter);
+            if (status === "all") return appointments;
+            return appointments.filter(a => normalizeStatus(a.status) === status);
+          };
+
+          const updateTitle = () => {
+            const count = appointments.length;
+            $("#appointments-card-title").text(count ? `Appointments (${count})` : "Appointments");
+
+            // Update pipeline appointment count
+            $("#pipeline-appointments-count").text(count);
+            if (self.updatePipelineAllCount) self.updatePipelineAllCount();
+          };
+
+          const updateAppointmentTabCounts = () => {
+            const totalCount = appointments.length;
+            const openCount = appointments.filter(a => normalizeStatus(a.status) === "open").length;
+            const unverifiedCount = appointments.filter(a => normalizeStatus(a.status) === "unverified").length;
+            const closedCount = appointments.filter(a => normalizeStatus(a.status) === "closed").length;
+            $("#appointments-card-tabs .appointment-tab").each(function () {
+              const $btn = $(this);
+              switch ($btn.data("appointmentFilter")) {
+                case "open":
+                  $btn.text(`Open (${openCount})`);
+                  break;
+                case "unverified":
+                  $btn.text(`Unverified (${unverifiedCount})`);
+                  break;
+                case "closed":
+                  $btn.text(`Closed (${closedCount})`);
+                  break;
+                default:
+                  $btn.text(`All (${totalCount})`);
+                  break;
+              }
+            });
+          };
+
+          const esc = frappe.utils.escape_html;
+          const formatDate = (dt) => {
+            if (!dt) return "";
+            const [y, m, d] = String(dt).split(" ")[0].split("-");
+            return `${d}-${m}-${y}`;
+          };
+
+          const appointmentStatusBadgeClass = (status) => {
+            switch (status) {
+              case "Open":
+                return "bg-success text-white";
+              case "Closed":
+                return "bg-secondary text-white";
+              case "Unverified":
+                return "bg-warning text-white";
+              default:
+                return "bg-light text-dark";
+            }
+          };
+
+          const getAppointmentInitials = (name) => {
+            const parts = (name || "User").trim().split(/\s+/);
+            return ((parts[0]?.[0] || "U") + (parts[1]?.[0] || "")).toUpperCase();
+          };
+
+          const buildAppointmentAvatar = (user) => {
+            if (user.image) return `<img src="${user.image}">`;
+            return `<span class="avatar-initials">${getAppointmentInitials(user.full_name)}</span>`;
+          };
+
+          const buildAppointmentAvatarGroup = (users) => {
+            const visible = users.slice(0, 3);
+            const extra = users.length - visible.length;
+            return `
+						<div style="display:flex;align-items:center;justify-content:end;">
+							${visible.map((u, i) => `
+								<div class="avatar-item" title="${esc(u.full_name || "")}" style="margin-left:${i === 0 ? 0 : "-6px"};">
+									${buildAppointmentAvatar(u)}
+								</div>
+							`).join("")}
+							${extra > 0 ? `<div class="extra-avatar" title="${esc(users.slice(3).map(u => u.full_name).join(", "))}">+${extra}</div>` : ""}
+						</div>
+					`;
+          };
+
+          const simpleInitialAvatar = (owner) => {
+            const init = (owner || "U").substring(0, 2).toUpperCase();
+            return `<span style="width:22px;height:22px;border-radius:50%;background:#4A81D4;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;">${init}</span>`;
+          };
+
+          const buildAppointmentCard = (a, hidden = false) => {
+            const startDate = a.custom_start_date ? formatDate(a.custom_start_date) : "";
+            const startTime = a.custom_start_time || "";
+            const endDate = a.custom_end_date ? formatDate(a.custom_end_date) : "";
+            const endTime = a.custom_end_time || "";
+            const participantInfo = a.participant_info || [];
+            const avatarHtml = participantInfo.length
+              ? buildAppointmentAvatarGroup(participantInfo)
+              : simpleInitialAvatar(a.owner);
+
+            return `
+						<div class="call-card p-2 mb-2 rounded shadow-sm ${hidden ? "call-hidden" : ""}" style="background:#f8f9fa;border:1px solid #e6e6e6;">
+							<div class="d-flex justify-content-between align-items-center mb-1 gap-1">
+								<div class="fw-bold text-primary text-truncate" title="${esc(a.customer_name || "")}">${esc(a.customer_name || "")}</div>
+								<div>${avatarHtml}</div>
+							</div>
+							${a.custom_subject ? `<div class="text-truncate text-dark mb-1" title="${esc(a.custom_subject)}">${esc(a.custom_subject)}</div>` : ""}
+							<div class="d-flex justify-content-between align-items-center mb-1 gap-1">
+								<span class="text-dark text-truncate" title="${esc(a.customer_phone_number || "")}">${esc(a.customer_phone_number || "")}</span>
+								<span class="text-truncate status-badge ${appointmentStatusBadgeClass(a.status)} rounded" title="${esc(a.status || "")}">${esc(a.status || "")}</span>
+								<span class="appointment-open badge bg-light p-1" data-name="${esc(a.name)}" title="${esc(a.name)}" style="cursor:pointer;border:1px solid #ddd;">${esc(a.name)}</span>
+							</div>
+							<div class="row small">
+								<div class="col-12">
+									${a.customer_email ? `<div title="${esc(a.customer_email)}"><i class="fa fa-envelope text-primary mr-1"></i>${esc(a.customer_email)}</div>` : ""}
+								</div>
+							</div>
+							<div class="d-flex justify-content-between align-items-center mb-1 gap-1">
+								<div>
+									${startDate ? `<div><i class="fa fa-calendar-days text-warning mr-1"></i>${esc(startDate)}</div>` : ""}
+									${startTime ? `<div><i class="fa fa-clock text-primary mr-1"></i>${esc(startTime)}</div>` : ""}
+								</div>
+								<div>
+									${endDate ? `<div><i class="fa fa-calendar-days text-warning mr-1"></i>${esc(endDate)}</div>` : ""}
+									${endTime ? `<div><i class="fa fa-clock text-primary mr-1"></i>${esc(endTime)}</div>` : ""}
+								</div>
+							</div>
+						</div>
+					`;
+          };
+
+          const renderAppointments = (filter) => {
+            const filteredAppointments = getFilteredAppointments(filter);
+            loadMoreBtn.style.display = filteredAppointments.length > MAX_VISIBLE_APPOINTMENTS ? "block" : "none";
+            appointmentsCardBody.innerHTML = "";
+            const $section = $("#activity-appointments-section");
+            if (!filteredAppointments.length) {
+              appointmentsCardBody.innerHTML = `<div class="empty-state-list text-center py-4"><i class="fa-regular fa-calendar-xmark text-muted mb-2" style="font-size: 24px;"></i><p class="text-muted mb-0" style="font-size: 13px;">No appointments found.</p></div>`;
+              $section.addClass("is-empty");
+              return;
+            }
+            $section.removeClass("is-empty");
+            filteredAppointments.forEach((a, index) => {
+              appointmentsCardBody.insertAdjacentHTML("beforeend", buildAppointmentCard(a, index >= MAX_VISIBLE_APPOINTMENTS));
+            });
+          };
+
+          updateTitle();
+          updateAppointmentTabCounts();
+          self.applyActivityTabStyles("#appointments-card-tabs .appointment-tab", "appointmentFilter", activeAppointmentFilter);
+          renderAppointments(activeAppointmentFilter);
+
+          $(document)
+            .off("click", "#appointments-card-tabs .appointment-tab")
+            .on("click", "#appointments-card-tabs .appointment-tab", function () {
+              const filter = $(this).data("appointmentFilter") || "all";
+              activeAppointmentFilter = filter;
+              self.applyActivityTabStyles("#appointments-card-tabs .appointment-tab", "appointmentFilter", activeAppointmentFilter);
+              renderAppointments(activeAppointmentFilter);
+            });
+
+          $(document)
+            .off("click", "#appointments-card-load-more, #appointments-card-title")
+            .on("click", "#appointments-card-load-more, #appointments-card-title", function () {
+              const advancedFilters = [
+                ["Appointment", "reference", "=", "Quotation"],
+                ["Appointment", "reference_to", "=", opportunity_name],
+              ];
+              const params = new URLSearchParams();
+              params.set("filters", encodeURIComponent(JSON.stringify(advancedFilters)));
+
+              if (activeAppointmentFilter === "open") {
+                params.set("status", "Open");
+              } else if (activeAppointmentFilter === "unverified") {
+                params.set("status", "Unverified");
+              } else if (activeAppointmentFilter === "closed") {
+                params.set("status", "Closed");
+              }
+              const url = `/app/appointments?${params.toString()}`;
+              window.open(url, "_blank");
+            });
+        }
+      });
+    }
+
+    renderNotesList(notes) {
+      const $lists = $(".rightcol #notes-list, #mobile-sla-modal #notes-list, #main-notes-list");
+      if (!$lists.length) return;
+
+      if (!notes.length) {
+        $lists.html('<p class="mb-0 text-muted small">No notes added yet.</p>');
+        return;
+      }
+
+      const sortedNotes = [...notes].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      const cardsHtml = sortedNotes.map((note) => {
+        const initials = (note.created_by || note.owner || '').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        const timestamp = note.timestamp ? frappe.datetime.str_to_user(note.timestamp) : '';
+        const is_owner = frappe.session.user === note.owner;
+        const is_admin = frappe.session.user === 'Administrator';
+        const creatorName = frappe.utils.escape_html(note.created_by || note.owner || '');
+        const customRole = frappe.utils.escape_html(note.custom_role || '');
+        const noteBody = frappe.utils.escape_html(note.note || '').replace(/\n/g, '<br>');
+        const avatarInitials = frappe.utils.escape_html(initials || 'NA');
+        const action_buttons = `
+	            		${is_owner || is_admin ? `<button class="note-edit btn btn-sm btn-light border me-1" data-idx="${note.idx}" title="Edit note" aria-label="Edit note">✏️</button>` : ''}
+	            		${is_admin ? `<button class="note-delete btn btn-sm btn-light border text-danger" data-idx="${note.idx}" title="Delete note" aria-label="Delete note">🗑️</button>` : ''}
+        		`;
+        const user_avatar = `<div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold me-2 flex-shrink-0" style="width:32px;height:32px;">${avatarInitials}</div>`;
+
+        return `
+					<div class="note-card mb-2 p-2 border rounded bg-white">
+						<div class="d-flex justify-content-between align-items-start gap-2">
+							<div class="d-flex align-items-center flex-grow-1" style="min-width:0;">
+								${user_avatar}
+								<div class="flex-grow-1" style="min-width:0;">
+									<div class="text-muted text-truncate" title="${creatorName}">${creatorName}</div>
+									${customRole ? `<div class="small text-muted">${customRole}</div>` : ''}
+								</div>
+							</div>
+							<div class="d-flex align-items-center">${action_buttons}</div>
+						</div>
+						<div class="note-text p-2 mt-2 border rounded bg-light" style="max-height:180px;overflow:auto;">
+							${noteBody}
+						</div>
+						<div class="mt-2 d-flex justify-content-end">
+							<div class="small text-muted">${timestamp}</div>
+						</div>
+
+					</div>
+				`;
+      }).join("");
+
+      $lists.html(cardsHtml);
+    }
+
+    bindOpportunityActivitiesEvents(opportunityName) {
+      const self = this;
+      let activeType = "Notes";
+      let enabledUsers = [];
+      let defaultCustomer = "";
+      let panelAppointmentParticipantsControl = null;
+      let panelCallNameControl = null;
+      let panelCallSelectedCustomer = "";
+
+      const callApi = (options) => new Promise((resolve, reject) => {
+        frappe.call({
+          ...options,
+          callback: (r) => resolve(r),
+          error: (err) => reject(err),
+        });
+      });
+
+      const esc = (val) => frappe.utils.escape_html(String(val || ""));
+
+      // Move rendered content from hidden cards to activity sections
+      const moveContent = (sourceSelector, targetSelector) => {
+        const $source = $(sourceSelector);
+        const $target = $(targetSelector);
+        if ($source.length && $target.length) {
+          $target.empty().append($source);
+        }
+      };
+
+      // Move cards into their respective display containers (right panel)
+      moveContent('#calls-card', '#activity-calls-container');
+      moveContent('#appointments-card', '#activity-appointments-container');
+      $("#activity-calls-container #add-calls-btn, #activity-appointments-container #add-appointments-btn").addClass("d-none");
+
+      const ensurePanelContext = async () => {
+        if (!defaultCustomer) {
+          try {
+            const oppRes = await callApi({
+              method: "frappe.client.get_value",
+              args: {
+                doctype: "Quotation",
+                filters: { name: opportunityName },
+                fieldname: ["party_name"],
+              },
+              silent: true,
+            });
+            defaultCustomer = oppRes?.message?.party_name || "";
+          } catch (e) {
+            defaultCustomer = "";
+          }
+        }
+
+        if (!enabledUsers.length) {
+          try {
+            const usersRes = await callApi({
+              method: "renewal_module.custom_module.page.quotation_list.quotation_list.get_enabled_users",
+              silent: true,
+            });
+            enabledUsers = Array.isArray(usersRes?.message) ? usersRes.message : [];
+          } catch (e) {
+            enabledUsers = [];
+          }
+        }
+      };
+
+      const usersOptionsHtml = () => enabledUsers.map((u) => {
+        const label = esc(u.full_name || u.name || u.email || "User");
+        const value = esc(u.email || u.name || "");
+        return `<option value="${value}">${label}</option>`;
+      }).join("");
+
+      const getActivityDateTimeDefaults = (activityType) => {
+        const now = new Date();
+        const durationMinutes = activityType === "Appointments" ? 60 : activityType === "Calls" ? 10 : 0;
+        const end = new Date(now.getTime() + (durationMinutes * 60 * 1000));
+
+        const pad2 = (value) => String(value).padStart(2, "0");
+        const toDateInput = (dateObj) => `${dateObj.getFullYear()}-${pad2(dateObj.getMonth() + 1)}-${pad2(dateObj.getDate())}`;
+        const toTimeInput = (dateObj) => `${pad2(dateObj.getHours())}:${pad2(dateObj.getMinutes())}`;
+
+        return {
+          start_date: toDateInput(now),
+          start_time: toTimeInput(now),
+          end_date: toDateInput(end),
+          end_time: toTimeInput(end),
+          scheduled_time: frappe.datetime?.now_datetime ? frappe.datetime.now_datetime() : "",
+        };
+      };
+
+      const getPanelUserOptions = () => (enabledUsers || []).map((u) => {
+        const value = String(u?.email || u?.name || "").trim();
+        const label = String(u?.full_name || u?.name || u?.email || value).trim();
+        if (!value) return null;
+        return { label, value, description: u?.email || value };
+      }).filter(Boolean);
+
+      const getMultiControlValues = (control) => {
+        if (!control || typeof control.get_value !== "function") return [];
+
+        const raw = control.get_value();
+        if (Array.isArray(raw)) {
+          return raw.map((v) => String(v || "").trim()).filter(Boolean);
+        }
+
+        return String(raw || "")
+          .split(",")
+          .map((v) => v.trim())
+          .filter(Boolean);
+      };
+
+      const renderUserMultiControl = (hostSelector, fieldname) => {
+        const $host = $(hostSelector);
+        if (!$host.length || !frappe?.ui?.form?.make_control) {
+          return null;
+        }
+
+        $host.empty();
+        const control = frappe.ui.form.make_control({
+          parent: $host,
+          df: {
+            fieldtype: "MultiSelect",
+            fieldname,
+            label: "",
+            options: getPanelUserOptions(),
+          },
+          render_input: true,
+        });
+
+        if (control?.refresh) {
+          control.refresh();
+        }
+
+        return control;
+      };
+
+      const renderLinkControl = (hostSelector, df) => {
+        const $host = $(hostSelector);
+        if (!$host.length || !frappe?.ui?.form?.make_control) {
+          return null;
+        }
+
+        $host.empty();
+        const control = frappe.ui.form.make_control({
+          parent: $host,
+          df,
+          render_input: true,
+        });
+
+        if (control?.refresh) {
+          control.refresh();
+        }
+
+        return control;
+      };
+
+      const hidePanelForm = () => {
+        $("#ticket-panel-form-section").addClass("d-none");
+        $("#ticket-panel-cards-section").removeClass("d-none");
+        $("#ticket-btn-panel-add").show();
+        $(".ticket-detail-panel .panel__header").show();
+        $('#quick-note-input-container').addClass('d-none');
+        panelAppointmentParticipantsControl = null;
+        panelCallNameControl = null;
+        panelCallSelectedCustomer = "";
+      };
+
+      const showPanelForm = async (type) => {
+        await ensurePanelContext();
+        $("#ticket-panel-cards-section").addClass("d-none");
+        $("#ticket-panel-form-section").removeClass("d-none");
+        $("#ticket-btn-panel-add").hide();
+        $(".ticket-detail-panel .panel__header").hide();
+        const usersOptions = usersOptionsHtml();
+
+
+
+        if (type === "Calls") {
+          $("#ticket-panel-form-title").text("New Call");
+          $("#ticket-panel-save-btn").text("Save Call");
+          panelCallSelectedCustomer = defaultCustomer || "";
+          $("#ticket-panel-form-body").html(`
+					<div class="ticket-form-grid">
+						<div class="mb-2"><label class="form-label">Subject *</label><input type="text" id="ticket-call-subject" class="form-control" /></div>
+						<div class="mb-2"><label class="form-label">Related To</label><select id="ticket-call-related-to" class="form-control"><option value="Customer" selected>Customer</option><option value="Contact">Contact</option></select></div>
+						<div class="mb-2"><label class="form-label">Full Name *</label><div id="ticket-call-name1-control"></div></div>
+						<div class="row g-2">
+							<div class="col-6 mb-2"><label class="form-label">Start Date</label><input type="date" id="ticket-call-start-date" class="form-control" /></div>
+							<div class="col-6 mb-2"><label class="form-label">Start Time</label><input type="time" id="ticket-call-start-time" class="form-control" /></div>
+						</div>
+						<div class="row g-2">
+							<div class="col-6 mb-2"><label class="form-label">End Date</label><input type="date" id="ticket-call-end-date" class="form-control" /></div>
+							<div class="col-6 mb-2"><label class="form-label">End Time</label><input type="time" id="ticket-call-end-time" class="form-control" /></div>
+						</div>
+						<div class="mb-2"><label class="form-label">Status</label><select id="ticket-call-status" class="form-control"><option value="Held">Held</option><option value="Scheduled">Scheduled</option><option value="Cancelled">Cancelled</option></select></div>
+						<div class="mb-2"><label class="form-label">Description</label><textarea id="ticket-call-description" class="form-control" rows="4"></textarea></div>
+					</div>
+				`);
+
+          const callDefaults = getActivityDateTimeDefaults("Calls");
+          $("#ticket-call-start-date").val(callDefaults.start_date);
+          $("#ticket-call-start-time").val(callDefaults.start_time);
+          $("#ticket-call-end-date").val(callDefaults.end_date);
+          $("#ticket-call-end-time").val(callDefaults.end_time);
+
+          const renderPanelCallNameControl = () => {
+            const relatedTo = ($("#ticket-call-related-to").val() || "Customer").toString();
+            panelCallNameControl = renderLinkControl("#ticket-call-name1-control", {
+              fieldtype: "Link",
+              fieldname: "ticket_call_name1",
+              label: "",
+              options: relatedTo,
+              reqd: true,
+              onchange: () => {
+                if (relatedTo === "Customer") {
+                  panelCallSelectedCustomer = panelCallNameControl?.get_value?.() || panelCallSelectedCustomer;
+                }
+              }
+            });
+
+            // Keep Link autocomplete, but hide and block open-document arrow for this panel field.
+            const $callNameHost = $("#ticket-call-name1-control");
+            $callNameHost.find(".link-btn")
+              .addClass("d-none")
+              .attr("tabindex", "-1")
+              .attr("aria-hidden", "true");
+            $callNameHost
+              .off("click.ticket_call_name_link", ".link-btn")
+              .on("click.ticket_call_name_link", ".link-btn", function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+              });
+
+            if (relatedTo === "Contact") {
+              panelCallNameControl.get_query = function () {
+                return {
+                  query: "frappe.contacts.doctype.contact.contact.contact_query",
+                  filters: {
+                    link_doctype: "Customer",
+                    link_name: panelCallSelectedCustomer || defaultCustomer || "",
+                  }
+                };
+              };
+              panelCallNameControl?.set_value?.("");
+            } else {
+              panelCallNameControl?.set_value?.(panelCallSelectedCustomer || defaultCustomer || "");
+            }
+          };
+
+          $("#ticket-call-related-to")
+            .off("change.ticketPanelCallRelated")
+            .on("change.ticketPanelCallRelated", function () {
+              if (($(this).val() || "Customer").toString() === "Contact") {
+                const currentCustomer = panelCallNameControl?.get_value?.();
+                if (currentCustomer) {
+                  panelCallSelectedCustomer = currentCustomer;
+                }
+              }
+              renderPanelCallNameControl();
+            });
+
+          renderPanelCallNameControl();
+          return;
+        }
+
+        if (type === "Appointments") {
+          $("#ticket-panel-form-title").text("New Appointment");
+          $("#ticket-panel-save-btn").text("Schedule Appointment");
+          $("#ticket-panel-form-body").html(`
+					<div class="ticket-form-grid">
+						<div class="mb-2"><label class="form-label">Appointment With</label><select id="ticket-appointment-with" class="form-control"><option value="Customer" selected>Customer</option><option value="Lead">Lead</option></select></div>
+						<div class="mb-2"><label class="form-label">Party</label><input type="text" id="ticket-appointment-party" class="form-control" value="${esc(defaultCustomer)}" /></div>
+						<div class="mb-2"><label class="form-label">Subject *</label><input type="text" id="ticket-appointment-subject" class="form-control" /></div>
+						<div class="mb-2"><label class="form-label">Name *</label><input type="text" id="ticket-appointment-name" class="form-control" /></div>
+						<div class="mb-2"><label class="form-label">Email *</label><input type="email" id="ticket-appointment-email" class="form-control" /></div>
+						<div class="mb-2"><label class="form-label">Phone Number</label><input type="text" id="ticket-appointment-phone" class="form-control" /></div>
+						<div class="mb-2"><label class="form-label">Participants *</label><div id="ticket-appointment-participants-control" class="ticket-multi-control"></div><select id="ticket-appointment-participants" class="form-control d-none" multiple>${usersOptions}</select></div>
+						<div class="row g-2">
+							<div class="col-6 mb-2"><label class="form-label">Start Date *</label><input type="date" id="ticket-appointment-start-date" class="form-control" /></div>
+							<div class="col-6 mb-2"><label class="form-label">Start Time *</label><input type="time" id="ticket-appointment-start-time" class="form-control" /></div>
+						</div>
+						<div class="row g-2">
+							<div class="col-6 mb-2"><label class="form-label">End Date *</label><input type="date" id="ticket-appointment-end-date" class="form-control" /></div>
+							<div class="col-6 mb-2"><label class="form-label">End Time *</label><input type="time" id="ticket-appointment-end-time" class="form-control" /></div>
+						</div>
+						<div class="row g-2">
+							<div class="col-6 mb-2"><label class="form-label">Scheduled Time</label><input type="datetime-local" id="ticket-appointment-scheduled-time" class="form-control" /></div>
+						</div>
+						<div class="mb-2"><label class="form-label">Details</label><textarea id="ticket-appointment-details" class="form-control" rows="3"></textarea></div>
+					</div>
+				`);
+
+          panelAppointmentParticipantsControl = renderUserMultiControl("#ticket-appointment-participants-control", "ticket_appointment_participants");
+          if (!panelAppointmentParticipantsControl) {
+            $("#ticket-appointment-participants").removeClass("d-none");
+          }
+
+          const appointmentDefaults = getActivityDateTimeDefaults("Appointments");
+          $("#ticket-appointment-start-date").val(appointmentDefaults.start_date);
+          $("#ticket-appointment-start-time").val(appointmentDefaults.start_time);
+          $("#ticket-appointment-end-date").val(appointmentDefaults.end_date);
+          $("#ticket-appointment-end-time").val(appointmentDefaults.end_time);
+
+
+          $("#ticket-appointment-with")
+            .off("change.ticketPanelAppointmentWith")
+            .on("change.ticketPanelAppointmentWith", function () {
+              const appointmentWith = ($(this).val() || "").toString();
+              if (appointmentWith === "Customer") {
+                $("#ticket-appointment-party").val(defaultCustomer || "");
+              } else {
+                $("#ticket-appointment-party").val("");
+              }
+            });
+        }
+      };
+
+      // Helper to update the "Add" button label based on active type
+      const updateAddBtnLabel = (type) => {
+        const labels = { Notes: "New Note", Comment: "Comment", Calls: "Create", Appointments: "Create" };
+        $('#ticket-btn-panel-add').html(`<i class="fa fa-plus"></i> ${labels[type] || 'Add'}`);
+        if (type === 'Comment') {
+          $('#ticket-btn-panel-add').addClass('d-none');
+        } else {
+          $('#ticket-btn-panel-add').removeClass('d-none');
+        }
+      };
+
+      // Wire up the "Add" button to trigger the appropriate create flow
+      $('#ticket-btn-panel-add').off('click').on('click', async function () {
+        if (activeType === 'Notes') {
+          $('#quick-note-input-container').removeClass('d-none');
+          $('#quick-note-text').trigger('focus');
+          return;
+        }
+        await showPanelForm(activeType);
+      });
+
+      $('#ticket-btn-panel-close').off('click').on('click', function () {
+        hidePanelForm();
+      });
+
+      $('#ticket-panel-save-btn').off('click').on('click', async function () {
+        const $saveBtn = $(this);
+        $saveBtn.prop('disabled', true).text('Saving...');
+
+        try {
+          if (activeType === 'Comment') {
+            // Comment saving is handled by the dedicated Comment button in the tab.
+            return;
+          }
+
+          if (activeType === 'Calls') {
+            const subject = ($('#ticket-call-subject').val() || '').trim();
+            const related_to = ($('#ticket-call-related-to').val() || 'Customer').trim();
+            const name1 = panelCallNameControl?.get_value?.() || '';
+            const customer_name = related_to === 'Customer' ? name1 : (panelCallSelectedCustomer || defaultCustomer || '');
+            const start_date = ($('#ticket-call-start-date').val() || '').trim();
+            const start_timing = ($('#ticket-call-start-time').val() || '').trim();
+            const end_date = ($('#ticket-call-end-date').val() || '').trim();
+            const end_timing = ($('#ticket-call-end-time').val() || '').trim();
+            const status = ($('#ticket-call-status').val() || 'Held').trim();
+            const description = ($('#ticket-call-description').val() || '').trim();
+
+            if (!subject || !name1) {
+              frappe.msgprint(__('Please fill required call fields'));
+              return;
+            }
+
+            let custom_sales_person = '';
+            if (related_to === 'Customer' && customer_name) {
+              try {
+                const salesRes = await callApi({
+                  method: 'renewal_module.custom_module.page.quotation_list.quotation_list.get_customer_sales_person',
+                  args: { customer: customer_name },
+                  silent: true,
+                });
+                custom_sales_person = salesRes?.message || '';
+              } catch (e) {
+                custom_sales_person = '';
+              }
+            }
+
+            const insertRes = await callApi({
+              method: 'frappe.client.insert',
+              args: {
+                doc: {
+                  doctype: 'Call List',
+                  subject,
+                  name1,
+                  related_to,
+                  status,
+                  description,
+                  reference: 'Quotation',
+                  reference_to: opportunityName,
+                  custom_date: frappe.datetime.get_today(),
+                  start_date,
+                  end_date,
+                  start_timing,
+                  end_timing,
+                  custom_sales_person,
+                }
+              }
+            });
+
+            const callName = insertRes?.message?.name;
+            if (callName) {
+              try {
+                const userInfo = await callApi({
+                  method: 'frappe.client.get_value',
+                  args: {
+                    doctype: 'User',
+                    filters: { name: frappe.session.user },
+                    fieldname: ['full_name', 'email', 'mobile_no', 'phone'],
+                  }
+                });
+                const u = userInfo?.message || {};
+                await callApi({
+                  method: 'frappe.client.insert',
+                  args: {
+                    doc: {
+                      parent: callName,
+                      parenttype: 'Call List',
+                      parentfield: 'sales_team',
+                      doctype: 'Sales Team',
+                      sales_person: u.full_name || frappe.session.user,
+                      mobile_no: u.mobile_no || u.phone,
+                      email_id: u.email,
+                    }
+                  }
+                });
+              } catch (e) {
+                // Optional enrichment failed, call is already created.
+              }
+            }
+
+            frappe.show_alert({ message: __('Call created'), indicator: 'green' });
+            self.bindcallcardsEvents(opportunityName);
+            hidePanelForm();
+            return;
+          }
+
+          if (activeType === 'Appointments') {
+            const appointment_with = ($('#ticket-appointment-with').val() || 'Customer').trim();
+            const party = ($('#ticket-appointment-party').val() || '').trim();
+            const custom_subject = ($('#ticket-appointment-subject').val() || '').trim();
+            const customer_name = ($('#ticket-appointment-name').val() || '').trim();
+            const customer_email = ($('#ticket-appointment-email').val() || '').trim();
+            const customer_phone_number = ($('#ticket-appointment-phone').val() || '').trim();
+            const custom_start_date = ($('#ticket-appointment-start-date').val() || '').trim();
+            const custom_start_time = ($('#ticket-appointment-start-time').val() || '').trim();
+            const custom_end_date = ($('#ticket-appointment-end-date').val() || '').trim();
+            const custom_end_time = ($('#ticket-appointment-end-time').val() || '').trim();
+            let scheduledTime = ($(self.wrapper).find('#ticket-appointment-scheduled-time').val() || '').trim();
+            if (scheduledTime) {
+              scheduledTime = scheduledTime.replace('T', ' ');
+              if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(scheduledTime)) scheduledTime += ":00";
+            }
+            const customer_details = ($('#ticket-appointment-details').val() || '').trim();
+            const participants = panelAppointmentParticipantsControl
+              ? getMultiControlValues(panelAppointmentParticipantsControl)
+              : ($('#ticket-appointment-participants').val() || []);
+
+            if (!customer_name || !customer_email || !custom_start_date || !custom_start_time || !custom_end_date || !custom_end_time || !participants.length) {
+              frappe.msgprint(__('Please fill all required appointment fields'));
+              return;
+            }
+
+            await callApi({
+              method: 'frappe.client.insert',
+              args: {
+                doc: {
+                  doctype: 'Appointment',
+                  appointment_with,
+                  party,
+                  custom_subject,
+                  customer_name,
+                  customer_phone_number,
+                  customer_email,
+                  scheduled_time: scheduledTime,
+                  custom_participants: participants.map((user) => ({ user })),
+                  customer_details,
+                  custom_start_date,
+                  custom_start_time,
+                  custom_end_date,
+                  custom_end_time,
+                  reference: 'Quotation',
+                  reference_to: opportunityName,
+                }
+              }
+            });
+
+            frappe.show_alert({ message: __('Appointment created'), indicator: 'green' });
+            self.bindcallcardsEvents(opportunityName);
+            self.bindAppointmentCardsEvents(opportunityName);
+            hidePanelForm();
+          }
+        } finally {
+          $saveBtn.prop('disabled', false).text(activeType === 'Appointments' ? 'Schedule Appointment' : activeType === 'Calls' ? 'Save Call' : activeType === 'Tasks' ? 'Save Task' : 'Save');
+        }
+      });
+
+      // Tab switching for the right-side panel
+      $('.detail-panel .ptab').off('click').on('click', function () {
+        $('.detail-panel .ptab').removeClass('is-active');
+        $(this).addClass('is-active');
+
+        const type = $(this).data('type');
+        activeType = type || 'Notes';
+        const subtitleMap = { Notes: 'Notes', Tasks: 'Tasks', Calls: 'Calls', Appointments: 'Appointments' };
+        $('#ticket-panel-subtitle').text(subtitleMap[activeType] || activeType);
+        updateAddBtnLabel(activeType);
+        hidePanelForm();
+
+        // Hide all panel sections
+        $('.ticket-panel-section').addClass('d-none');
+
+        if (activeType === 'Notes') {
+          $('#ticket-activity-notes-section').removeClass('d-none');
+        } else if (activeType === 'Comment') {
+          $('#ticket-activity-comment-section').removeClass('d-none');
+          self.load_activity(opportunityName);
+        } else if (activeType === 'Calls') {
+          $('#ticket-activity-calls-section').removeClass('d-none');
+          moveContent('#calls-card', '#activity-calls-container');
+          $("#activity-calls-container #add-calls-btn").addClass("d-none");
+        } else if (activeType === 'Appointments') {
+          $('#ticket-activity-appointments-section').removeClass('d-none');
+          moveContent('#appointments-card', '#activity-appointments-container');
+          $("#activity-appointments-container #add-appointments-btn").addClass("d-none");
+        }
+      });
+
+      // Initialize subtitle and add-button for the default (Notes) tab
+      updateAddBtnLabel('Notes');
+      $('#ticket-activity-notes-section').removeClass('d-none');
+      $('#ticket-activity-comment-section, #ticket-activity-calls-section, #ticket-activity-appointments-section, #ticket-activity-email-section').addClass('d-none');
+
+      // Load notes on initial render
+      self.loadAndRenderNotes(opportunityName);
+
+      // Comment Save Handler
+      const $commentInput = $('#new-comment-input');
+
+      // Handle placeholder visibility (ql-blank)
+      $commentInput.off('input.placeholder focus.placeholder blur.placeholder').on('input.placeholder focus.placeholder blur.placeholder', function () {
+        const text = $(this).text().trim();
+        if (text) {
+          $(this).removeClass('ql-blank');
+        } else {
+          $(this).addClass('ql-blank');
+        }
+      });
+
+      // Initialize mentions for this editor
+      self.initMentions();
+
+      $('#add-comment-btn').off('click').on('click', async function () {
+        const $btn = $(this);
+        const content = ($commentInput.html() || '').trim();
+        const plainText = (frappe.utils.strip_html ? frappe.utils.strip_html(content) : $("<div>").html(content).text()).trim();
+
+        if (!plainText) {
+          frappe.msgprint(__('Please enter a comment'));
+          return;
+        }
+
+        $btn.prop('disabled', true).text('Commenting...');
+
+        frappe.call({
+          method: "renewal_module.custom_module.page.quotation_list.quotation_list.add_custom_comment",
+          args: {
+            docname: opportunityName,
+            content: content
+          },
+          callback: function (r) {
+            $btn.prop('disabled', false).text('Comment');
+            if (!r.exc) {
+              $commentInput.html('').addClass('ql-blank').focus();
+              frappe.show_alert({ message: __("Comment added"), indicator: "green" });
+              self.load_activity(opportunityName);
+            }
+          },
+          error: function () {
+            $btn.prop('disabled', false).text('Comment');
+          }
+        });
+      });
+
+
+      // Quick Note Save
+      $('#save-quick-note-btn').off('click').on('click', function () {
+        const $btn = $(this);
+        const text = $('#quick-note-text').val().trim();
+
+        if (!text) {
+          frappe.msgprint('Please enter a note');
+          return;
+        }
+
+        $btn.prop('disabled', true).text('Saving...');
+
+        frappe.call({
+          method: "renewal_module.custom_module.page.quotation_list.quotation_list.add_opportunity_note",
+          args: {
+            opportunity_name: opportunityName,
+            note_text: text
+          },
+          callback: function (r) {
+            $btn.prop('disabled', false).text('Save Note');
+            if (!r.exc) {
+              $('#quick-note-text').val('');
+              $('#quick-note-input-container').addClass('d-none');
+              frappe.show_alert({ message: "Note added", indicator: "green" });
+              self.loadAndRenderNotes(opportunityName);
+            }
+          },
+          error: function () {
+            $btn.prop('disabled', false).text('Save Note');
+          }
+        });
+      });
+    }
+
+    fetch_mention_users() {
+      frappe.call({
+        method: "renewal_module.custom_module.page.quotation_list.quotation_list.get_enabled_users",
+        callback: (r) => {
+          this._mention_users = (r.message || [])
+            .map(u => ({
+              email: u.email || u.name,
+              name: u.full_name || u.name
+            }))
+            .filter(u => !!u.email);
+        }
+      });
+    }
+
+    hideMentionDropdown() {
+      const $mentionDropdown = $("#mention-dropdown");
+      if ($mentionDropdown.length) {
+        $mentionDropdown.addClass('d-none').empty();
+      }
+    }
+
+    positionDropdown(rect) {
+      const $mentionDropdown = $("#mention-dropdown");
+      if (!$mentionDropdown.length) return;
+      if (!rect) return this.hideMentionDropdown();
+      const scrollTop = $(window).scrollTop() || 0;
+      $mentionDropdown.css({
+        top: (rect.bottom + scrollTop) + 'px',
+        left: rect.left + 'px'
+      }).removeClass('d-none');
+    }
+
+    getCaretCharacterOffsetWithin(element) {
+      let caretOffset = 0;
+      const sel = window.getSelection();
+      if (sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        const preRange = range.cloneRange();
+        preRange.selectNodeContents(element);
+        preRange.setEnd(range.endContainer, range.endOffset);
+        caretOffset = preRange.toString().length;
+      }
+      return caretOffset;
+    }
+
+    createRangeFromCharacterOffsets(root, start, end) {
+      const nodeIterator = document.createNodeIterator(root, NodeFilter.SHOW_TEXT, null);
+      let currentNode, count = 0, range = null;
+      while ((currentNode = nodeIterator.nextNode())) {
+        const nextCount = count + currentNode.textContent.length;
+        if (start >= count && start <= nextCount) {
+          const rangeStart = { node: currentNode, offset: start - count };
+          if (end >= count && end <= nextCount) {
+            const rangeEnd = { node: currentNode, offset: end - count };
+            range = document.createRange();
+            range.setStart(rangeStart.node, rangeStart.offset);
+            range.setEnd(rangeEnd.node, rangeEnd.offset);
+            return range;
+          } else {
+            // end is in a later node
+            const rangeEndNode = (function () {
+              let it2 = document.createNodeIterator(root, NodeFilter.SHOW_TEXT, null);
+              let cur2, c2 = 0;
+              while ((cur2 = it2.nextNode())) {
+                const nc = c2 + cur2.textContent.length;
+                if (end <= nc) return { node: cur2, offset: end - c2 };
+                c2 = nc;
+              }
+              return null;
+            })();
+            if (rangeEndNode) {
+              range = document.createRange();
+              range.setStart(rangeStart.node, rangeStart.offset);
+              range.setEnd(rangeEndNode.node, rangeEndNode.offset);
+              return range;
+            }
+          }
+        }
+        count = nextCount;
+      }
+      return null;
+    }
+
+    getMentionQuery($editor) {
+      const caret = this.getCaretCharacterOffsetWithin($editor[0]);
+      const text = $editor.text();
+      const lastAt = text.lastIndexOf('@', caret - 1);
+      if (lastAt === -1) return null;
+      // ensure '@' is not part of an email already
+      if (lastAt > 0 && /\S@\S/.test(text.substring(lastAt - 1, lastAt + 2))) return null;
+      const query = text.substring(lastAt + 1, caret);
+      if (/\s/.test(query)) return null;
+      return { start: lastAt, end: caret, query };
+    }
+
+    insertMentionAtRange($editor, start, end, user) {
+      const editor = $editor[0];
+      const range = this.createRangeFromCharacterOffsets(editor, start, end);
+      if (!range) return;
+      const mentionEmail = user.email || user.name || "";
+      const mentionName = user.name || mentionEmail;
+      const a = document.createElement('a');
+      a.href = mentionEmail ? `mailto:${mentionEmail}` : "#";
+      a.textContent = `@${mentionName}`;
+      a.setAttribute('data-id', mentionEmail);
+      a.setAttribute('data-mention-email', mentionEmail);
+      a.setAttribute('data-mention-name', mentionName);
+      a.className = 'mention';
+      a.setAttribute('contenteditable', 'false');
+      const sel = window.getSelection();
+      const frag = document.createDocumentFragment();
+      const spaceNode = document.createTextNode(' ');
+      frag.appendChild(a);
+      frag.appendChild(spaceNode);
+      range.deleteContents();
+      range.insertNode(frag);
+      const newRange = document.createRange();
+      newRange.setStartAfter(spaceNode);
+      newRange.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+      $editor.trigger('input');
+      $editor.focus();
+    }
+
+    initMentions() {
+      const me = this;
+      const $editor = $('#new-comment-input');
+      if (!$editor.length) return;
+
+      // Ensure mention dropdown exists
+      if (!$("#mention-dropdown").length) {
+        const $mentionDropdown = $(
+          '<div id="mention-dropdown" class="mention-dropdown d-none card shadow-sm" style="position:absolute;z-index:10000;min-width:220px;max-height:220px;overflow:auto;padding:4px;background:#fff;border:1px solid #ddd;"></div>'
+        );
+        $(document.body).append($mentionDropdown);
+      }
+
+      let mentionSelectionIndex = -1;
+
+      $editor.off('keyup.mention paste.mention input.mention').on('keyup.mention paste.mention input.mention', function (e) {
+        const mention = me.getMentionQuery($editor);
+        if (!mention) return me.hideMentionDropdown();
+        const q = (mention.query || '').toLowerCase();
+        const matches = (me._mention_users || []).filter(u => (u.email && u.email.toLowerCase().includes(q)) || (u.name && u.name.toLowerCase().includes(q)));
+        if (!matches.length) return me.hideMentionDropdown();
+
+        // compute caret rect
+        let rect = null;
+        try {
+          const sel = window.getSelection();
+          if (sel.rangeCount) {
+            const r = sel.getRangeAt(0).cloneRange();
+            r.collapse(false);
+            const clientRects = r.getClientRects();
+            rect = clientRects[clientRects.length - 1] || r.getBoundingClientRect();
+          }
+        } catch (err) {
+          console.warn('mention rect failed', err);
+        }
+        me.positionDropdown(rect);
+
+        const $mentionDropdown = $("#mention-dropdown");
+        $mentionDropdown.empty();
+        matches.slice(0, 10).forEach((m, idx) => {
+          const $item = $(`<div class="mention-item p-1" data-idx="${idx}" data-email="${frappe.utils.escape_html(m.email)}" style="cursor:pointer;border-radius:4px;padding:6px;font-size:13px;">${frappe.utils.escape_html(m.name)}</div>`);
+          $item.on('mousedown touchstart', function (ev) {
+            ev.preventDefault(); // prevent blur
+            me.insertMentionAtRange($editor, mention.start, mention.end, m);
+            me.hideMentionDropdown();
+          });
+          $mentionDropdown.append($item);
+        });
+        mentionSelectionIndex = -1;
+      });
+
+      $editor.off('keydown.mention').on('keydown.mention', function (e) {
+        const $mentionDropdown = $("#mention-dropdown");
+        if ($mentionDropdown.hasClass('d-none')) return;
+        const items = $mentionDropdown.children();
+        if (!items.length) return;
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          mentionSelectionIndex = Math.min(mentionSelectionIndex + 1, items.length - 1);
+          items.removeClass('active');
+          $(items.get(mentionSelectionIndex)).addClass('active').get(0)?.scrollIntoView({ block: 'nearest' });
+          return;
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          mentionSelectionIndex = Math.max(mentionSelectionIndex - 1, 0);
+          items.removeClass('active');
+          $(items.get(mentionSelectionIndex)).addClass('active').get(0)?.scrollIntoView({ block: 'nearest' });
+          return;
+        }
+        if (e.key === 'Enter') {
+          if (mentionSelectionIndex >= 0 && mentionSelectionIndex < items.length) {
+            e.preventDefault();
+            $(items.get(mentionSelectionIndex)).trigger('mousedown');
+          }
+        }
+        if (e.key === 'Escape') {
+          me.hideMentionDropdown();
+        }
+      });
+
+      $(document).off('mousedown.mention').on('mousedown.mention', function (e) {
+        if (!$(e.target).closest('#mention-dropdown, #new-comment-input').length) me.hideMentionDropdown();
+      });
+    }
+
+
   }
 
 
@@ -15993,14 +18168,44 @@
       background: var(--bg);
       min-height: 100vh;
       width: 100% !important;
+      align-items: start;
+      grid-auto-rows: minmax(0, auto);
     }
     
     @media (max-width: 1100px){
       .detail-view-wrapper{ grid-template-columns: 1fr; }
-      .detail-panel{ order: -1; }
+      .detail-panel{
+        order: -1;
+        position: static;
+        max-height: none;
+        overflow: visible;
+      }
     }
     
-    .detail-content{ display: flex !important; flex-direction: column; gap: 14px; min-width: 0; }
+    .detail-content,
+    .detail-content-fullwidth{
+      display: flex !important;
+      flex-direction: column;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    @media (min-width: 1101px){
+      .detail-content{
+        grid-column: 1 / 2;
+        grid-row: 1;
+      }
+
+      .detail-panel{
+        grid-column: 2 / 3;
+        grid-row: 1;
+      }
+
+      .detail-content-fullwidth{
+        grid-column: 1 / -1;
+        grid-row: 2;
+      }
+    }
 
     .detail-card{
       background: var(--panel);
@@ -16019,15 +18224,15 @@
     }
 
     .detail-card--lineitems{
-      width: calc(100% + var(--line-items-extra, 0px));
-      margin-right: calc(var(--line-items-extra, 0px) * -1);
-      margin-top: var(--line-items-shift, 0px);
+      width: 100%;
+      margin-right: 0;
+      margin-top: 0;
       max-width: none;
     }
 
     .comments-card{
-      width: calc(100% + var(--line-items-extra, 0px));
-      margin-right: calc(var(--line-items-extra, 0px) * -1);
+      width: 100%;
+      margin-right: 0;
       max-width: none;
     }
 
@@ -16121,6 +18326,33 @@
     .detail-customer-edit-btn:focus {
       color: #0d9488;
       outline: none;
+    }
+    
+    .detail-address-edit-btn {
+      border: none;
+      background: transparent;
+      color: #0f766e;
+      padding: 0;
+      margin-left: 4px;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .detail-address-edit-btn:hover,
+    .detail-address-edit-btn:focus {
+      color: #0d9488;
+      outline: none;
+    }
+
+    .detail-address-editor.d-none {
+      display: none !important;
+    }
+
+    .detail-address-editor {
+      min-width: 0;
     }
     
     .badge{
@@ -17669,12 +19901,14 @@
       padding: 16px;
       display: flex;
       flex-direction: column;
-      height: fit-content;
+      height: var(--detail-panel-height, fit-content);
       min-height: 0;
-      max-height: calc(100vh - 92px);
+      max-height: var(--detail-panel-height, calc(100vh - 92px));
       position: sticky;
       top: 70px;
-      overflow: auto;
+      align-self: start;
+      overflow: hidden;
+      z-index: 1;
     }
     
     .panel__tabs{
@@ -18047,8 +20281,8 @@
       margin-bottom: 0;
     }
 
-    #panel-form-section.panel--appointment-mode .panel__form-body,
-    #panel-form-section.panel--call-mode .panel__form-body{
+    #ticket-panel-form-section.panel--appointment-mode .panel__form-body,
+    #ticket-panel-form-section.panel--call-mode .panel__form-body{
       background: #f8fafc;
       border: 1px solid var(--line);
       border-radius: 10px;
@@ -18056,15 +20290,15 @@
       padding-right: 12px;
     }
 
-    #panel-form-section.panel--appointment-mode .panel-appointment-fields,
-    #panel-form-section.panel--call-mode .panel-call-fields{
+    #ticket-panel-form-section.panel--appointment-mode .panel-appointment-fields,
+    #ticket-panel-form-section.panel--call-mode .panel-call-fields{
       background: transparent;
       border: none;
       padding: 0;
     }
 
-    #panel-form-section.panel--appointment-mode .panel__form-footer,
-    #panel-form-section.panel--call-mode .panel__form-footer{
+    #ticket-panel-form-section.panel--appointment-mode .panel__form-footer,
+    #ticket-panel-form-section.panel--call-mode .panel__form-footer{
       background: #f8fafc;
       border-top-color: var(--line);
       border-radius: 0 0 10px 10px;
@@ -18654,6 +20888,12 @@
       color: #334155;
       border-color: #e2e8f0;
     }
+    #ticket-call-name1-control .form-group .clearfix {
+      display:none;
+    }
+    #ticket-appointment-participants-control .form-group .clearfix {
+      display:none;
+    }
   </style>
 
   <div class="ticket-header detail-page-header">
@@ -18743,14 +20983,28 @@
 					<div class="info-grid info-grid--2col" style="margin-top:10px;">
 						<div class="info-col">
 							<div class="info-row">
-								<span class="label">CUSTOMER ADDRESS</span>
+                <span class="label with-action">CUSTOMER ADDRESS <button type="button" class="detail-address-edit-btn" id="detail-customer-address-edit-btn" title="Edit Customer Address"><i class="fa fa-pencil"></i></button></span>
 								<div class="value"><span class="detail-address-name" id="detail-customer-address-name">-</span></div>
+                  <div id="detail-customer-address-editor" class="detail-address-editor d-none" style="margin-top:8px;">
+                    <div id="detail-customer-address-control" class="new-opp-link-control"></div>
+                    <div class="d-flex gap-2 mt-2">
+                      <button type="button" class="btn btn-primary btn-sm" id="detail-customer-address-save-btn">Save</button>
+                      <button type="button" class="btn btn-default btn-sm" id="detail-customer-address-cancel-btn">Cancel</button>
+                    </div>
+                  </div>
 							</div>
 						</div>
 						<div class="info-col">
 							<div class="info-row">
-								<span class="label">SHIPPING ADDRESS</span>
+                <span class="label with-action">SHIPPING ADDRESS <button type="button" class="detail-address-edit-btn" id="detail-shipping-address-edit-btn" title="Edit Shipping Address"><i class="fa fa-pencil"></i></button></span>
 								<div class="value"><span class="detail-address-name" id="detail-shipping-address-name">-</span></div>
+                  <div id="detail-shipping-address-editor" class="detail-address-editor d-none" style="margin-top:8px;">
+                    <div id="detail-shipping-address-control" class="new-opp-link-control"></div>
+                    <div class="d-flex gap-2 mt-2">
+                      <button type="button" class="btn btn-primary btn-sm" id="detail-shipping-address-save-btn">Save</button>
+                      <button type="button" class="btn btn-default btn-sm" id="detail-shipping-address-cancel-btn">Cancel</button>
+                    </div>
+                  </div>
 							</div>
 						</div>
 					</div>
@@ -18768,8 +21022,15 @@
 						</div>
 						<div class="info-col">
 							<div class="info-row">
-								<span class="label">COMPANY ADDRESS</span>
+                <span class="label with-action">COMPANY ADDRESS <button type="button" class="detail-address-edit-btn" id="detail-company-address-edit-btn" title="Edit Company Address"><i class="fa fa-pencil"></i></button></span>
 								<div class="value"><span class="detail-address-name" id="detail-company-address-name">-</span></div>
+                <div id="detail-company-address-editor" class="detail-address-editor d-none" style="margin-top:8px;">
+                  <div id="detail-company-address-control" class="new-opp-link-control"></div>
+                  <div class="d-flex gap-2 mt-2">
+                    <button type="button" class="btn btn-primary btn-sm" id="detail-company-address-save-btn">Save</button>
+                    <button type="button" class="btn btn-default btn-sm" id="detail-company-address-cancel-btn">Cancel</button>
+                  </div>
+                </div>
 							</div>
 						</div>
 					</div>
@@ -18781,9 +21042,9 @@
 				</div>
 
 
+      </section>
 
-
-
+      <section class="detail-content-fullwidth">
 
 
 			<!-- Items Card -->
@@ -18877,12 +21138,22 @@
 
 			<!-- Payment Terms Card -->
 			<div class="detail-card detail-card--fullwidth detail-card--lineitems">
-				<div class="d-flex align-items-center justify-content-between mb-2">
+				<div class="d-flex align-items-center gap-2 mb-2">
 					<div class="card__title m-0">Payment Terms</div>
+          <button type="button" class="detail-payment-terms-edit-btn btn btn-link btn-sm p-0" id="detail-payment-terms-edit-btn" title="Edit Payment Terms Template">
+            <i class="fa fa-pencil"></i>
+          </button>
 				</div>
 				<div class="new-opp-field detail-single-half" style="margin-bottom:10px;">
 					<label>Payment Terms Template</label>
 					<div id="detail-payment-terms-template" class="form-control" style="height:auto;min-height:38px;display:flex;align-items:center;">-</div>
+          <div id="detail-payment-terms-template-editor-wrap" class="d-none" style="margin-top:8px;">
+            <div id="detail-payment-terms-template-control" class="new-opp-link-control"></div>
+            <div class="d-flex gap-2" style="margin-top:8px;">
+              <button type="button" class="btn btn-primary btn-sm" id="detail-payment-terms-save-btn">Save</button>
+              <button type="button" class="btn btn-default btn-sm" id="detail-payment-terms-cancel-btn">Cancel</button>
+            </div>
+          </div>
 				</div>
 				<div class="table-wrap table-wrap--summary">
 					<table class="detail-table detail-table--summary">
@@ -18921,204 +21192,119 @@
     </section>
 
     <!-- Right Panel -->
-    <aside class="detail-panel">
+    <aside class="detail-panel flex-grow-1">
       <div class="panel__tabs">
-      <button class="ptab is-active" data-type="Notes" title="Notes"><span class="ptab__icon">📝</span><span class="ptab__label">Notes</span></button>
-        <button class="ptab " data-type="Call" title="Call"><span class="ptab__icon">📞</span><span class="ptab__label">Call</span></button>
-        <button class="ptab" data-type="Appointment" title="Appointment"><span class="ptab__icon">📅</span><span class="ptab__label">Appointment</span></button>
-        
-        <button class="ptab" data-type="Email" title="Email"><span class="ptab__icon">📧</span><span class="ptab__label">Email</span></button>
+        <button class="ptab is-active" data-type="Notes" title="Notes"><span class="ptab__icon">📝</span><span class="ptab__label">Notes</span></button>
+        <button class="ptab" data-type="Calls" title="Calls"><span class="ptab__icon">📞</span><span class="ptab__label">Calls</span></button>
+        <button class="ptab" data-type="Appointments" title="Appointments"><span class="ptab__icon">📅</span><span class="ptab__label">Appointments</span></button>
+        <button class="ptab" data-type="Comment" title="Comment"><span class="ptab__icon">💬</span><span class="ptab__label">Comment</span></button>
       </div>
-
-      <!-- Panel Header with Create Button -->
       <div class="panel__header">
-        <div class="panel__subtitle">Recent Calls</div>
-        <button class="btn-panel-create" id="btn-panel-create">
-          <i class="fa fa-plus"></i> Create
-        </button>
+        <div class="panel__subtitle" id="ticket-panel-subtitle">Notes</div>
+        <button class="btn-panel-create" id="ticket-btn-panel-add"><i class="fa fa-plus"></i> Add</button>
       </div>
-
-      <!-- Cards Section (default view) -->
-      <div class="panel__cards" id="panel-cards-section">
-        <div class="empty-state">
-          <i class="fa fa-phone"></i>
-          <p class="empty-state__title">No Calls</p>
-          <p class="empty-state__desc">Recent call activities will appear here.</p>
+      <div id="ticket-panel-info-card" class="panel-person-card d-none">
+        <div class="panel-person-head">
+          <div class="panel-person-head-left">
+            <div class="panel-person-title-wrap">
+              <div class="panel-person-name" id="ticket-panel-info-title">Details</div>
+            </div>
+          </div>
+          <button type="button" class="panel-person-close" id="ticket-panel-info-close">Close</button>
         </div>
+        <div id="ticket-panel-info-content"></div>
       </div>
-
-      <!-- Form Section (hidden by default) -->
-      <div class="panel__form d-none" id="panel-form-section">
-        <div class="panel__form-header">
-          <div class="panel__form-title">New Call</div>
-          <button class="btn-panel-close" id="btn-panel-close">
-            <i class="fa fa-times"></i>
-          </button>
-        </div>
-
-        <div class="panel__form-body">
-          <div id="panel-call-fields" class="panel-call-fields d-none">
-            <div class="panel__field">
-              <label>Subject</label>
-              <input type="text" class="panel__input" id="panel-call-subject" placeholder="Call subject" />
-            </div>
-
-            <div class="panel__field">
-              <label>Status</label>
-              <select class="panel__input" id="panel-call-status">
-                <option value="Scheduled">Scheduled</option>
-                <option value="Held">Held</option>
-                <option value="Cancelled">Cancelled</option>
-                <option value="Not Responding">Not Responding</option>
-              </select>
-            </div>
-
-            <div class="panel__row">
-              <div class="panel__field">
-                <label>Start Date</label>
-                <input type="date" class="panel__input" id="panel-call-start-date" />
-              </div>
-
-              <div class="panel__field">
-                <label>Start Time</label>
-                <input type="time" class="panel__input" id="panel-call-start-time" />
-              </div>
-            </div>
-
-            <div class="panel__row">
-              <div class="panel__field">
-                <label>End Date</label>
-                <input type="date" class="panel__input" id="panel-call-end-date" />
-              </div>
-
-              <div class="panel__field">
-                <label>End Time</label>
-                <input type="time" class="panel__input" id="panel-call-end-time" />
-              </div>
-            </div>
-
-            <div class="panel__row">
-              <div class="panel__field">
-                <label>Related To</label>
-                <select class="panel__input" id="panel-call-related-to">
-                  <option value="">Select</option>
-                  <option value="Customer">Customer</option>
-                  <option value="Contact">Contact</option>
-                </select>
-              </div>
-
-              <div class="panel__field">
-                <label>Name1</label>
-                <input type="text" class="panel__input" id="panel-call-name1" placeholder="Customer / Contact" />
-              </div>
-            </div>
-
-            <div class="panel__field panel__field--grow">
-              <label>Description</label>
-              <textarea class="panel__input panel__textarea" id="panel-call-description" rows="6" placeholder="Description"></textarea>
-            </div>
-
-            <div class="panel__field">
-              <label>Sales Team</label>
-              <input type="text" class="panel__input" id="panel-call-sales-team" placeholder="Sales Person" />
+      <div class="panel__cards" id="ticket-panel-cards-section">
+        <!-- Notes section (default visible) -->
+        <div id="ticket-activity-notes-section" class="ticket-panel-section d-none">
+          <div id="quick-note-input-container" class="d-none">
+            <textarea id="quick-note-text" class="panel__input form-control mb-2" rows="2" placeholder="Write a quick note..."></textarea>
+            <div class="d-flex justify-content-end mb-2">
+              <button id="save-quick-note-btn" class="btn btn-sm btn-primary">Save Note</button>
             </div>
           </div>
-
-          <div id="panel-appointment-fields" class="panel-appointment-fields d-none">
-            <div class="panel__field">
-              <label>Appointment With</label>
-              <select class="panel__input" id="panel-appointment-with">
-                <option value="Customer">Customer</option>
-                <option value="Lead">Lead</option>
-              </select>
-            </div>
-
-            <div class="panel__field">
-              <label>Party</label>
-              <input type="text" class="panel__input" id="panel-party" placeholder="Party" />
-            </div>
-
-            <div class="panel__field">
-              <label>Customer Name</label>
-              <input type="text" class="panel__input" id="panel-customer-name" placeholder="Customer Name" />
-            </div>
-
-            <div class="panel__row">
-              <div class="panel__field">
-                <label>Customer Phone Number</label>
-                <input type="text" class="panel__input" id="panel-customer-phone-number" placeholder="Phone Number" />
-              </div>
-
-              <div class="panel__field">
-                <label>Customer Email</label>
-                <input type="email" class="panel__input" id="panel-customer-email" placeholder="user@example.com" />
-              </div>
-            </div>
-
-            <div class="panel__field">
-              <label>Custom Participants</label>
-              <div id="panel-custom-participants-control" class="panel-participants-control"></div>
-            </div>
-
-            <div class="panel__row">
-              <div class="panel__field">
-                <label>Custom Start Date</label>
-                <input type="date" class="panel__input" id="panel-custom-start-date" />
-              </div>
-
-              <div class="panel__field">
-                <label>Custom Start Time</label>
-                <input type="time" class="panel__input" id="panel-custom-start-time" />
-              </div>
-            </div>
-
-            <div class="panel__row">
-              <div class="panel__field">
-                <label>Custom End Date</label>
-                <input type="date" class="panel__input" id="panel-custom-end-date" />
-              </div>
-
-              <div class="panel__field">
-                <label>Custom End Time</label>
-                <input type="time" class="panel__input" id="panel-custom-end-time" />
-              </div>
-            </div>
-
-            <div class="panel__field">
-              <label>Scheduled Time</label>
-              <input type="datetime-local" class="panel__input" id="panel-scheduled-time" />
-            </div>
-
-            <div class="panel__field panel__field--grow">
-              <label>Customer Details</label>
-              <textarea class="panel__input panel__textarea" id="panel-customer-details" rows="6" placeholder="Customer Details"></textarea>
-            </div>
-          </div>
-
-          <div class="panel__field">
-            <label>Date / Time</label>
-            <input type="datetime-local" class="panel__input" id="panel-datetime" />
-          </div>
-
-          <div class="panel__field">
-            <label>Assignee / Owner</label>
-            <input type="email" class="panel__input" id="panel-assignee" placeholder="user@example.com" />
-          </div>
-
-          <div class="panel__field panel__field--grow">
-            <label>Notes</label>
-            <textarea class="panel__input panel__textarea" id="panel-notes" rows="8" placeholder="Notes"></textarea>
-            <div id="panel-notes-editor-wrap" class="panel-notes-editor-wrap d-none">
-              <div id="panel-notes-editor"></div>
-            </div>
+          <div id="main-notes-list">
+            <div class="text-center p-3 text-muted small">Loading notes...</div>
           </div>
         </div>
-
-        <div class="panel__form-footer">
-          <button class="detail-btn detail-btn--primary detail-btn--full" id="panel-save-btn">Save</button>
+        <!-- Comment section -->
+        <div id="ticket-activity-comment-section" class="ticket-panel-section d-none">
+          <div class="comment-section">
+            <div class="comment-box mt-0">
+              <div class="comment-input-wrapper">
+                <div class="comment-input-container">
+                  <div class="frappe-control col" data-fieldtype="Comment" data-fieldname="comment">
+                    <div class="ql-container ql-bubble" style="position: relative; border: 1px solid #d1d8dd; border-radius: 8px; background: #fff;">
+                      <div id="new-comment-input" class="ql-editor ql-blank" data-gramm="false" contenteditable="true" data-placeholder="Type a reply / comment" style="min-height: 80px; padding: 10px;"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="comment-actions d-flex justify-content-end gap-2 mt-2">
+                <button id="add-comment-btn" class="btn btn-primary btn-sm">Comment</button>
+              </div>
+            </div>
+            <div id="activity-timeline" class="activity-timeline mt-3"></div>
+          </div>
+        </div>
+        <!-- Calls section -->
+        <div id="ticket-activity-calls-section" class="ticket-panel-section d-none">
+          <div id="activity-calls-container"></div>
+        </div>
+        <!-- Appointments section -->
+        <div id="ticket-activity-appointments-section" class="ticket-panel-section d-none">
+          <div id="activity-appointments-container"></div>
+        </div>
+        <!-- Email section -->
+        <div id="ticket-activity-email-section" class="ticket-panel-section d-none">
+          <div id="activity-email-container"></div>
         </div>
       </div>
-    </aside>
+      <div id="ticket-panel-form-section" class="panel__form d-none">
+        <div class="panel__form-head d-flex justify-content-between align-items-center mb-2">
+          <div class="panel__form-title" id="ticket-panel-form-title">New Activity</div>
+          <button type="button" class="btn btn-sm btn-light" id="ticket-btn-panel-close"><i class="fa fa-times"></i></button>
+        </div>
+        <div id="ticket-panel-form-body" class="panel__form-body"></div>
+        <div class="panel__form-footer d-flex justify-content-end gap-2 mt-2">
+          <button type="button" class="btn btn-sm btn-primary" id="ticket-panel-save-btn">Save</button>
+        </div>
+      </div>
+		  <!-- Hidden cards preserve event bindings for tasks/calls/appointments -->
+      <div id="hidden-activity-cards" class="d-none">
+        <div id="appointments-card" class="card mb-0 flex-fill d-flex flex-column border-0">
+          <div class="card-title card-header">
+            <div class="mt-2">
+              <div class="" role="group" id="appointments-card-tabs" aria-label="Appointment filters">
+                <button type="button" class="btn btn-outline-secondary appointment-tab active" data-appointment-filter="all">All</button>
+                <button type="button" class="btn btn-outline-secondary appointment-tab" data-appointment-filter="open">Open</button>
+                <button type="button" class="btn btn-outline-secondary appointment-tab" data-appointment-filter="unverified">Unverified</button>
+                <button type="button" class="btn btn-outline-secondary appointment-tab" data-appointment-filter="closed">Closed</button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body flex-grow-1"></div>
+          <div class="card-footer" id="appointments-card-load-more" style="cursor:pointer;text-align:center;">Load More</div>
+        </div>
+        <div id="calls-card" class="card h-100 w-100 d-flex flex-column border-0">
+          <div class="card-title card-header">
+            <div class="mt-2">
+              <div class="" role="group" id="calls-card-tabs" aria-label="Call filters">
+                <button type="button" class="btn btn-outline-secondary call-tab active" data-call-filter="all">All</button>
+                <button type="button" class="btn btn-outline-secondary call-tab" data-call-filter="held">Held</button>
+                <button type="button" class="btn btn-outline-secondary call-tab" data-call-filter="scheduled">Scheduled</button>
+                <button type="button" class="btn btn-outline-secondary call-tab" data-call-filter="cancelled">Cancelled</button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body flex-grow-1"></div>
+          <div class="card-footer" id="calls-card-load-more" style="cursor:pointer;text-align:center;">Load More</div>
+        </div>
+        <div id="ticket-activity-email-section" class="ticket-panel-section d-none">
+          <div id="activity-email-container"></div>
+        </div>
+      </div>
+	  </aside>
   </div>
 
 </div>

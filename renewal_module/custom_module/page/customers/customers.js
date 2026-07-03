@@ -3095,7 +3095,7 @@ class customersPage {
 						"Quotation": { customRoute: "quotation-list" },
 						// "Opportunity": { customRoute: "opportunity" },
 						// "Quotation": { customRoute: "quotation" },
-						"Customer Order Form": { customRoute: "customer-order-forms" },
+						"Customer Order Form": { customRoute: "cof-list" },
 						"Sales Order": { customRoute: "sales-order" },
 						"Sales Invoice": { customRoute: "sales-invoice" },
 						"Renewal List": { customRoute: "renewal-list" },
@@ -4927,7 +4927,7 @@ class customersPage {
 			"Customer Order Form": {
 				doctype: "Customer Order Form",
 				fieldname: "customer",
-				customRoute: "customer-order-forms"
+				customRoute: "cof-list"
 			},
 			"Sales Order": {
 				doctype: "Sales Order",
@@ -4947,7 +4947,7 @@ class customersPage {
 			"Issue": {
 				doctype: "Issue",
 				fieldname: "customer",
-				customRoute: "ticket"
+				customRoute: "ticketss"
 			},
 			"Call List": {
 				doctype: "Call List",

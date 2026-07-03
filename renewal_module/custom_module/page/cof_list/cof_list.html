@@ -1,11 +1,24 @@
 <div class="cof-page">
 	<div class="page-wrap">
-		<div class="">
-			<ol class="breadcrumb" style="background-color:transparent;padding:0px;margin-bottom:5px;">
-			<li class="breadcrumb-item"><a href="javascript:void(0)">Selling</a></li>
-			<li class="breadcrumb-item" style="padding-left:5px;"><a href="/app/cof-list">Cof List</a></li>
-			</ol>
-		</div>
+		<div class="doctype-band" style="position:sticky;top:0;z-index:50;width:100%;display:flex;align-items:center;gap:14px;padding:16px 22px;margin-bottom:16px;border-radius:12px;background:linear-gradient(135deg,#8b5cf6 0%,#6d28d9 100%);box-shadow:0 4px 14px rgba(109,40,217,0.43);">
+    <div style="width:44px;height:44px;border-radius:11px;background:rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i class="ti ti-clipboard-check" style="font-size:22px;color:#fff;"></i>
+    </div>
+    <div style="flex:1;min-width:0;">
+        <div style="font-family:Syne,sans-serif;font-size:18px;font-weight:700;color:#fff;letter-spacing:-.01em;">
+            Customer Order Form
+        </div>
+        <ol class="breadcrumb" style="background:transparent;padding:0;margin:2px 0 0;display:flex;align-items:center;">
+            <li class="breadcrumb-item">
+                <a href="javascript:void(0)" style="color:rgba(255,255,255,0.75);font-size:12px;">CRM</a>
+            </li>
+            <li class="breadcrumb-item" style="padding-left:5px;">
+                <a href="/app/cof-list" class="cof-back-btn" style="color:rgba(255,255,255,0.75);font-size:12px;">Customer Order Forms</a>
+            </li>
+            <li class="breadcrumb-item active" style="padding-left:5px;font-size:12px;color:#fff;font-weight:600;" id="cofBreadcrumbId">—</li>
+        </ol>
+    </div>
+</div>
 		
 		<div class="top-split">
 			<div class="top-left1">
@@ -40,10 +53,6 @@
 
 			<div class="top-right1">
 				<div class="top-actions-row">
-					<div class="header-title">Opportunity Detail</div>
-					<button class="icon-btn" title="Edit"><i class="ti ti-edit"></i></button>
-					<button class="icon-btn" title="More options"><i class="ti ti-dots"></i></button>
-					<div class="vdivider"></div>
 					<div class="wf-wrap" id="wfWrap">
 						<button class="btn wf-btn" id="wfBtn" type="button" data-action="toggle-workflow">
 							<i class="ti ti-git-branch"></i>
@@ -56,13 +65,13 @@
 							<div class="wf-actions" id="wfActions"></div>
 						</div>
 					</div>
-					<button class="btn btn-with-badge" title="Connections">
+					<button class="btn btn-with-badge" id="cofBtnConnections" title="Connections">
 						<i class="ti ti-link"></i> Connections
-						<span class="btn-counter">5</span>
+						<span class="btn-counter" id="cofConnCount" style="display:none;"></span>
 					</button>
 					<div class="vdivider"></div>
 					<button class="btn"><i class="ti ti-phone-call"></i> Follow-up</button>
-					<button class="btn btn-primary"><i class="ti ti-send"></i> Send Quote</button>
+					<button class="btn btn-primary" id="cofBtnCreateSO" type="button"><i class="ti ti-shopping-cart"></i> Create Sales Order</button>
 				</div>
 
 				<div class="opp-grid">
@@ -91,41 +100,13 @@
 				<div class="section-title">Opportunity Items</div>
 				<button class="btn"><i class="ti ti-plus"></i> Add Item</button>
 			</div>
-			<div class="table-wrap table-wrap-wide">
-				<table class="table-fixed-head">
-					<thead>
-						<tr>
-							<th class="w-42">ID</th>
-							<th class="w-200">Item</th>
-							<th class="w-90">Brand</th>
-							<th class="w-52 th-right">Qty</th>
-							<th class="w-110 th-right">SP (₹)</th>
-							<th class="w-130 th-right">Sell Amt</th>
-							<th class="w-110 th-right">BP (₹)</th>
-							<th class="w-130 th-right">Buy Amt</th>
-						</tr>
-					</thead>
-				</table>
-				<div class="table-body-scroll">
-					<table class="table-fixed-body">
-						<colgroup>
-							<col class="w-42">
-							<col class="w-200">
-							<col class="w-90">
-							<col class="w-52">
-							<col class="w-110">
-							<col class="w-130">
-							<col class="w-110">
-							<col class="w-130">
-						</colgroup>
-<tbody id="cofItemsTableBody">
-                            <tr>
-                                <td colspan="8" class="td-muted" style="text-align:center;">No items available</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+			<div style="border:1px solid rgba(0,0,0,0.08);border-radius:10px;background:#f8fafc;">
+				<div id="cofItemsTableBody" style="max-height:460px;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:10px;">
+					<div style="text-align:center;padding:32px;color:#9ca3af;font-size:12px;">
+						<i class="ti ti-inbox" style="font-size:26px;display:block;margin-bottom:8px;"></i>No items available
+					</div>
+				</div>
+			</div>
             <div class="items-summary">
                 <div>
                     <div class="total-label">Total Qty</div>
@@ -279,25 +260,7 @@
 		</div>
 
 		<div class="card">
-			<div class="section-head">
-				<div class="section-title">Payment Terms</div>
-				<button class="btn"><i class="ti ti-plus"></i> Add Instalment</button>
-			</div>
-			<div class="table-wrap">
-				<table>
-					<thead>
-						<tr>
-							<th class="w-36">#</th>
-							<th>Description</th>
-							<th>Due Date</th>
-							<th class="th-right">%</th>
-							<th class="th-right">Amount (₹)</th>
-							<th>Mode</th>
-							<th>Status</th>
-						</tr>
-					</thead>
-				</table>
-			</div>
+			<div id="cofPayTermsWrap"></div>
 		</div>
 	</div>
 </div>

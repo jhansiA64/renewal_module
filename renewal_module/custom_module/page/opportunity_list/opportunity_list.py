@@ -1,6 +1,6 @@
 import frappe
 from frappe.model.mapper import get_mapped_doc
-from frappe.utils import cint, cstr, flt
+from frappe.utils import cint, cstr, flt, now_datetime
 from erpnext.setup.utils import get_exchange_rate
 
 @frappe.whitelist()
@@ -570,22 +570,7 @@ def get_opportunity_analytics(opportunity=None):
                 limit_page_length=2000,
             )
 
-            recommended_parent_set = {
-                (row.get("parent") or "").strip()
-                for row in recommended_rows
-                if (row.get("parent") or "").strip()
-            }
-
-            selected_parent = ""
-            for sq_name in sq_names:
-                if sq_name in recommended_parent_set:
-                    selected_parent = sq_name
-                    break
-
-            scoped_rows = [
-                row for row in recommended_rows
-                if (row.get("parent") or "").strip() == selected_parent
-            ] if selected_parent else []
+            scoped_rows = recommended_rows or []
 
             for row in scoped_rows:
                 item_code = (row.get("item_code") or "").strip()
@@ -1370,3 +1355,350 @@ def update_opportunity_item_spq_rate(opportunity_docname, child_row_name, spq_ra
             "success": False,
             "message": f"Error updating SPQ Rate: {str(e)}"
         }
+
+@frappe.whitelist()
+def get_customer_sales_person(customer):
+    """Return the first Sales Person from Customer > Sales Team child table."""
+    if not customer:
+        return ""
+
+    sales_team = frappe.get_all(
+        "Sales Team",
+        filters={"parent": customer, "parenttype": "Customer"},
+        fields=["sales_person"],
+        order_by="idx asc",
+        limit_page_length=1,
+    )
+
+    if sales_team:
+        return sales_team[0].get("sales_person", "")
+
+    return ""
+
+def update_opportunity_notes_html(opportunity):
+    """Update notes_html field with a rendered list of notes"""
+    if not opportunity.meta.has_field("notes_html"):
+        return
+        
+    if not opportunity.notes:
+        opportunity.notes_html = ""
+        return
+
+    # Safe sort by added_on (descending)
+    sorted_notes = sorted(
+        opportunity.notes, 
+        key=lambda x: x.added_on.strftime("%Y-%m-%d %H:%M:%S") if x.added_on else "", 
+        reverse=True
+    )
+
+    html = "<div class='opportunity-notes'>"
+    for n in sorted_notes:
+        added_by = frappe.get_value("User", n.added_by, "full_name") or n.added_by
+        added_on = frappe.utils.format_datetime(n.added_on) if n.added_on else ""
+        note_content = n.note or ""
+        html += f"""
+            <div style='margin-bottom: 10px; padding: 8px; border: 1px solid #d1d8dd; border-radius: 4px; background-color: #f8f9fa;'>
+                <div style='font-weight: bold; font-size: 0.9em;'>{added_by} <span style='color: #8d99a6; font-weight: normal;'>({added_on})</span></div>
+                <div style='margin-top: 5px;'>{note_content}</div>
+            </div>
+        """
+    html += "</div>"
+    opportunity.notes_html = html
+
+@frappe.whitelist()
+def add_opportunity_note(opportunity_name, note_text):
+    """Add a note row to Opportunity.notes and return updated list"""
+    if not frappe.db.exists("Opportunity", opportunity_name):
+        frappe.throw("Opportunity not found")
+    opportunity = frappe.get_doc("Opportunity", opportunity_name)
+    opportunity.append("notes", {
+        "note": note_text,
+        "added_on": now_datetime(),
+        "added_by": frappe.session.user,
+    })
+    update_opportunity_notes_html(opportunity)
+    opportunity.save(ignore_permissions=True)
+    frappe.db.commit()
+    return get_opportunity_notes(opportunity_name)
+
+@frappe.whitelist()
+def update_opportunity_note(opportunity_name, idx, note_text):
+    """Edit a note by idx"""
+    if not frappe.db.exists("Opportunity", opportunity_name):
+        frappe.throw("Opportunity not found")
+    opportunity = frappe.get_doc("Opportunity", opportunity_name)
+    found = False
+    for n in opportunity.notes:
+        if n.idx == int(idx):
+            n.note = note_text
+            n.added_on = now_datetime() # Update timestamp on edit?
+            n.added_by = frappe.session.user
+            found = True
+            break
+    if not found:
+        frappe.throw("Note not found")
+    update_opportunity_notes_html(opportunity)
+    opportunity.save(ignore_permissions=True)
+    frappe.db.commit()
+    return get_opportunity_notes(opportunity_name)
+
+@frappe.whitelist()
+def delete_opportunity_note(opportunity_name, idx):
+    """Delete a note by idx"""
+    if not frappe.db.exists("Opportunity", opportunity_name):
+        frappe.throw("Opportunity not found")
+    opportunity = frappe.get_doc("Opportunity", opportunity_name)
+    found = False
+    for n in opportunity.notes:
+        if n.idx == int(idx):
+            opportunity.remove(n)
+            found = True
+            break
+    if not found:
+        frappe.throw("Note not found")
+    update_opportunity_notes_html(opportunity)
+    opportunity.save(ignore_permissions=True)
+    frappe.db.commit()
+    return get_opportunity_notes(opportunity_name)
+
+@frappe.whitelist()
+def get_opportunity_notes(opportunity_name):
+    """Return all notes for an opportunity"""
+    if not frappe.db.exists("Opportunity", opportunity_name):
+        return []
+    opportunity = frappe.get_doc("Opportunity", opportunity_name)
+    return [
+        {
+            "note": n.note,
+            "timestamp": n.added_on,
+            "owner": n.added_by,
+            "created_by": frappe.get_value("User", n.added_by, "full_name") or n.added_by,
+            "idx": n.idx
+        }
+        for n in opportunity.notes
+    ]
+
+@frappe.whitelist()
+def get_permitted_call_list(opportunity_name=None):
+    if not opportunity_name:
+        return []
+
+    current_user = frappe.session.user
+
+    docs = frappe.get_all(
+        "Call List",
+        filters={"reference":"Opportunity", "reference_to": opportunity_name},
+        fields=[
+            "name", "name1", "subject", "status", "owner",
+            "start_date", "start_timing", "end_date", "end_timing",
+            "description"
+        ],
+        order_by="creation desc"
+    )
+
+    permitted = []
+    shared_docs = frappe.share.get_shared("Call List", user=current_user) or []
+
+    for d in docs:
+        docname = d.name
+        has_perm = frappe.has_permission("Call List", "read", docname)
+        is_shared = docname in shared_docs
+        is_everyone = frappe.db.exists(
+            "DocShare",
+            {
+                "share_doctype": "Call List",
+                "share_name": docname,
+                "everyone": 1,
+                "read": 1
+            }
+        )
+        if has_perm or is_shared or is_everyone:
+            permitted.append(d)
+
+    return permitted
+
+@frappe.whitelist()
+def get_permitted_appointments(opportunity_name=None):
+    if not opportunity_name:
+        return []
+
+    current_user = frappe.session.user
+
+    docs = frappe.get_all(
+        "Appointment",
+        filters={"reference":"Opportunity", "reference_to": opportunity_name},
+        fields=[
+            "name",
+            "party",
+            "custom_subject",
+            "customer_name",
+            "customer_phone_number",
+            "customer_email",
+            "custom_start_date",
+            "custom_start_time",
+            "custom_end_date",
+            "custom_end_time",
+            "scheduled_time",
+            "status",
+            "owner",
+        ],
+        order_by="custom_start_date desc"
+    )
+
+    permitted = []
+    shared_docs = frappe.share.get_shared("Appointment", user=current_user) or []
+
+    for d in docs:
+        docname = d.name
+        has_perm = frappe.has_permission("Appointment", "read", docname)
+        is_shared = docname in shared_docs
+        is_everyone = frappe.db.exists(
+            "DocShare",
+            {
+                "share_doctype": "Appointment",
+                "share_name": docname,
+                "everyone": 1,
+                "read": 1
+            }
+        )
+        if has_perm or is_shared or is_everyone:
+            permitted.append(d)
+
+    if not permitted:
+        return permitted
+
+    field = frappe.get_meta("Appointment").get_field("custom_participants")
+    child_doctype = field.options if field else None
+    if not child_doctype or not frappe.db.exists("DocType", child_doctype):
+        for d in permitted:
+            d.custom_participants = []
+        return permitted
+
+    docnames = [d.name for d in permitted]
+    participant_rows = frappe.get_all(
+        child_doctype,
+        filters={
+            "parent": ["in", docnames],
+            "parenttype": "Appointment",
+            "parentfield": "custom_participants",
+        },
+        fields=["parent", "user"],
+    )
+
+    participants_by_parent = {}
+    for row in participant_rows:
+        participants_by_parent.setdefault(row.parent, []).append(row.user)
+
+    for d in permitted:
+        d.custom_participants = participants_by_parent.get(d.name, [])
+
+    return permitted
+
+@frappe.whitelist()
+def add_custom_comment(docname, content):
+    if not docname or not content:
+        frappe.throw("Missing required fields")
+
+    # Normalize mention markup so notify_mentions works safely
+    content = _normalize_comment_mentions(content)
+
+    doc = frappe.get_doc("Opportunity", docname)
+    doc.add_comment("Comment", content)
+
+    frappe.db.commit()
+
+    return {"message": "Comment added successfully"}
+
+
+@frappe.whitelist()
+def get_opportunity_comments(docname, limit=20):
+    if not docname:
+        frappe.throw("Missing required fields")
+
+    doc = frappe.get_doc("Opportunity", docname)
+    if not doc.has_permission("read"):
+        raise frappe.PermissionError
+
+    return frappe.get_all(
+        "Comment",
+        filters={
+            "reference_doctype": "Opportunity",
+            "reference_name": docname,
+            "comment_type": "Comment",
+        },
+        fields=["name", "creation", "content", "owner", "comment_type", "reference_doctype", "reference_name"],
+        order_by="creation desc",
+        limit_page_length=max(1, min(cint(limit or 20), 100)),
+    )
+
+def _normalize_comment_mentions(content: str) -> str:
+    """Ensure mention markup matches Frappe's expected data-id attribute.
+    Without data-id, Frappe's notify_mentions raises a KeyError when parsing mentions.
+    """
+    if not content:
+        return content
+
+    try:
+        from bs4 import BeautifulSoup
+    except Exception:
+        return content
+
+    try:
+        soup = BeautifulSoup(content, "html.parser")
+    except Exception:
+        return content
+
+    for node in soup.find_all(class_="mention"):
+        email = (
+            node.get("data-id")
+            or node.get("data-mention-email")
+            or node.get("data-email")
+        )
+
+        if not email:
+            href = node.get("href", "")
+            if href.startswith("mailto:"):
+                email = href.split("mailto:", 1)[1].split("?", 1)[0]
+
+        label = node.get("data-mention-name") or node.get_text(strip=True)
+
+        if email:
+            node["data-id"] = email
+            node["data-mention-email"] = email
+            if not node.get("href"):
+                node["href"] = f"mailto:{email}"
+            if label:
+                node["data-mention-name"] = label
+
+    return str(soup)
+
+@frappe.whitelist()
+def get_opportunity_activity(doctype, name, start=0, limit=20):
+    """Return only comments for the opportunity."""
+    try:
+        if not name:
+            return []
+        
+        name = str(name).strip()
+        
+        # Use get_list which is often more reliable for raw fetching
+        comments = frappe.get_list(
+            "Comment",
+            filters={
+                "reference_doctype": "Opportunity",
+                "reference_name": name
+            },
+            fields=["name", "comment_type", "owner as sender", "creation", "content", "reference_doctype", "reference_name"],
+            order_by="creation desc",
+            ignore_permissions=True
+        )
+        
+        for c in comments:
+            c.sender_full_name = frappe.utils.get_fullname(c.sender)
+            c.communication_type = "Comment"
+            c.communication_date = c.creation
+            
+        return comments
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "get_opportunity_activity Failed")
+        return []

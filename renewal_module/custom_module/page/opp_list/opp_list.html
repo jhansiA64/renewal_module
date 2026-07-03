@@ -1,0 +1,50 @@
+<!-- jinja -->
+<div class="opp-list-view d-none">
+	<div class="opp-topbar">
+		<span class="opp-topbar-title">{{ _("Opportunities") }}</span>
+		<button class="opp-topbar-new">+ {{ _("New Opportunity") }}</button>
+	</div>
+	<div class="opp-filterbar">
+		<div class="opp-pills">
+			<button class="opp-pill active" data-status="All">{{ _("All") }}</button>
+			<button class="opp-pill" data-status="Open">{{ _("Open") }}</button>
+			<button class="opp-pill" data-status="Quotation">{{ _("Quotation") }}</button>
+			<button class="opp-pill" data-status="Converted">{{ _("Converted") }}</button>
+			<button class="opp-pill" data-status="Lost">{{ _("Lost") }}</button>
+			<button class="opp-pill" data-status="Replied">{{ _("Replied") }}</button>
+			<button class="opp-pill" data-status="Closed">{{ _("Closed") }}</button>
+		</div>
+		<div class="opp-search-wrap">
+			<span class="opp-search-ico">🔍</span>
+			<input class="opp-search" placeholder="{{ _('Search by customer...') }}">
+		</div>
+		<select class="opp-sort">
+			<option value="creation desc">{{ _("Newest First") }}</option>
+			<option value="opportunity_amount desc">{{ _("Highest Amount") }}</option>
+			<option value="expected_closing asc">{{ _("Closing Soon") }}</option>
+			<option value="modified desc">{{ _("Recently Updated") }}</option>
+		</select>
+		<div class="opp-filter-wrap">
+			<button id="oppOpenFilters" class="opp-filter-trigger" type="button">
+				<span class="opp-filter-btn-label"><i class="ti ti-filter"></i> {{ _("Filters") }}</span>
+			</button>
+		</div>
+		<button id="oppClearFilters" class="opp-filter-clear" type="button"><i class="ti ti-filter-off"></i> {{
+			_("Clear") }}</button>
+	</div>
+	<div class="opp-grid"></div>
+	<div class="opp-list-footer">
+		<div class="page-size-btns">
+			<button class="ps-btn active" data-size="20" type="button">20</button>
+			<button class="ps-btn" data-size="100" type="button">100</button>
+			<button class="ps-btn" data-size="500" type="button">500</button>
+			<button class="ps-btn" data-size="1500" type="button">1500</button>
+		</div>
+		<div class="record-count opp-count"></div>
+		<button id="oppLoadMore" class="load-more-btn" type="button" disabled>{{ _("Load More") }}</button>
+	</div>
+</div>
+
+<div class="opp-details-view d-none"></div>
+
+<div class="new-opps d-none"></div>

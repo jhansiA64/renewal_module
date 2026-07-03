@@ -57,7 +57,8 @@ web_include_css = "/assets/renewal_module/css/renewal_module_website.css"
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
-doctype_js={"Opportunity": "renewal_module/test.js"}
+doctype_js = {"Opportunity": "renewal_module/test.js"}
+doctype_list_js = {"Opportunity": "public/js/opp_list.js"}
 
 #Export Fixtures
 fixtures = [{"dt": "Custom Field", "filters": [["name", "in", [
@@ -348,6 +349,13 @@ doc_events = {
         "after_insert": "renewal_module.appointment_notifications.appointment_after_insert",
         "on_update": "renewal_module.appointment_notifications.appointment_on_update"
     }
+
+    
+    "Quotation": {
+        "validate": "renewal_module.custom_module.quote_list.quotation_hooks.validate_payment_terms_approval",
+        "before_submit": "renewal_module.custom_module.quote_list.quotation_hooks.validate_payment_terms_approval",
+    }
+
 
    
 	

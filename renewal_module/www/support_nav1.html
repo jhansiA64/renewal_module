@@ -1,8 +1,5 @@
 <!DOCTYPE html>
-<!-- <link rel="stylesheet" href="/assets/renewal_module/css/issue_themes/support_theme.css"> -->
-
-
-
+<link rel="stylesheet" href="/assets/renewal_module/css/issue_themes/support_theme2.css">
 <div class="app" id="support-app-root">
     <!-- TOPBAR -->
     <header class="topbar" role="banner">
@@ -18,10 +15,10 @@
         </div>
 
         <div class="top-right gap-1">
-            <div class="search-outer" title="Quick search">
+            <!-- <div class="search-outer" title="Quick search">
                 <i class="fa fa-magnifying-glass search-icon"></i>
                 <input type="search" id="quickSearch" class="search-input" placeholder="Quick Search..." />
-            </div>
+            </div> -->
 
 
             <!-- Notification Wrapper -->
@@ -140,6 +137,29 @@
                                 </a>
                             </li>
 
+                            <li class="side-nav-item">
+                                <a href="javascript:void(0)" class="side-nav-link" data-page="opp-list"
+                                    data-href="/desk/opp-list">
+                                    <span class="text-truncate" title="Opportunity List">Opp List</span>
+                                </a>
+                            </li>
+                            <!-- Nested Dashboard Menu -->
+                            <li class="side-nav-item menu-parent menu-nested" data-menu-id="crm-dashboard-menu"
+                                data-parent-id="crm-menu">
+                                <a href="#" class="side-nav-link menu-toggle">
+                                    <span class="text-truncate" title="Reports">Dashboard</span>
+                                    <i class="fa fa-chevron-down menu-arrow"></i>
+                                </a>
+                                <ul class="sub-menu">
+                                    <li class="side-nav-item">
+                                        <a href="javascript:void(0)" class="side-nav-link" data-page="opp-dashboard"
+                                            data-href="/app/opp-dashboard">
+                                            <span class="text-truncate" title="Opp Dashboard">Opp Dashboard</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>        
+
                             <!-- Nested Reports Menu -->
                             <li class="side-nav-item menu-parent menu-nested" data-menu-id="reports-menu"
                                 data-parent-id="crm-menu">
@@ -156,7 +176,8 @@
                                         </a>
                                     </li>
                                     <li class="side-nav-item">
-                                        <a href="javascript:void(0)" class="side-nav-link customer-analysis-link" data-report="Customers Analysis"
+                                        <a href="javascript:void(0)" class="side-nav-link customer-analysis-link"
+                                            data-report="Customers Analysis"
                                             data-href="/app/query-report/Customers%20Analysis">
                                             <span class="text-truncate" title="Customer Analysis">Customer
                                                 Analysis</span>
@@ -182,9 +203,21 @@
                                 </a>
                             </li>
                             <li class="side-nav-item">
+                                <a href="javascript:void(0)" class="side-nav-link" data-page="quote-list"
+                                    data-href="/app/quote-list">
+                                    <span class="text-truncate" title="Quote List">Quote List</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
                                 <a href="javascript:void(0)" class="side-nav-link" data-page="customer-order-forms"
                                     data-href="/app/customer-order-forms">
                                     <span class="text-truncate" title="Customer Order Forms">Customer Order Forms</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="javascript:void(0)" class="side-nav-link" data-page="cof-list"
+                                    data-href="/app/cof-list">
+                                    <span class="text-truncate" title="Customer Order Forms">COF</span>
                                 </a>
                             </li>
 
@@ -216,12 +249,12 @@
                         </a>
                         <ul class="sub-menu">
                             <li class="side-nav-item">
-                                <a href="javascript:void(0)" class="side-nav-link renewal-list-link" data-page="renewal-list"
-                                    data-href="/app/renewal-list">
-                                    <span class="text-truncate" title="Renewal List">Renewal List</span>
+                                <a href="javascript:void(0)" class="side-nav-link" data-page="renewals"
+                                    data-href="/app/renewals">
+                                    <span class="text-truncate" title="Renewals">Renewals</span>
                                 </a>
                             </li>
-                            <li class="side-nav-item menu-parent menu-nested" data-menu-id="-menu"
+                            <li class="side-nav-item menu-parent menu-nested hidden" data-menu-id="-menu"
                                 data-parent-id="renewal-menu">
                                 <a href="#" class="side-nav-link menu-toggle">
                                     <span class="text-truncate" title="Reports">Reports</span>
@@ -344,8 +377,59 @@
 
                 </ul>
             </nav>
+            <!-- User Avatar & Details Card -->
+            <div class="sb-footer">
+                <div class="sb-agent-row">
+                    <span id="sidebar-user-avatar" class="sb-av"></span>
+                    <div>
+                        <div id="sidebar-user-name" class="sb-agent-name">Loading...</div>
+                        <div id="sidebar-user-role" class="sb-agent-role">User</div>
+                    </div>
+                    <div class="online-dot"></div>
+                </div>
+            </div>
         </aside>
         <!-- PAGE CONTENT -->
         <div class="content1" id="support-page-content"></div>
     </div>
 </div>
+
+<script>
+    (function() {
+        const loadScript = (src, callback) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = callback;
+            document.head.appendChild(script);
+        };
+
+        const init = () => {
+            if (window.initSupportTheme) {
+                window.initSupportTheme();
+            }
+        };
+
+        const loadAll = () => {
+            loadScript("https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js", () => {
+                loadScript("https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js", () => {
+                    loadScript("/assets/renewal_module/js/issue_themes/support_theme2.js", () => {
+                        if (document.readyState === 'loading') {
+                            document.addEventListener('DOMContentLoaded', init);
+                        } else {
+                            init();
+                        }
+                    });
+                });
+            });
+        };
+
+        // If not in desk environment, load jQuery and then other scripts
+        if (!window.frappe) {
+            if (!window.jQuery) {
+                loadScript("https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js", loadAll);
+            } else {
+                loadAll();
+            }
+        }
+    })();
+</script>

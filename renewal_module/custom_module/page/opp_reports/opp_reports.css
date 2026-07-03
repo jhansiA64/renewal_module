@@ -1,0 +1,65 @@
+[data-route^="opp-reports"] .sticky-top,
+[data-route^="opp-reports"] .page-head {
+    display: none !important;
+}
+
+body[data-route^="opp-reports"] {
+    font-family: 'DM Sans', sans-serif;
+    background: #f0f2f5;
+    color: #111827;
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 100vh;
+}
+
+[data-route^="opp-reports"] .layout-main,
+[data-route^="opp-reports"] .layout-main-section-wrapper,
+[data-route^="opp-reports"] .container,
+[data-route^="opp-reports"] .container-fluid,
+[data-route^="opp-reports"] .container-lg,
+[data-route^="opp-reports"] .container-md,
+[data-route^="opp-reports"] .container-sm,
+[data-route^="opp-reports"] .container-xl,
+[data-route^="opp-reports"] .container-xxl {
+    padding: 0 !important;
+    background: #f0f2f5;
+    max-width: 100% !important;
+}
+
+/* ── Layout chain: make everything a flex column to fill viewport ── */
+/* [data-route^="opp-list"] .layout-main {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+} */
+
+[data-route^="opp-reports"] .layout-main-section-wrapper {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+}
+
+[data-route^="opp-reports"] .layout-main-section {
+    height: 100% !important;
+    padding: 0 !important;
+    background: #f0f2f5;
+    overflow: hidden !important;
+}
+
+/* support_layout2 injects a flex-row wrapper with sidebar + content */
+[data-route^="opp-reports"] .support-layout-wrap,
+[data-route^="opp-reports"] .support-main-wrap,
+[data-route^="opp-reports"] .support-body-wrap {
+    height: 100% !important;
+    overflow: hidden !important;
+}
+
+
+[data-route^="opp-reports"] .body-sidebar-container {
+    display: none !important;
+    width: 0 !important;
+}
